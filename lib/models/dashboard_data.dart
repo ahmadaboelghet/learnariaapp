@@ -4,21 +4,25 @@ class AttendanceRecord {
   final String studentName;
   final String date;
   final String status;
-  final String parentPhoneNumber; // NEW: Added parent phone number
+  final String parentPhoneNumber;
+  final String studentId; // NEW: Added studentId to link records
 
   AttendanceRecord({
     required this.studentName,
     required this.date,
     required this.status,
     required this.parentPhoneNumber,
+    required this.studentId,
   });
 
-  factory AttendanceRecord.fromJson(Map<String, dynamic> json) {
+  // Factory constructor to create an AttendanceRecord from a Firestore map
+  factory AttendanceRecord.fromFirestore(Map<String, dynamic> data, String studentId) {
     return AttendanceRecord(
-      studentName: json['studentName'] as String? ?? 'N/A',
-      date: json['date'] as String? ?? 'N/A',
-      status: json['status'] as String? ?? 'N/A',
-      parentPhoneNumber: json['parentPhoneNumber'] as String? ?? 'N/A', // Parse parentPhoneNumber
+      studentName: data['name'] as String? ?? 'N/A', // Assuming 'name' field in student doc
+      date: data['date'] as String? ?? 'N/A',
+      status: data['status'] as String? ?? 'N/A',
+      parentPhoneNumber: data['parentPhoneNumber'] as String? ?? 'N/A',
+      studentId: studentId, // Use the passed studentId
     );
   }
 }
@@ -28,8 +32,9 @@ class GradeRecord {
   final String studentName;
   final String subject;
   final String assignmentName;
-  final int score; // Changed to int
-  final String parentPhoneNumber; // NEW: Added parent phone number
+  final int score;
+  final String parentPhoneNumber;
+  final String studentId; // NEW: Added studentId to link records
 
   GradeRecord({
     required this.studentName,
@@ -37,15 +42,18 @@ class GradeRecord {
     required this.assignmentName,
     required this.score,
     required this.parentPhoneNumber,
+    required this.studentId,
   });
 
-  factory GradeRecord.fromJson(Map<String, dynamic> json) {
+  // Factory constructor to create a GradeRecord from a Firestore map
+  factory GradeRecord.fromFirestore(Map<String, dynamic> data, String studentId) {
     return GradeRecord(
-      studentName: json['studentName'] as String? ?? 'N/A',
-      subject: json['subject'] as String? ?? 'N/A',
-      assignmentName: json['assignmentName'] as String? ?? 'N/A',
-      score: (json['score'] as num?)?.toInt() ?? 0, // Handle int or double from JSON
-      parentPhoneNumber: json['parentPhoneNumber'] as String? ?? 'N/A', // Parse parentPhoneNumber
+      studentName: data['name'] as String? ?? 'N/A', // Assuming 'name' field in student doc
+      subject: data['subject'] as String? ?? 'N/A',
+      assignmentName: data['assignmentName'] as String? ?? 'N/A',
+      score: (data['score'] as num?)?.toInt() ?? 0,
+      parentPhoneNumber: data['parentPhoneNumber'] as String? ?? 'N/A',
+      studentId: studentId, // Use the passed studentId
     );
   }
 }
@@ -56,7 +64,8 @@ class ScheduleEntry {
   final String date;
   final String time;
   final String room;
-  final String parentPhoneNumber; // NEW: Added parent phone number
+  final String parentPhoneNumber;
+  final String studentId; // NEW: Added studentId if schedule is per student
 
   ScheduleEntry({
     required this.subject,
@@ -64,15 +73,18 @@ class ScheduleEntry {
     required this.time,
     required this.room,
     required this.parentPhoneNumber,
+    required this.studentId,
   });
 
-  factory ScheduleEntry.fromJson(Map<String, dynamic> json) {
+  // Factory constructor to create a ScheduleEntry from a Firestore map
+  factory ScheduleEntry.fromFirestore(Map<String, dynamic> data, String studentId) {
     return ScheduleEntry(
-      subject: json['subject'] as String? ?? 'N/A',
-      date: json['date'] as String? ?? 'N/A',
-      time: json['time'] as String? ?? 'N/A',
-      room: json['room'] as String? ?? 'N/A',
-      parentPhoneNumber: json['parentPhoneNumber'] as String? ?? 'N/A', // Parse parentPhoneNumber
+      subject: data['subject'] as String? ?? 'N/A',
+      date: data['date'] as String? ?? 'N/A',
+      time: data['time'] as String? ?? 'N/A',
+      room: data['room'] as String? ?? 'N/A',
+      parentPhoneNumber: data['parentPhoneNumber'] as String? ?? 'N/A',
+      studentId: studentId, // Use the passed studentId
     );
   }
 }
@@ -89,20 +101,5 @@ class DashboardData {
     required this.schedule,
   });
 
-  factory DashboardData.fromJson(Map<String, dynamic> json) {
-    return DashboardData(
-      attendance: (json['attendance'] as List<dynamic>?)
-              ?.map((item) => AttendanceRecord.fromJson(item as Map<String, dynamic>))
-              .toList() ??
-          [],
-      grades: (json['grades'] as List<dynamic>?)
-              ?.map((item) => GradeRecord.fromJson(item as Map<String, dynamic>))
-              .toList() ??
-          [],
-      schedule: (json['schedule'] as List<dynamic>?)
-              ?.map((item) => ScheduleEntry.fromJson(item as Map<String, dynamic>))
-              .toList() ??
-          [],
-    );
-  }
+  // No fromJson here as data is constructed from multiple Firestore queries
 }

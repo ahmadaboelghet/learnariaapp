@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "573038013067",
+    "project_id": "learnaria-483e7",
+    "storage_bucket": "learnaria-483e7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:573038013067:android:db33a27f5739146a7a828e",
+        "android_client_info": {
+          "package_name": "com.example.learnaria"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDbxhrgXcvrUKFcqjCIdkPMmNYigvCuqNk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

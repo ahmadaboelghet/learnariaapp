@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:learnaria/screens/login.dart';
 import 'package:learnaria/utils/app_styles.dart'; // Adjust import
-import 'package:learnaria/screens/signup.dart'; // Adjust import
 
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
@@ -43,7 +43,7 @@ class _IntroScreenState extends State<IntroScreen> {
             onPressed: () {
               // Navigate to signup screen directly
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => SignUpScreen()),
+                MaterialPageRoute(builder: (context) => LoginScreen()),
               );
             },
             child: Text(
@@ -88,7 +88,7 @@ class _IntroScreenState extends State<IntroScreen> {
                     ? ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (context) => SignUpScreen()),
+                            MaterialPageRoute(builder: (context) => LoginScreen()),
                           );
                         },
                         style: primaryButtonStyle().copyWith(
