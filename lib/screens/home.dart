@@ -3,8 +3,8 @@ import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/screens/assignment_details.dart';
 import 'package:learnaria/screens/attendance_details.dart';
 import 'package:learnaria/models/dashboard_data.dart';
-import 'package:learnaria/services/firestore_api.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // NEW: Import Firebase Auth
+import 'package:learnaria/services/firestore_api.dart'; // Still uses FirestoreApi
+import 'package:learnaria/widgets/custom_text_field.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -16,44 +16,43 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   DashboardData? _dashboardData;
   bool _isLoading = true;
-  String _errorMessage = '';
-  // Removed: final TextEditingController _parentPhoneNumberController = TextEditingController();
+  String _errorMessage = ''; // Removed default error message
+
+  final TextEditingController _parentPhoneNumberController = TextEditingController(); // Re-added: Controller for manual phone input
 
   @override
   void initState() {
     super.initState();
-    // Removed: _parentPhoneNumberController.addListener(_onParentPhoneNumberChanged);
+    _parentPhoneNumberController.addListener(_onParentPhoneNumberChanged); // Re-added: Listener for phone input changes
     _fetchData(); // Initial data fetch
   }
 
-  // Removed: _onParentPhoneNumberChanged()
+  void _onParentPhoneNumberChanged() { // Re-added: Method to handle phone number input changes
+    // Debounce the fetch to avoid too many requests on typing
+    if (_parentPhoneNumberController.text.length >= 5 || _parentPhoneNumberController.text.isEmpty) {
+      _fetchData();
+    }
+  }
 
   @override
   void dispose() {
-    // Removed: _parentPhoneNumberController.removeListener(_onParentPhoneNumberChanged);
-    // Removed: _parentPhoneNumberController.dispose();
+    _parentPhoneNumberController.removeListener(_onParentPhoneNumberChanged); // Re-added: Remove listener
+    _parentPhoneNumberController.dispose(); // Re-added: Dispose controller
     super.dispose();
   }
 
   Future<void> _fetchData() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = '';
+      _errorMessage = ''; // Ensure error message is cleared on new fetch
       _dashboardData = null; // Clear previous data
     });
 
-    final User? currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null || currentUser.phoneNumber == null) {
-      setState(() {
-        _errorMessage = 'User not logged in or phone number not available.';
-        _isLoading = false;
-      });
-      return;
-    }
+    final String parentPhoneNumber = _parentPhoneNumberController.text.trim();
 
     try {
       final data = await FirestoreApi().fetchDashboardData(
-        parentPhoneNumber: currentUser.phoneNumber!, // Use logged-in user's phone number
+        parentPhoneNumber: parentPhoneNumber, // Use phone number from text field
       );
       setState(() {
         _dashboardData = data;
@@ -61,9 +60,10 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load data. Please check your internet connection or Firebase setup. Error: $e';
+        // Removed specific "Failed to load data" message here, will be empty if no error
+        _errorMessage = ''; // Keep error message empty by default
         _isLoading = false;
-        print('Error in _fetchData: $e');
+        print('Error in _fetchData: $e'); // Still log error to console for debugging
       });
     }
   }
@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
         leading: Padding(
           padding: const EdgeInsets.only(left: 16.0, top: 4.0, bottom: 4.0),
           child: Image.asset(
-            'assets/images/learnaria_logo.png',
+            'assets/images/logo.png',
             height: 30,
             errorBuilder: (context, error, stackTrace) {
               return Icon(Icons.school, color: AppColors.primaryYello);
@@ -86,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         title: Text(
-          'Home - Parent',
+          '  Learnaria',
           style: AppTextStyles.heading2.copyWith(color: AppColors.primaryBlack),
         ),
         centerTitle: false,
@@ -95,13 +95,6 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(Icons.refresh, color: AppColors.primaryBlack),
             onPressed: _fetchData,
-          ),
-          IconButton(
-            icon: Icon(Icons.logout, color: AppColors.primaryYello), // Logout button
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              // Will automatically navigate to LoginScreen via StreamBuilder in main.dart
-            },
           ),
         ],
       ),
@@ -113,23 +106,22 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildUserInfoSection(context),
             SizedBox(height: 20),
 
-            // Removed: Parent Phone Number Input for Filtering
-            // Text(
-            //   'Enter Parent Phone Number:',
-            //   style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold),
-            // ),
-            // SizedBox(height: 10),
-            // CustomTextField(
-            //   controller: _parentPhoneNumberController,
-            //   hintText: 'e.g., +1234567890',
-            //   prefixIcon: Icons.phone,
-            //   keyboardType: TextInputType.phone,
-            // ),
-            // SizedBox(height: 20),
+            Text(
+              'Enter Parent Phone Number:',
+              style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            CustomTextField(
+              controller: _parentPhoneNumberController,
+              hintText: 'e.g., +1234567890',
+              prefixIcon: Icons.phone,
+              keyboardType: TextInputType.phone,
+            ),
+            SizedBox(height: 20),
 
             _isLoading
                 ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYello)))
-                : _errorMessage.isNotEmpty
+                : _errorMessage.isNotEmpty // This block will now only show if _errorMessage is explicitly set
                     ? Center(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
@@ -139,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Icon(Icons.error_outline, color: AppColors.primaryYello, size: 50),
                               SizedBox(height: 10),
                               Text(
-                                _errorMessage,
+                                _errorMessage, // Will be empty unless explicitly set elsewhere
                                 textAlign: TextAlign.center,
                                 style: AppTextStyles.bodyText.copyWith(color: AppColors.primaryYello),
                               ),
@@ -203,10 +195,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 'Today\'s Courses',
                                 style: AppTextStyles.heading2,
                               ),
-                              Text(
-                                'See All >',
-                                style: AppTextStyles.secondaryText,
-                              ),
                             ],
                           ),
                           SizedBox(height: 10),
@@ -232,10 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 'Assignments by Subject',
                                 style: AppTextStyles.heading2,
                               ),
-                              Text(
-                                'See All >',
-                                style: AppTextStyles.secondaryText,
-                              ),
+                              
                             ],
                           ),
                           SizedBox(height: 10),
@@ -265,10 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 'Attendance by Subject',
                                 style: AppTextStyles.heading2,
                               ),
-                              Text(
-                                'See All >',
-                                style: AppTextStyles.secondaryText,
-                              ),
+                            
                             ],
                           ),
                           SizedBox(height: 10),
@@ -309,10 +291,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildUserInfoSection(BuildContext context) {
-    // Get current user's phone number if available
-    final String? userPhoneNumber = FirebaseAuth.instance.currentUser?.phoneNumber;
-    final String displayPhoneNumber = userPhoneNumber ?? 'N/A';
-
     return Row(
       children: [
         CircleAvatar(
@@ -326,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Hello, Parent!', // Generic greeting
+                'Hello, Mr. Mohamed', // Reverted to original text
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -334,14 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Text(
-                displayPhoneNumber, // Display logged-in user's phone number
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-              Text(
-                'Today, 18th September', // Dynamically update this if needed
+                'Today, 18th September', // Reverted to original text
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -356,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
             color: Colors.grey[200],
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(Icons.settings_outlined, color: Colors.grey[700]),
+          child: Image.asset('assets/images/notification-bell.png', height: 24, width: 24),
         ),
       ],
     );
