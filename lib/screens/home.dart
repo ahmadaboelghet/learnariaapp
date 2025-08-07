@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/screens/assignment_details.dart';
-import 'package:learnaria/screens/attendance_details.dart';
+import 'package:learnaria/screens/attendance_details.dart'; // استيراد الصفحة الجديدة
 import 'package:learnaria/models/dashboard_data.dart';
-import 'package:learnaria/services/firestore_api.dart'; // Still uses FirestoreApi
-import 'package:learnaria/widgets/custom_text_field.dart';
+import 'package:learnaria/services/firestore_api.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -16,56 +16,73 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   DashboardData? _dashboardData;
   bool _isLoading = true;
-  String _errorMessage = ''; // Removed default error message
-
-  final TextEditingController _parentPhoneNumberController = TextEditingController(); // Re-added: Controller for manual phone input
+  String _errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    _parentPhoneNumberController.addListener(_onParentPhoneNumberChanged); // Re-added: Listener for phone input changes
-    _fetchData(); // Initial data fetch
-  }
-
-  void _onParentPhoneNumberChanged() { // Re-added: Method to handle phone number input changes
-    // Debounce the fetch to avoid too many requests on typing
-    if (_parentPhoneNumberController.text.length >= 5 || _parentPhoneNumberController.text.isEmpty) {
-      _fetchData();
-    }
-  }
-
-  @override
-  void dispose() {
-    _parentPhoneNumberController.removeListener(_onParentPhoneNumberChanged); // Re-added: Remove listener
-    _parentPhoneNumberController.dispose(); // Re-added: Dispose controller
-    super.dispose();
+    _fetchData();
   }
 
   Future<void> _fetchData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = ''; // Ensure error message is cleared on new fetch
-      _dashboardData = null; // Clear previous data
-    });
-
-    final String parentPhoneNumber = _parentPhoneNumberController.text.trim();
-
+    if (!mounted) return;
+    setState(() => _isLoading = true);
     try {
-      final data = await FirestoreApi().fetchDashboardData(
-        parentPhoneNumber: parentPhoneNumber, // Use phone number from text field
-      );
-      setState(() {
-        _dashboardData = data;
-        _isLoading = false;
-      });
+      final user = FirebaseAuth.instance.currentUser;
+      final parentPhone = user?.email?.split('@').first;
+      if (parentPhone == null || parentPhone.isEmpty) {
+        throw Exception('Could not determine your phone number from your email.');
+      }
+      final data = await FirestoreApi().fetchDashboardData(parentPhoneNumber: parentPhone);
+      if (mounted) {
+        setState(() {
+          _dashboardData = data;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        // Removed specific "Failed to load data" message here, will be empty if no error
-        _errorMessage = ''; // Keep error message empty by default
-        _isLoading = false;
-        print('Error in _fetchData: $e'); // Still log error to console for debugging
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  // --- Helper Getters ---
+  int get totalAssignmentsCount {
+    if (_dashboardData == null) return 0;
+    return _dashboardData!.reportsByTeacher.fold(0, (sum, report) => sum + report.grades.length);
+  }
+
+  int get totalSubjectsWithAssignments {
+     if (_dashboardData == null) return 0;
+     final subjects = <String>{};
+     for (var report in _dashboardData!.reportsByTeacher) {
+       if (report.grades.isNotEmpty) {
+         subjects.add(report.subject);
+       }
+     }
+     return subjects.length;
+  }
+
+  int get overallAttendancePercentage {
+    if (_dashboardData == null) return 0;
+    final allAttendance = _dashboardData!.reportsByTeacher.expand((report) => report.attendance).toList();
+    if (allAttendance.isEmpty) return 0;
+    final presentCount = allAttendance.where((a) => a.status.toLowerCase() == 'present').length;
+    return (presentCount / allAttendance.length * 100).toInt();
+  }
+
+  int get totalAttendanceDays {
+    if (_dashboardData == null) return 0;
+    return _dashboardData!.reportsByTeacher.expand((report) => report.attendance).length;
+  }
+  
+  List<ScheduleEntry> get allScheduleEntries {
+    if (_dashboardData == null) return [];
+    return _dashboardData!.reportsByTeacher.expand((report) => report.schedule).toList();
   }
 
   @override
@@ -76,406 +93,183 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 16.0, top: 4.0, bottom: 4.0),
-          child: Image.asset(
-            'assets/images/logo.png',
-            height: 30,
-            errorBuilder: (context, error, stackTrace) {
-              return Icon(Icons.school, color: AppColors.primaryYello);
-            },
-          ),
+          padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
+          child: Image.asset('assets/images/logo.png'),
         ),
-        title: Text(
-          '  Learnaria',
-          style: AppTextStyles.heading2.copyWith(color: AppColors.primaryBlack),
-        ),
+        title: Text('Learnaria', style: AppTextStyles.heading2),
         centerTitle: false,
         titleSpacing: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh, color: AppColors.primaryBlack),
-            onPressed: _fetchData,
-          ),
-        ],
+        actions: [IconButton(icon: Icon(Icons.refresh, color: AppColors.primaryBlack), onPressed: _fetchData)],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildUserInfoSection(context),
-            SizedBox(height: 20),
-
-            Text(
-              'Enter Parent Phone Number:',
-              style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            CustomTextField(
-              controller: _parentPhoneNumberController,
-              hintText: 'e.g., +1234567890',
-              prefixIcon: Icons.phone,
-              keyboardType: TextInputType.phone,
-            ),
-            SizedBox(height: 20),
-
-            _isLoading
-                ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYello)))
-                : _errorMessage.isNotEmpty // This block will now only show if _errorMessage is explicitly set
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.error_outline, color: AppColors.primaryYello, size: 50),
-                              SizedBox(height: 10),
-                              Text(
-                                _errorMessage, // Will be empty unless explicitly set elsewhere
-                                textAlign: TextAlign.center,
-                                style: AppTextStyles.bodyText.copyWith(color: AppColors.primaryYello),
-                              ),
-                              SizedBox(height: 20),
-                              ElevatedButton(
-                                onPressed: _fetchData,
-                                style: primaryButtonStyle(),
-                                child: Text('Retry', style: AppTextStyles.buttonText),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Reports',
-                            style: AppTextStyles.heading2,
-                          ),
-                          SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildSummaryCard(
-                                  context,
-                                  title: 'Assignments',
-                                  value: (_dashboardData?.grades.length ?? 0).toString(),
-                                  description: '${_dashboardData?.grades.map((g) => g.subject).toSet().length ?? 0} Subjects',
-                                  color: AppColors.primaryYello,
-                                  onTap: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Assignments Overview Tapped')),
-                                    );
-                                  },
-                                ),
-                              ),
-                              SizedBox(width: 15),
-                              Expanded(
-                                child: _buildSummaryCard(
-                                  context,
-                                  title: 'Attendance',
-                                  value: '${_calculateAttendancePercentage()}%',
-                                  description: '${_dashboardData?.attendance.length ?? 0} records',
-                                  color: AppColors.greenSuccess,
-                                  onTap: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Attendance Overview Tapped')),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 20),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Today\'s Courses',
-                                style: AppTextStyles.heading2,
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 10),
-                          if ((_dashboardData?.schedule ?? []).isEmpty)
-                            Center(child: Text('No schedule data available.', style: AppTextStyles.secondaryText))
-                          else
-                            ...(_dashboardData!.schedule.map((entry) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 10.0),
-                                  child: _buildCourseCard(
-                                    context,
-                                    subject: entry.subject,
-                                    time: '${entry.time} - ${entry.room}',
-                                    status: 'Scheduled',
-                                    statusColor: Colors.blue,
-                                  ),
-                                )).toList()),
-                          SizedBox(height: 20),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Assignments by Subject',
-                                style: AppTextStyles.heading2,
-                              ),
-                              
-                            ],
-                          ),
-                          SizedBox(height: 10),
-                          SizedBox(
-                            height: 120,
-                            child: (_dashboardData?.grades ?? []).isEmpty
-                                ? Center(child: Text('No assignment data available.', style: AppTextStyles.secondaryText))
-                                : ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: _dashboardData!.grades.length,
-                                    itemBuilder: (context, index) {
-                                      final grade = _dashboardData!.grades[index];
-                                      return Padding(
-                                        padding: EdgeInsets.only(right: 15.0),
-                                        child: _buildSubjectAssignmentCell(
-                                            context, grade.subject, grade.score),
-                                      );
-                                    },
-                                  ),
-                          ),
-                          SizedBox(height: 20),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Attendance by Subject',
-                                style: AppTextStyles.heading2,
-                              ),
-                            
-                            ],
-                          ),
-                          SizedBox(height: 10),
-                          SizedBox(
-                            height: 120,
-                            child: (_dashboardData?.attendance ?? []).isEmpty
-                                ? Center(child: Text('No attendance data available.', style: AppTextStyles.secondaryText))
-                                : ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: _dashboardData!.attendance.length,
-                                    itemBuilder: (context, index) {
-                                      final attendance = _dashboardData!.attendance[index];
-                                      int percentage = attendance.status == 'present' ? 100 : (attendance.status == 'late' ? 80 : 0);
-                                      return Padding(
-                                        padding: EdgeInsets.only(right: 15.0),
-                                        child: _buildSubjectAttendanceCell(
-                                            context, attendance.studentName, percentage),
-                                      );
-                                    },
-                                  ),
-                          ),
-                          SizedBox(height: 20),
-                        ],
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYello)))
+          : _errorMessage.isNotEmpty
+              ? Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text(_errorMessage, style: AppTextStyles.bodyText.copyWith(color: Colors.red), textAlign: TextAlign.center)))
+              : _dashboardData != null && _dashboardData!.reportsByTeacher.isNotEmpty
+                  ? RefreshIndicator(
+                      onRefresh: _fetchData,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(16.0),
+                        child: _buildDashboardContent(),
                       ),
-          ],
-        ),
-      ),
+                    )
+                  : Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text("No student data found. Please contact the teacher.", style: AppTextStyles.secondaryText, textAlign: TextAlign.center))),
     );
   }
 
-  int _calculateAttendancePercentage() {
-    if (_dashboardData == null || _dashboardData!.attendance.isEmpty) {
-      return 0;
-    }
-    final totalRecords = _dashboardData!.attendance.length;
-    final presentCount = _dashboardData!.attendance.where((r) => r.status == 'present').length;
-    return ((presentCount / totalRecords) * 100).toInt();
-  }
-
-  Widget _buildUserInfoSection(BuildContext context) {
-    return Row(
+  Widget _buildDashboardContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: Colors.grey[200],
-          child: Icon(Icons.person, color: Colors.grey[600]),
+        _buildUserInfoSection(),
+        SizedBox(height: 20),
+        Text('Reports', style: AppTextStyles.heading2),
+        SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(child: _buildSummaryCard(title: 'Assignments', value: '$totalAssignmentsCount Done', description: '$totalSubjectsWithAssignments Subjects', color: AppColors.primaryYello)),
+            SizedBox(width: 15),
+            Expanded(child: _buildSummaryCard(title: 'Attendance', value: '$overallAttendancePercentage% Present', description: '$totalAttendanceDays days', color: AppColors.greenSuccess)),
+          ],
         ),
+        SizedBox(height: 20),
+        Text("Today's Courses", style: AppTextStyles.heading2),
+        SizedBox(height: 10),
+        if (allScheduleEntries.isEmpty)
+          Padding(padding: const EdgeInsets.symmetric(vertical: 20.0), child: Center(child: Text('No courses scheduled for today.', style: AppTextStyles.secondaryText)))
+        else
+          ...allScheduleEntries.map((entry) => Padding(padding: const EdgeInsets.only(bottom: 10.0), child: _buildCourseCard(subject: entry.subject, time: '${entry.time} - ${entry.room}'))).toList(),
+        SizedBox(height: 20),
+        Text('Assignments by Subject', style: AppTextStyles.heading2),
+        SizedBox(height: 10),
+        Container(
+          height: 150,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _dashboardData!.reportsByTeacher.length,
+            itemBuilder: (context, index) {
+              final report = _dashboardData!.reportsByTeacher[index];
+              int latestGrade = 0;
+              if (report.grades.isNotEmpty) {
+                report.grades.sort((a, b) => b.date.compareTo(a.date));
+                latestGrade = report.grades.first.score;
+              }
+              return _buildSubjectAssignmentCell(subject: report.subject, teacher: report.teacherName, percentage: latestGrade, allGrades: report.grades);
+            },
+          ),
+        ),
+        
+        // --- START: القسم الجديد الذي تم إضافته ---
+        SizedBox(height: 20),
+        Text('Attendance by Subject', style: AppTextStyles.heading2),
+        SizedBox(height: 10),
+        Container(
+          height: 150,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _dashboardData!.reportsByTeacher.length,
+            itemBuilder: (context, index) {
+              final report = _dashboardData!.reportsByTeacher[index];
+              final totalDays = report.attendance.length;
+              final presentDays = report.attendance.where((a) => a.status.toLowerCase() == 'present').length;
+              final percentage = totalDays == 0 ? 0 : (presentDays / totalDays * 100).toInt();
+              return _buildSubjectAttendanceCell(subject: report.subject, teacher: report.teacherName, percentage: percentage, allAttendance: report.attendance);
+            },
+          ),
+        ),
+        // --- END: القسم الجديد الذي تم إضافته ---
+
+      ],
+    );
+  }
+  
+  Widget _buildUserInfoSection() {
+     return Row(
+      children: [
+        CircleAvatar(radius: 24, backgroundColor: Colors.grey[200], child: Icon(Icons.person, color: Colors.grey[600])), 
         SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Hello, Mr. Mohamed', // Reverted to original text
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              Text(
-                'Today, 18th September', // Reverted to original text
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
+              Text('Hello, ${_dashboardData?.studentName ?? "Parent"}!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Here is your latest report.', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
             ],
           ),
-        ),
-        Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Image.asset('assets/images/notification-bell.png', height: 24, width: 24),
         ),
       ],
     );
   }
 
-  Widget _buildSummaryCard(BuildContext context, {
-    required String title,
-    required String value,
-    required String description,
-    required Color color,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 5),
-            Text(
-              value,
-              style: AppTextStyles.heading1.copyWith(color: color),
-            ),
-            Text(
-              description,
-              style: AppTextStyles.secondaryText,
-            ),
-          ],
-        ),
+  Widget _buildSummaryCard({required String title, required String value, required String description, required Color color}) {
+    return Container(
+      padding: EdgeInsets.all(15),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, fontSize: 16)),
+          SizedBox(height: 8),
+          Text(value, style: AppTextStyles.heading1.copyWith(color: color, fontSize: 20)),
+          SizedBox(height: 4),
+          Text(description, style: AppTextStyles.secondaryText.copyWith(fontSize: 12)),
+        ],
       ),
     );
   }
 
-  Widget _buildCourseCard(BuildContext context, {
-    required String subject,
-    required String time,
-    required String status,
-    required Color statusColor,
-  }) {
+  Widget _buildCourseCard({required String subject, required String time}) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  subject,
-                  style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  time,
-                  style: AppTextStyles.secondaryText,
-                ),
-              ],
-            ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                status,
-                style: AppTextStyles.smallRedText.copyWith(color: statusColor, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-      );
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))]),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(subject, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold)),
+              Text(time, style: AppTextStyles.secondaryText),
+            ],
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: AppColors.primaryYello.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+            child: Text("Upcoming", style: TextStyle(color: AppColors.primaryYello, fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildSubjectAssignmentCell(BuildContext context, String subject, int percentage) {
+  Widget _buildSubjectAssignmentCell({required String subject, required String teacher, required int percentage, required List<GradeRecord> allGrades}) {
     return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => AssignmentDetailsScreen(subject: subject),
-          ),
-        );
-      },
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => AssignmentDetailsScreen(subject: subject, grades: allGrades))),
       child: Container(
         width: 180,
+        margin: EdgeInsets.only(right: 15),
         padding: EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), spreadRadius: 1, blurRadius: 10)]),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              subject,
-              style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Assignment Progress',
-              style: AppTextStyles.secondaryText,
-            ),
+            Text(subject, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+            SizedBox(height: 4),
+            Text(teacher, style: AppTextStyles.secondaryText.copyWith(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
             Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '$percentage%',
-                  style: AppTextStyles.heading2.copyWith(color: percentage >= 70 ? AppColors.greenSuccess : AppColors.primaryYello),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('$percentage%', style: AppTextStyles.heading2.copyWith(color: percentage >= 70 ? AppColors.greenSuccess : AppColors.primaryYello)),
+                    Text('Latest', style: AppTextStyles.secondaryText.copyWith(fontSize: 10)),
+                  ],
                 ),
-                Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[600]),
+                Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
               ],
             ),
           ],
@@ -484,51 +278,33 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSubjectAttendanceCell(BuildContext context, String studentName, int percentage) {
+  // --- START: الويدجت الجديد لبطاقة الحضور ---
+  Widget _buildSubjectAttendanceCell({required String subject, required String teacher, required int percentage, required List<AttendanceRecord> allAttendance}) {
     return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => AttendanceDetailsScreen(subject: studentName),
-          ),
-        );
-      },
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => AttendanceDetailsScreen(subject: subject, attendanceRecords: allAttendance))),
       child: Container(
         width: 180,
+        margin: EdgeInsets.only(right: 15),
         padding: EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), spreadRadius: 1, blurRadius: 10)]),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              studentName,
-              style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Attendance Rate',
-              style: AppTextStyles.secondaryText,
-            ),
+            Text(subject, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+            SizedBox(height: 4),
+            Text(teacher, style: AppTextStyles.secondaryText.copyWith(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
             Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '$percentage%',
-                  style: AppTextStyles.heading2.copyWith(color: percentage >= 90 ? AppColors.greenSuccess : AppColors.primaryYello),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('$percentage%', style: AppTextStyles.heading2.copyWith(color: percentage >= 90 ? AppColors.greenSuccess : AppColors.primaryYello)),
+                    Text('Present', style: AppTextStyles.secondaryText.copyWith(fontSize: 10)),
+                  ],
                 ),
-                Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[600]),
+                Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
               ],
             ),
           ],
@@ -536,4 +312,5 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+  // --- END: الويدجت الجديد لبطاقة الحضور ---
 }

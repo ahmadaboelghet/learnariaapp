@@ -1,161 +1,142 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:learnaria/utils/app_styles.dart';
+import 'package:learnaria/widgets/custom_text_field.dart';
+import 'package:learnaria/widgets/password_text_field.dart';
+import 'package:learnaria/screens/signup.dart';
+import 'package:learnaria/screens/main_layout.dart';
+import 'package:learnaria/screens/forget_password.dart';
 
-// import 'package:flutter/material.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:learnaria/utils/app_styles.dart';
-// import 'package:learnaria/widgets/custom_text_field.dart';
-// import 'package:learnaria/screens/otp_verification.dart';
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
 
-// class LoginScreen extends StatefulWidget {
-//   const LoginScreen({Key? key}) : super(key: key);
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
 
-//   @override
-//   _LoginScreenState createState() => _LoginScreenState();
-// }
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _isLoading = false;
+  String? _errorMessage;
 
-// class _LoginScreenState extends State<LoginScreen> {
-//   final TextEditingController _phoneController = TextEditingController();
-//   final FirebaseAuth _auth = FirebaseAuth.instance;
-//   bool _isLoading = false;
-//   String? _errorMessage;
+  Future<void> _signIn() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-//   Future<void> _verifyPhoneNumber() async {
-//     setState(() {
-//       _isLoading = true;
-//       _errorMessage = null;
-//     });
+    try {
+      final String emailFormattedPhoneNumber = "${_phoneController.text.trim()}@learnaria.app";
 
-//     // Firebase expects phone numbers in E.164 format (e.g., +1234567890)
-//     // You might need to add a country code picker or prepend a default one.
-//     final String phoneNumber = _phoneController.text.trim();
-//     if (!phoneNumber.startsWith('+')) {
-//       _errorMessage = 'Phone number must start with a country code (e.g., +201234567890).';
-//       setState(() { _isLoading = false; });
-//       return;
-//     }
+      await _auth.signInWithEmailAndPassword(
+        email: emailFormattedPhoneNumber,
+        password: _passwordController.text.trim(),
+      );
+      
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainLayoutScreen()),
+        );
+      }
 
-//     try {
-//       await _auth.verifyPhoneNumber(
-//         phoneNumber: phoneNumber,
-//         verificationCompleted: (PhoneAuthCredential credential) async {
-//           // Auto-retrieval on Android, or instant verification
-//           setState(() { _isLoading = false; });
-//           await _auth.signInWithCredential(credential);
-//           // Navigate to main layout on successful auto-verification
-//           Navigator.of(context).pushReplacement(
-//             MaterialPageRoute(builder: (context) => OtpVerificationScreen(
-//               phoneNumber: phoneNumber,
-//               verificationId: '', // Not needed for auto-verification
-//               isAutoVerified: true,
-//             )),
-//           );
-//         },
-//         verificationFailed: (FirebaseAuthException e) {
-//           setState(() {
-//             _isLoading = false;
-//             if (e.code == 'invalid-phone-number') {
-//               _errorMessage = 'The provided phone number is not valid.';
-//             } else if (e.code == 'too-many-requests') {
-//               _errorMessage = 'Too many requests. Please try again later.';
-//             } else {
-//               _errorMessage = 'Verification failed: ${e.message}';
-//             }
-//             print('Verification Failed: ${e.code} - ${e.message}');
-//           });
-//         },
-//         codeSent: (String verificationId, int? resendToken) async {
-//           setState(() { _isLoading = false; });
-//           // Navigate to OTP verification screen
-//           Navigator.of(context).push(
-//             MaterialPageRoute(
-//               builder: (context) => OtpVerificationScreen(
-//                 phoneNumber: phoneNumber,
-//                 verificationId: verificationId,
-//                 resendToken: resendToken,
-//               ),
-//             ),
-//           );
-//         },
-//         codeAutoRetrievalTimeout: (String verificationId) {
-//           setState(() { _isLoading = false; });
-//           // This callback is fired when the SMS code is not auto-retrieved
-//           // and the timeout expires. The verificationId is still valid for manual entry.
-//           print('Auto-retrieval timeout. Verification ID: $verificationId');
-//         },
-//         timeout: const Duration(seconds: 60), // Optional: Set a timeout for SMS auto-retrieval
-//       );
-//     } catch (e) {
-//       setState(() {
-//         _isLoading = false;
-//         _errorMessage = 'An unexpected error occurred: $e';
-//         print('Unexpected error: $e');
-//       });
-//     }
-//   }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.message ?? 'An error occurred.';
+        });
+      }
+    } finally {
+      if(mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
-//   @override
-//   void dispose() {
-//     _phoneController.dispose();
-//     super.dispose();
-//   }
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: Colors.white,
-//       appBar: AppBar(
-//         backgroundColor: Colors.white,
-//         elevation: 0,
-//         title: Text(
-//           'Login / Register',
-//           style: AppTextStyles.heading2,
-//         ),
-//         centerTitle: false,
-//       ),
-//       body: SingleChildScrollView(
-//         padding: const EdgeInsets.all(20.0),
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             Text(
-//               "Welcome to Learnaria!",
-//               style: AppTextStyles.heading1.copyWith(color: AppColors.primaryYello),
-//             ),
-//             SizedBox(height: 8),
-//             Text(
-//               "Enter your phone number to continue.",
-//               style: AppTextStyles.secondaryText,
-//             ),
-//             SizedBox(height: 30),
-//             CustomTextField(
-//               controller: _phoneController,
-//               hintText: 'e.g., +201234567890',
-//               prefixIcon: Icons.phone,
-//               keyboardType: TextInputType.phone,
-//             ),
-//             SizedBox(height: 20),
-//             if (_errorMessage != null)
-//               Text(
-//                 _errorMessage!,
-//                 style: AppTextStyles.smallRedText.copyWith(color: Colors.red),
-//               ),
-//             SizedBox(height: 20),
-//             _isLoading
-//                 ? Center(
-//                     child: CircularProgressIndicator(
-//                       valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYello),
-//                     ),
-//                   )
-//                 : SizedBox(
-//                     width: double.infinity,
-//                     child: ElevatedButton(
-//                       onPressed: _verifyPhoneNumber,
-//                       style: primaryButtonStyle(),
-//                       child: Text('Send Verification Code', style: AppTextStyles.buttonText),
-//                     ),
-//                   ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text('Login', style: AppTextStyles.heading2),
+        automaticallyImplyLeading: false,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 20),
+            Text("Welcome Back!", style: AppTextStyles.heading1.copyWith(color: AppColors.primaryYello)),
+            SizedBox(height: 8),
+            Text("Login with your phone number and password.", style: AppTextStyles.secondaryText),
+            SizedBox(height: 40),
+            CustomTextField(
+              controller: _phoneController,
+              hintText: 'Phone Number',
+              prefixIcon: Icons.phone,
+              keyboardType: TextInputType.phone,
+            ),
+            SizedBox(height: 20),
+            PasswordTextField(
+              controller: _passwordController,
+              hintText: 'Password',
+            ),
+            SizedBox(height: 15),
+            Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => ForgetPasswordScreen()),
+                  );
+                },
+                child: Text('Forget Password?', style: AppTextStyles.linkText),
+              ),
+            ),
+            SizedBox(height: 20),
+            if (_errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 15.0),
+                child: Text(_errorMessage!, style: TextStyle(color: Colors.red)),
+              ),
+            _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _signIn,
+                      style: primaryButtonStyle(),
+                      child: Text('Login', style: AppTextStyles.buttonText),
+                    ),
+                  ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("Don't have an account? ", style: AppTextStyles.secondaryText),
+                GestureDetector(
+                  onTap: () {
+                    // Navigate to SignUp, replacing the current login screen
+                    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => SignUpScreen()));
+                  },
+                  child: Text('Sign Up', style: AppTextStyles.linkText),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

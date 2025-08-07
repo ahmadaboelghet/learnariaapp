@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:learnaria/screens/intro.dart';
-import 'package:learnaria/utils/app_styles.dart'; // Adjust import path
+import 'package:learnaria/utils/app_styles.dart';
 import 'dart:async';
+import 'package:learnaria/screens/auth_check.dart'; // <<< استيراد الملف الجديد
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -10,36 +10,61 @@ class SplashScreen extends StatefulWidget {
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
   @override
   void initState() {
     super.initState();
-    // Navigate to the main layout after 3 seconds
+
+    // إعداد الـ Animation
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2), // مدة ظهور الشعار
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    // بدء الـ Animation
+    _animationController.forward();
+
+    // المؤقت للانتقال إلى الشاشة التالية بعد 3 ثوانٍ
     Timer(const Duration(seconds: 3), () {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const IntroScreen()),
-      );
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const AuthCheck()),
+        );
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose(); // التخلص من الكنترولر لتجنب تسريب الذاكرة
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center( // Center the entire Row vertically and horizontally
-        child: Row( // Changed from Column to Row for horizontal layout
-          mainAxisAlignment: MainAxisAlignment.center, // Center content horizontally within the Row
-          children: [
-            Image.asset(
-              'assets/images/learnaria_logo.png', // Ensure this path is correct and image exists
-              height: 120,
-              width: 240, // Adjusted width for visual balance with text
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(Icons.school, size: 60, color: AppColors.primaryYello);
-              },
-            ),
-            const SizedBox(width: 15), // Added horizontal spacing between logo and text
-          ],
+      body: Center(
+        // استخدام FadeTransition لتطبيق تأثير الظهور التدريجي
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/images/learnaria_logo.png',
+                width: 220, // يمكنك تعديل الحجم حسب رغبتك
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
