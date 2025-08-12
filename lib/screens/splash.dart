@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:learnaria/utils/app_styles.dart';
 import 'dart:async';
 import 'package:learnaria/screens/auth_check.dart'; // <<< استيراد الملف الجديد
 

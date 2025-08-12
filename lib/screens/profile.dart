@@ -1,8 +1,10 @@
+// lib/screens/profile.dart
+
 import 'package:flutter/material.dart';
 import 'package:learnaria/utils/app_styles.dart';
-import 'package:learnaria/screens/edit_profile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:learnaria/screens/auth_check.dart'; // <<< استيراد
+import 'package:learnaria/screens/login.dart'; // Import for navigation
+import 'package:learnaria/screens/notifications.dart'; // Import for navigation
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,14 +15,40 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isDarkModeEnabled = false;
+  // This would come from your data model, but for now we'll use a placeholder
+  String studentName = "Mohamed Ahmed"; 
 
+  // --- MODIFIED: Sign out logic with confirmation dialog ---
   Future<void> _signOut() async {
-    await FirebaseAuth.instance.signOut();
-    if (mounted) {
-      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const AuthCheck()),
-        (route) => false,
-      );
+    // Show confirmation dialog
+    final bool? shouldSignOut = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Sign Out'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false), // User chose not to sign out
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true), // User confirmed sign out
+            child: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    // If the user confirmed, then proceed with sign out
+    if (shouldSignOut == true) {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        // Navigate to LoginScreen and remove all previous routes
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      }
     }
   }
 
@@ -44,13 +72,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Center(
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: AppColors.lightGrey,
-                    child: Icon(Icons.person_outline, size: 50, color: AppColors.mediumGrey),
+                  Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: AppColors.lightGrey,
+                        child: Icon(Icons.person_outline, size: 50, color: AppColors.mediumGrey),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Change picture functionality coming soon!')),
+                            );
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryYello,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2)
+                            ),
+                            child: Icon(Icons.edit, color: Colors.white, size: 16),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   SizedBox(height: 15),
-                  Text('Mohamed Ahmed Ali', style: AppTextStyles.heading2),
+                  Text('$studentName\'s parent', style: AppTextStyles.heading2),
                   Text(
                     FirebaseAuth.instance.currentUser?.email?.split('@').first ?? 'No Phone',
                     style: AppTextStyles.secondaryText,
@@ -59,12 +111,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             SizedBox(height: 30),
-            _buildProfileOption(icon: Icons.edit_outlined, title: 'Edit Profile', onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(builder: (context) => EditProfileScreen()));
-            }),
-            _buildProfileOption(icon: Icons.credit_card_outlined, title: 'Payment option', onTap: () {}),
-            _buildProfileOption(icon: Icons.notifications_none_outlined, title: 'Notifications', onTap: () {}),
+            
+            // --- MODIFIED: Removed Edit Profile and Payment Option ---
+            // --- MODIFIED: Notifications now navigates to a new screen ---
+            _buildProfileOption(
+              icon: Icons.notifications_none_outlined, 
+              title: 'Notifications', 
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (context) => NotificationsScreen()));
+              }
+            ),
             _buildProfileOption(icon: Icons.security_outlined, title: 'Security', onTap: () {}),
+            
+            // --- NEW: Added Language option ---
+            _buildProfileOption(icon: Icons.language_outlined, title: 'Language', onTap: () {}),
+
             _buildProfileOption(
               icon: Icons.dark_mode_outlined,
               title: 'Dark Mode',
@@ -77,11 +138,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(height: 10),
             Divider(),
             SizedBox(height: 10),
-            // --- زر تسجيل الخروج ---
             _buildProfileOption(
               icon: Icons.logout,
               title: 'Sign Out',
-              onTap: _signOut,
+              onTap: _signOut, // The function now contains the confirmation logic
               isLogout: true,
             ),
           ],

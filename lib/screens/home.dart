@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/screens/assignment_details.dart';
-import 'package:learnaria/screens/attendance_details.dart'; // استيراد الصفحة الجديدة
+import 'package:learnaria/screens/attendance_details.dart';
 import 'package:learnaria/models/dashboard_data.dart';
 import 'package:learnaria/services/firestore_api.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
+
+enum CourseStatus { Upcoming, Ongoing, Finished }
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -50,7 +53,28 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // --- Helper Getters ---
+  Map<String, dynamic> _getCourseStatusDetails(ScheduleEntry entry) {
+    final now = DateTime.now();
+    try {
+      final timeParts = entry.time.split(':');
+      final hour = int.parse(timeParts[0]);
+      final minute = int.parse(timeParts[1]);
+      
+      final startTime = DateTime(now.year, now.month, now.day, hour, minute);
+      final endTime = startTime.add(const Duration(hours: 2));
+
+      if (now.isAfter(endTime)) {
+        return {'status': 'Finished', 'color': AppColors.mediumGrey, 'statusEnum': CourseStatus.Finished};
+      } else if (now.isAfter(startTime) && now.isBefore(endTime)) {
+        return {'status': 'Ongoing', 'color': AppColors.greenSuccess, 'statusEnum': CourseStatus.Ongoing};
+      } else {
+        return {'status': 'Upcoming', 'color': Colors.red, 'statusEnum': CourseStatus.Upcoming};
+      }
+    } catch (e) {
+      return {'status': 'Scheduled', 'color': AppColors.mediumGrey, 'statusEnum': CourseStatus.Upcoming};
+    }
+  }
+
   int get totalAssignmentsCount {
     if (_dashboardData == null) return 0;
     return _dashboardData!.reportsByTeacher.fold(0, (sum, report) => sum + report.grades.length);
@@ -58,31 +82,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int get totalSubjectsWithAssignments {
      if (_dashboardData == null) return 0;
-     final subjects = <String>{};
-     for (var report in _dashboardData!.reportsByTeacher) {
-       if (report.grades.isNotEmpty) {
-         subjects.add(report.subject);
-       }
-     }
-     return subjects.length;
+     return _dashboardData!.reportsByTeacher.where((r) => r.grades.isNotEmpty).map((r) => r.subject).toSet().length;
   }
-
   int get overallAttendancePercentage {
     if (_dashboardData == null) return 0;
-    final allAttendance = _dashboardData!.reportsByTeacher.expand((report) => report.attendance).toList();
-    if (allAttendance.isEmpty) return 0;
-    final presentCount = allAttendance.where((a) => a.status.toLowerCase() == 'present').length;
-    return (presentCount / allAttendance.length * 100).toInt();
+    final all = _dashboardData!.reportsByTeacher.expand((r) => r.attendance).toList();
+    if (all.isEmpty) return 0;
+    final present = all.where((a) => a.status.toLowerCase() == 'present').length;
+    return (present / all.length * 100).toInt();
   }
-
-  int get totalAttendanceDays {
-    if (_dashboardData == null) return 0;
-    return _dashboardData!.reportsByTeacher.expand((report) => report.attendance).length;
-  }
+  int get totalAttendanceDays => _dashboardData?.reportsByTeacher.expand((r) => r.attendance).length ?? 0;
   
-  List<ScheduleEntry> get allScheduleEntries {
+  List<ScheduleEntry> get todayScheduleEntries {
     if (_dashboardData == null) return [];
-    return _dashboardData!.reportsByTeacher.expand((report) => report.schedule).toList();
+    final todayString = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    return _dashboardData!.reportsByTeacher
+        .expand((report) => report.schedule)
+        .where((entry) => entry.date == todayString)
+        .toList();
   }
 
   @override
@@ -119,6 +136,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDashboardContent() {
+    final sortedTodaySchedule = todayScheduleEntries;
+    sortedTodaySchedule.sort((a, b) {
+        final statusA = _getCourseStatusDetails(a)['statusEnum'] as CourseStatus;
+        final statusB = _getCourseStatusDetails(b)['statusEnum'] as CourseStatus;
+        return statusA.index.compareTo(statusB.index);
+    });
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -136,10 +160,21 @@ class _HomeScreenState extends State<HomeScreen> {
         SizedBox(height: 20),
         Text("Today's Courses", style: AppTextStyles.heading2),
         SizedBox(height: 10),
-        if (allScheduleEntries.isEmpty)
+        if (sortedTodaySchedule.isEmpty)
           Padding(padding: const EdgeInsets.symmetric(vertical: 20.0), child: Center(child: Text('No courses scheduled for today.', style: AppTextStyles.secondaryText)))
         else
-          ...allScheduleEntries.map((entry) => Padding(padding: const EdgeInsets.only(bottom: 10.0), child: _buildCourseCard(subject: entry.subject, time: '${entry.time} - ${entry.room}'))).toList(),
+          ...sortedTodaySchedule.map((entry) {
+            final statusDetails = _getCourseStatusDetails(entry);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10.0),
+              child: _buildCourseCard(
+                subject: entry.subject,
+                time: '${entry.time} - ${entry.room}',
+                status: statusDetails['status'],
+                statusColor: statusDetails['color'],
+              ),
+            );
+          }).toList(),
         SizedBox(height: 20),
         Text('Assignments by Subject', style: AppTextStyles.heading2),
         SizedBox(height: 10),
@@ -159,8 +194,6 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
         ),
-        
-        // --- START: القسم الجديد الذي تم إضافته ---
         SizedBox(height: 20),
         Text('Attendance by Subject', style: AppTextStyles.heading2),
         SizedBox(height: 10),
@@ -178,22 +211,23 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
         ),
-        // --- END: القسم الجديد الذي تم إضافته ---
-
       ],
     );
   }
   
+  // --- WIDGET MODIFIED ---
   Widget _buildUserInfoSection() {
      return Row(
       children: [
+        // Re-added the CircleAvatar
         CircleAvatar(radius: 24, backgroundColor: Colors.grey[200], child: Icon(Icons.person, color: Colors.grey[600])), 
         SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Hello, ${_dashboardData?.studentName ?? "Parent"}!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              // Changed the welcome message
+              Text('Hello, ${_dashboardData?.studentName ?? "Student"}\'s parent!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               Text('Here is your latest report.', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
             ],
           ),
@@ -219,25 +253,33 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCourseCard({required String subject, required String time}) {
+  Widget _buildCourseCard({required String subject, required String time, required String status, required Color statusColor}) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: statusColor.withOpacity(0.5), width: 1.5),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))]
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(subject, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold)),
-              Text(time, style: AppTextStyles.secondaryText),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(subject, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold)),
+                SizedBox(height: 4),
+                Text(time, style: AppTextStyles.secondaryText),
+              ],
+            ),
           ),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: AppColors.primaryYello.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-            child: Text("Upcoming", style: TextStyle(color: AppColors.primaryYello, fontWeight: FontWeight.bold, fontSize: 12)),
+            decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+            child: Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12)),
           ),
         ],
       ),
@@ -278,7 +320,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- START: الويدجت الجديد لبطاقة الحضور ---
   Widget _buildSubjectAttendanceCell({required String subject, required String teacher, required int percentage, required List<AttendanceRecord> allAttendance}) {
     return GestureDetector(
       onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => AttendanceDetailsScreen(subject: subject, attendanceRecords: allAttendance))),
@@ -312,5 +353,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  // --- END: الويدجت الجديد لبطاقة الحضور ---
 }

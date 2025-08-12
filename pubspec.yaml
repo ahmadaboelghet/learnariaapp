@@ -43,7 +43,10 @@ dependencies:
   provider: ^6.1.5
   shared_preferences: ^2.5.3
   fl_chart: ^1.0.0
-  
+  flutter_launcher_icons: ^0.14.4  
+  image_picker: ^1.1.2
+  firebase_storage: ^13.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -96,3 +99,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_launcher_icons:
+  android: true   # لتحديد أنك تريد إنشاء أيقونات لنظام أندرويد
+  ios: true      # يمكنك جعلها false إذا أردت أندرويد فقط
+  image_path: "assets/icon/icon.png" # المسار إلى صورة الأيقونة التي وضعتها
+# END: نهاية القسم الجديد

@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:learnaria/screens/intro.dart';
-import 'package:learnaria/screens/signup.dart'; // <<< تغيير: سيوجه إلى هنا أولاً
 import 'package:learnaria/screens/main_layout.dart';
 
 class AuthCheck extends StatelessWidget {

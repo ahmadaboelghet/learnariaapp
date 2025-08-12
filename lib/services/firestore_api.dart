@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:learnaria/models/dashboard_data.dart';
+import 'package:intl/intl.dart'; // To get day of the week
 
 class FirestoreApi {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -18,7 +19,6 @@ class FirestoreApi {
       
       studentNameForDashboard = studentsSnapshot.docs.first.data()['name'] ?? 'Student';
       Map<String, TeacherReport> reportsMap = {};
-      Set<String> processedGroupSchedules = {};
 
       for (var studentDoc in studentsSnapshot.docs) {
         final studentId = studentDoc.id;
@@ -39,6 +39,50 @@ class FirestoreApi {
           );
         }
 
+        // --- NEW SCHEDULE LOGIC ---
+        // Fetch all types of schedules for the group
+        final recurringSchedulesSnap = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('recurringSchedules').get();
+        final exceptionsSnap = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('scheduleExceptions').get();
+        
+        final today = DateTime.now();
+        final todayString = DateFormat('yyyy-MM-dd').format(today);
+        final currentDayName = DateFormat('EEEE').format(today); // e.g., "Sunday"
+
+        List<ScheduleEntry> finalScheduleForToday = [];
+
+        // 1. Process recurring schedules for today
+        for (var doc in recurringSchedulesSnap.docs) {
+          final scheduleData = doc.data();
+          final days = List<String>.from(scheduleData['days'] ?? []);
+          if (days.contains(currentDayName)) {
+            finalScheduleForToday.add(ScheduleEntry.fromFirestore({
+              ...scheduleData,
+              'date': todayString, // Assign today's date
+            }));
+          }
+        }
+        
+        // 2. Process exceptions for today
+        for (var doc in exceptionsSnap.docs) {
+          final exceptionData = doc.data();
+          if (exceptionData['date'] == todayString) {
+            final status = exceptionData['status'];
+            if (status == 'cancelled') {
+              // Remove the class that was supposed to happen today
+              finalScheduleForToday.removeWhere((entry) => entry.subject == reportsMap[teacherId]!.subject);
+            } else if (status == 'rescheduled') {
+              // Find the recurring schedule and update its time
+              final index = finalScheduleForToday.indexWhere((entry) => entry.subject == reportsMap[teacherId]!.subject);
+              if (index != -1) {
+                finalScheduleForToday[index] = finalScheduleForToday[index].copyWith(time: exceptionData['newTime']);
+              }
+            }
+          }
+        }
+
+        // Add the processed schedule to the report
+        reportsMap[teacherId]!.schedule.addAll(finalScheduleForToday);
+
         // Fetch Attendance
         final attendanceSnapshot = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('dailyAttendance').get();
         for (var doc in attendanceSnapshot.docs) {
@@ -54,7 +98,7 @@ class FirestoreApi {
           });
         }
 
-        // Fetch Grades and include the date
+        // Fetch Grades
         final gradesSnapshot = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('assignments').get();
         for (var doc in gradesSnapshot.docs) {
           final scores = doc.data()['scores'] as List<dynamic>?;
@@ -64,19 +108,10 @@ class FirestoreApi {
                 studentName: studentName,
                 assignmentName: doc.data()['name'],
                 score: (scoreRecord['score'] as num?)?.toInt() ?? 0,
-                date: doc.data()['date'] ?? 'N/A', // تم إضافة التاريخ هنا
+                date: doc.data()['date'] ?? 'N/A',
               ));
             }
           });
-        }
-
-        // Fetch Schedule
-        if (!processedGroupSchedules.contains(groupId)) {
-          final scheduleSnapshot = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('classSchedule').get();
-          for (var doc in scheduleSnapshot.docs) {
-              reportsMap[teacherId]!.schedule.add(ScheduleEntry.fromFirestore(doc.data()));
-          }
-          processedGroupSchedules.add(groupId);
         }
       }
 

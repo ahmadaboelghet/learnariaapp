@@ -1,8 +1,8 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:learnaria/firebase_options.dart';
 import 'package:learnaria/screens/splash.dart';
 import 'package:learnaria/utils/app_styles.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:learnaria/firebase_options.dart';
 
 void main() async {
   // التأكد من تهيئة كل شيء قبل تشغيل التطبيق

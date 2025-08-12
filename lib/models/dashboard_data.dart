@@ -16,13 +16,13 @@ class GradeRecord {
   final String studentName;
   final String assignmentName;
   final int score;
-  final String date; // تم إضافة هذا الحقل
+  final String date;
 
   GradeRecord({
     required this.studentName,
     required this.assignmentName,
     required this.score,
-    required this.date, // تم إضافة هذا الحقل
+    required this.date,
   });
 }
 
@@ -46,6 +46,21 @@ class ScheduleEntry {
       date: data['date'] as String? ?? 'N/A',
       time: data['time'] as String? ?? 'N/A',
       room: data['room'] as String? ?? 'N/A',
+    );
+  }
+
+  // --- NEW: copyWith method added to fix the error ---
+  ScheduleEntry copyWith({
+    String? subject,
+    String? date,
+    String? time,
+    String? room,
+  }) {
+    return ScheduleEntry(
+      subject: subject ?? this.subject,
+      date: date ?? this.date,
+      time: time ?? this.time,
+      room: room ?? this.room,
     );
   }
 }
