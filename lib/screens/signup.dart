@@ -4,7 +4,8 @@ import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/widgets/custom_text_field.dart';
 import 'package:learnaria/widgets/password_text_field.dart';
 import 'package:learnaria/screens/main_layout.dart';
-import 'package:learnaria/screens/login.dart'; // For navigating to login
+import 'package:learnaria/screens/login.dart';
+import 'package:learnaria/l10n/app_localizations.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -22,9 +23,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _agreeToTerms = false;
 
   Future<void> _signUp() async {
+    final appLocalizations = AppLocalizations.of(context)!;
     if (!_agreeToTerms) {
       setState(() {
-        _errorMessage = "You must agree to the terms and conditions.";
+        _errorMessage = appLocalizations.mustAgreeToTermsError; // <-- نص مترجم
       });
       return;
     }
@@ -43,7 +45,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainLayoutScreen()),
+          MaterialPageRoute(builder: (context) => const MainLayoutScreen()), // Corrected
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -63,6 +65,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final appLocalizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -72,20 +76,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 50),
-              Text("Create Account", style: AppTextStyles.heading1.copyWith(color: AppColors.primaryYello)),
+              Text(appLocalizations.signupCreateAccount, style: AppTextStyles.heading1.copyWith(color: AppColors.primaryYello)), // <-- نص مترجم
               SizedBox(height: 8),
-              Text("Start your journey with Learnaria!", style: AppTextStyles.secondaryText),
+              Text(appLocalizations.signupStartJourney, style: AppTextStyles.secondaryText), // <-- نص مترجم
               SizedBox(height: 30),
               CustomTextField(
                 controller: _phoneController,
-                hintText: 'Phone Number',
+                hintText: appLocalizations.phoneNumber, // <-- نص مترجم
                 prefixIcon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
               ),
               SizedBox(height: 20),
               PasswordTextField(
                 controller: _passwordController,
-                hintText: 'Password',
+                hintText: appLocalizations.password, // <-- نص مترجم
               ),
               SizedBox(height: 15),
               Row(
@@ -101,7 +105,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   Expanded(
                     child: Text(
-                      'I agree to the Terms & Conditions',
+                      appLocalizations.agreeToTerms, // <-- نص مترجم
                       style: AppTextStyles.secondaryText,
                     ),
                   ),
@@ -120,19 +124,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     : ElevatedButton(
                         onPressed: _agreeToTerms ? _signUp : null,
                         style: primaryButtonStyle(),
-                        child: Text('Sign Up', style: AppTextStyles.buttonText),
+                        child: Text(appLocalizations.signup, style: AppTextStyles.buttonText), // <-- نص مترجم
                       ),
               ),
                SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("Already have an account? ", style: AppTextStyles.secondaryText),
+                    Text("${appLocalizations.alreadyHaveAccount} ", style: AppTextStyles.secondaryText), // <-- نص مترجم
                     GestureDetector(
                       onTap: () {
                         Navigator.of(context).push(MaterialPageRoute(builder: (context) => LoginScreen()));
                       },
-                      child: Text('Login', style: AppTextStyles.linkText),
+                      child: Text(appLocalizations.login, style: AppTextStyles.linkText), // <-- نص مترجم
                     ),
                   ],
                 ),

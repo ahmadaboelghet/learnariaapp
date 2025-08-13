@@ -3,15 +3,30 @@ import 'package:flutter/material.dart';
 import 'package:learnaria/firebase_options.dart';
 import 'package:learnaria/screens/splash.dart';
 import 'package:learnaria/utils/app_styles.dart';
+import 'package:provider/provider.dart';
+import 'package:learnaria/utils/theme_provider.dart';
+import 'package:learnaria/utils/locale_provider.dart'; // <-- استيراد ملف اللغة
+
+// --- حزم الترجمة ---
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:learnaria/l10n/app_localizations.dart';
 
 void main() async {
-  // التأكد من تهيئة كل شيء قبل تشغيل التطبيق
   WidgetsFlutterBinding.ensureInitialized();
-  // تهيئة Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+
+  // --- استخدام MultiProvider لتوفير أكثر من حالة ---
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -19,63 +34,55 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Learnaria',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: AppColors.primaryYello,
-        hintColor: AppColors.mediumGrey,
-        fontFamily: 'Inter',
-        scaffoldBackgroundColor: Colors.white,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          surfaceTintColor: Colors.transparent,
-          iconTheme: IconThemeData(color: AppColors.primaryBlack),
-          titleTextStyle: TextStyle(
-            color: AppColors.primaryBlack,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+    // --- استخدام Consumer2 للاستماع لحالة المظهر واللغة ---
+    return Consumer2<ThemeProvider, LocaleProvider>(
+      builder: (context, themeProvider, localeProvider, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          onGenerateTitle: (context) => AppLocalizations.of(context)!.appName,
+
+          // --- إعدادات الترجمة ---
+          locale: localeProvider.locale, // <-- تحديد اللغة من الـ Provider
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('en', ''), // English
+            Locale('ar', ''), // Arabic
+          ],
+
+          // --- إعدادات المظهر ---
+          themeMode: themeProvider.currentTheme,
+          theme: ThemeData(
+            brightness: Brightness.light,
+            scaffoldBackgroundColor: Colors.white,
+            primaryColor: AppColors.primaryYello,
+            // ... باقي إعدادات المظهر الفاتح من الكود الأصلي
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              iconTheme: IconThemeData(color: AppColors.primaryBlack),
+              titleTextStyle: TextStyle(color: AppColors.primaryBlack, fontSize: 20, fontWeight: FontWeight.bold),
+            ),
           ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: primaryButtonStyle(),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.primaryYello,
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: const Color(0xFF121212),
+            primaryColor: AppColors.primaryYello,
+            // ... يمكنك تخصيص باقي إعدادات المظهر الداكن
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFF121212),
+              elevation: 0,
+              iconTheme: IconThemeData(color: Colors.white),
+              titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            ),
           ),
-        ),
-        checkboxTheme: CheckboxThemeData(
-          fillColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return AppColors.primaryYello;
-            }
-            return AppColors.mediumGrey;
-          }),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: AppColors.lightGrey,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.0),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.0),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.0),
-            borderSide: BorderSide(color: AppColors.primaryYello, width: 1.5),
-          ),
-          hintStyle: AppTextStyles.secondaryText,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-        ),
-      ),
-      // نقطة بداية التطبيق ستكون دائماً شاشة البداية
-      home: const SplashScreen(),
+          home: const SplashScreen(),
+        );
+      },
     );
   }
 }

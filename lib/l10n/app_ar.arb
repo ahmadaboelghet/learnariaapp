@@ -1,0 +1,136 @@
+{
+    "@@locale": "ar",
+    "appName": "Learnaria",
+    "login": "تسجيل الدخول",
+    "signup": "إنشاء حساب",
+    "home": "الرئيسية",
+    "reports": "التقارير",
+    "profile": "الملف الشخصي",
+    "welcome": "أهلاً بك",
+    "assignments": "الواجبات",
+    "attendance": "الحضور",
+    "schedule": "جدول اليوم",
+    "progressReport": "تقرير التقدم",
+    "darkMode": "الوضع المظلم",
+    "logout": "تسجيل الخروج",
+    "yourProfile": "ملفك الشخصي",
+    "notifications": "الإشعارات",
+    "security": "الأمان",
+    "language": "اللغة",
+    "confirmSignOut": "تأكيد تسجيل الخروج",
+    "areYouSureSignOut": "هل أنت متأكد أنك تريد تسجيل الخروج؟",
+    "cancel": "إلغاء",
+    "signOut": "تسجيل الخروج",
+    "studentParent": "ولي أمر الطالب",
+    "editProfile": "تعديل الملف الشخصي",
+    "paymentOption": "خيارات الدفع",
+    "helloParent": "أهلاً",
+    "todayDate": "اليوم،",
+    "days": "أيام",
+    "outOfDays": "من أصل",
+    "daysMissed": "أيام غياب",
+    "feedback": "التقييمات",
+    "seeAll": "عرض الكل",
+    "excellent": "ممتاز",
+    "needsImprovement": "يحتاج لتحسين",
+    "monthView": "عرض شهري",
+    "noFeedback": "لا توجد تقييمات متاحة.",
+    "noAttendanceData": "لا توجد بيانات حضور لعرضها.",
+    "noStudentData": "لا توجد بيانات طالب مسجلة لحسابك.",
+    "done": "مكتمل",
+    "subjects": "مواد",
+    "present": "حاضر",
+    "todaysCourses": "حصص اليوم",
+    "noCoursesScheduled": "لا توجد حصص مجدولة لليوم.",
+    "finished": "منتهية",
+    "ongoing": "جارية",
+    "upcoming": "قادمة",
+    "scheduled": "مجدولة",
+    "assignmentsBySubject": "الواجبات حسب المادة",
+    "attendanceBySubject": "الحضور حسب المادة",
+    "latest": "الأحدث",
+    "noStudentDataContactTeacher": "لا توجد بيانات طالب. يرجى التواصل مع المعلم.",
+    "latestReportGreeting": "هذا هو تقريرك الأخير.",
+    "loginWelcome": "أهلاً بعودتك!",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "dontHaveAccount": "ليس لديك حساب؟",
+    "enterValidEmail": "الرجاء إدخال بريد إلكتروني صالح",
+    "enterYourPassword": "الرجاء إدخال كلمة المرور",
+    "signupWelcome": "إنشاء حساب جديد",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "alreadyHaveAccount": "لديك حساب بالفعل؟",
+    "passwordTooShort": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+    "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين",
+    "more": "المزيد",
+     "assignmentsForSubject": "واجبات مادة {subject}",
+    "@assignmentsForSubject": {
+        "placeholders": {
+            "subject": {
+                "type": "String"
+            }
+        }
+    },
+    "detailedGradesForSubject": "تفاصيل درجات واجبات مادة {subject}",
+    "@detailedGradesForSubject": {
+        "placeholders": {
+            "subject": {
+                "type": "String"
+            }
+        }
+    },
+    "noAssignmentsFound": "لا توجد واجبات لهذه المادة.",
+    "dateLabel": "التاريخ:",
+    "gradeLabel": "الدرجة:",
+    "attendanceForSubject": "حضور مادة {subject}",
+    "@attendanceForSubject": {
+        "placeholders": {
+            "subject": {
+                "type": "String"
+            }
+        }
+    },
+    "detailedAttendanceForSubject": "سجلات الحضور التفصيلية لمادة {subject}",
+    "@detailedAttendanceForSubject": {
+        "placeholders": {
+            "subject": {
+                "type": "String"
+            }
+        }
+    },
+    "noAttendanceFound": "لا توجد سجلات حضور لهذه المادة.",
+    "presentStatus": "حاضر",
+    "absentStatus": "غائب",
+    "noNotificationsYet": "لا توجد إشعارات حتى الآن.",
+    "helloStudentParent": "أهلاً، ولي أمر {studentName}!",
+    "@helloStudentParent": {
+        "placeholders": {
+            "studentName": {
+                "type": "String"
+            }
+        }
+    },
+    "introTitle1": "تابع تقدمهم الدراسي",
+    "introDesc1": "اطلع على الواجبات، درجات الاختبارات، وسجلات الحضور بسهولة وفي مكان واحد.",
+    "introTitle2": "لا تفوت أي تحديث",
+    "introDesc2": "احصل على إشعارات فورية بالجداول اليومية، والتقييمات الجديدة، والرسائل الهامة.",
+    "introTitle3": "كل ما تحتاجه في تطبيق واحد",
+    "introDesc3": "ليناريا يجمع كل المعلومات الهامة لمتابعة رحلة أبنائك التعليمية بفاعلية.",
+    "getStarted": "ابدأ الآن",
+    "next": "التالي",
+    "skip": "تخطي",
+       "login": "تسجيل الدخول",
+    "loginWelcomeMessage": "أهلاً بعودتك!",
+    "loginSubMessage": "سجل الدخول برقم هاتفك وكلمة المرور.",
+    "phoneNumber": "رقم الهاتف",
+    "password": "كلمة المرور",
+    "forgetPassword": "هل نسيت كلمة المرور؟",
+    "dontHaveAccount": "ليس لديك حساب؟",
+    "signup": "إنشاء حساب",
+    "signupCreateAccount": "إنشاء حساب",
+    "signupStartJourney": "ابدأ رحلتك مع ليناريا!",
+    "agreeToTerms": "أوافق على الشروط والأحكام",
+    "mustAgreeToTermsError": "يجب عليك الموافقة على الشروط والأحكام.",
+    "alreadyHaveAccount": "هل لديك حساب بالفعل؟"
+
+}

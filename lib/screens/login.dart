@@ -6,6 +6,7 @@ import 'package:learnaria/widgets/password_text_field.dart';
 import 'package:learnaria/screens/signup.dart';
 import 'package:learnaria/screens/main_layout.dart';
 import 'package:learnaria/screens/forget_password.dart';
+import 'package:learnaria/l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -37,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
       
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainLayoutScreen()),
+          MaterialPageRoute(builder: (context) => const MainLayoutScreen()), // Corrected to MainLayoutScreen
         );
       }
 
@@ -65,10 +66,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appLocalizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Login', style: AppTextStyles.heading2),
+        title: Text(appLocalizations.login, style: AppTextStyles.heading2), // <-- نص مترجم
         automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
@@ -77,20 +80,20 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 20),
-            Text("Welcome Back!", style: AppTextStyles.heading1.copyWith(color: AppColors.primaryYello)),
+            Text(appLocalizations.loginWelcomeMessage, style: AppTextStyles.heading1.copyWith(color: AppColors.primaryYello)), // <-- نص مترجم
             SizedBox(height: 8),
-            Text("Login with your phone number and password.", style: AppTextStyles.secondaryText),
+            Text(appLocalizations.loginSubMessage, style: AppTextStyles.secondaryText), // <-- نص مترجم
             SizedBox(height: 40),
             CustomTextField(
               controller: _phoneController,
-              hintText: 'Phone Number',
+              hintText: appLocalizations.phoneNumber, // <-- نص مترجم
               prefixIcon: Icons.phone,
               keyboardType: TextInputType.phone,
             ),
             SizedBox(height: 20),
             PasswordTextField(
               controller: _passwordController,
-              hintText: 'Password',
+              hintText: appLocalizations.password, // <-- نص مترجم
             ),
             SizedBox(height: 15),
             Align(
@@ -101,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     MaterialPageRoute(builder: (context) => ForgetPasswordScreen()),
                   );
                 },
-                child: Text('Forget Password?', style: AppTextStyles.linkText),
+                child: Text(appLocalizations.forgetPassword, style: AppTextStyles.linkText), // <-- نص مترجم
               ),
             ),
             SizedBox(height: 20),
@@ -117,20 +120,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: ElevatedButton(
                       onPressed: _signIn,
                       style: primaryButtonStyle(),
-                      child: Text('Login', style: AppTextStyles.buttonText),
+                      child: Text(appLocalizations.login, style: AppTextStyles.buttonText), // <-- نص مترجم
                     ),
                   ),
             SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("Don't have an account? ", style: AppTextStyles.secondaryText),
+                Text("${appLocalizations.dontHaveAccount} ", style: AppTextStyles.secondaryText), // <-- نص مترجم
                 GestureDetector(
                   onTap: () {
-                    // Navigate to SignUp, replacing the current login screen
                     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => SignUpScreen()));
                   },
-                  child: Text('Sign Up', style: AppTextStyles.linkText),
+                  child: Text(appLocalizations.signup, style: AppTextStyles.linkText), // <-- نص مترجم
                 ),
               ],
             ),

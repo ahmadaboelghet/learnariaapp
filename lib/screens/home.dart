@@ -6,6 +6,7 @@ import 'package:learnaria/models/dashboard_data.dart';
 import 'package:learnaria/services/firestore_api.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:learnaria/l10n/app_localizations.dart';
 
 enum CourseStatus { Upcoming, Ongoing, Finished }
 
@@ -53,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Map<String, dynamic> _getCourseStatusDetails(ScheduleEntry entry) {
+  Map<String, dynamic> _getCourseStatusDetails(ScheduleEntry entry, AppLocalizations appLocalizations) {
     final now = DateTime.now();
     try {
       final timeParts = entry.time.split(':');
@@ -64,26 +65,37 @@ class _HomeScreenState extends State<HomeScreen> {
       final endTime = startTime.add(const Duration(hours: 2));
 
       if (now.isAfter(endTime)) {
-        return {'status': 'Finished', 'color': AppColors.mediumGrey, 'statusEnum': CourseStatus.Finished};
+        return {'status': appLocalizations.finished, 'color': AppColors.mediumGrey, 'statusEnum': CourseStatus.Finished};
       } else if (now.isAfter(startTime) && now.isBefore(endTime)) {
-        return {'status': 'Ongoing', 'color': AppColors.greenSuccess, 'statusEnum': CourseStatus.Ongoing};
+        return {'status': appLocalizations.ongoing, 'color': AppColors.greenSuccess, 'statusEnum': CourseStatus.Ongoing};
       } else {
-        return {'status': 'Upcoming', 'color': Colors.red, 'statusEnum': CourseStatus.Upcoming};
+        return {'status': appLocalizations.upcoming, 'color': AppColors.primaryYello, 'statusEnum': CourseStatus.Upcoming};
       }
     } catch (e) {
-      return {'status': 'Scheduled', 'color': AppColors.mediumGrey, 'statusEnum': CourseStatus.Upcoming};
+      return {'status': appLocalizations.scheduled, 'color': AppColors.mediumGrey, 'statusEnum': CourseStatus.Upcoming};
     }
   }
 
+  // --- تم تصحيح هذا المنطق ---
   int get totalAssignmentsCount {
     if (_dashboardData == null) return 0;
-    return _dashboardData!.reportsByTeacher.fold(0, (sum, report) => sum + report.grades.length);
+    final now = DateTime.now();
+    // جمع كل الواجبات في قائمة واحدة
+    final allGrades = _dashboardData!.reportsByTeacher.expand((report) => report.grades);
+    // فلترة الواجبات التي تاريخها اليوم أو قبله
+    final doneGrades = allGrades.where((grade) {
+      try {
+        final gradeDate = DateFormat('yyyy-MM-dd').parse(grade.date);
+        return !gradeDate.isAfter(now);
+      } catch (e) {
+        return false;
+      }
+    });
+    return doneGrades.length;
   }
 
-  int get totalSubjectsWithAssignments {
-     if (_dashboardData == null) return 0;
-     return _dashboardData!.reportsByTeacher.where((r) => r.grades.isNotEmpty).map((r) => r.subject).toSet().length;
-  }
+  int get totalSubjectsWithAssignments => _dashboardData?.reportsByTeacher.where((r) => r.grades.isNotEmpty).map((r) => r.subject).toSet().length ?? 0;
+  
   int get overallAttendancePercentage {
     if (_dashboardData == null) return 0;
     final all = _dashboardData!.reportsByTeacher.expand((r) => r.attendance).toList();
@@ -91,6 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final present = all.where((a) => a.status.toLowerCase() == 'present').length;
     return (present / all.length * 100).toInt();
   }
+
   int get totalAttendanceDays => _dashboardData?.reportsByTeacher.expand((r) => r.attendance).length ?? 0;
   
   List<ScheduleEntry> get todayScheduleEntries {
@@ -104,19 +117,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appLocalizations = AppLocalizations.of(context)!;
+    final textColor = Theme.of(context).textTheme.bodyLarge!.color;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
-          child: Image.asset('assets/images/logo.png'),
+          padding: const EdgeInsets.only(left: 8.0,right: 8.0, top: 8.0, bottom: 8.0),
+          child: Image.asset('assets/images/logo_bg.png'),
         ),
-        title: Text('Learnaria', style: AppTextStyles.heading2),
+        title: Text(appLocalizations.appName, style: AppTextStyles.heading2.copyWith(color: textColor)),
         centerTitle: false,
         titleSpacing: 0,
-        actions: [IconButton(icon: Icon(Icons.refresh, color: AppColors.primaryBlack), onPressed: _fetchData)],
+        actions: [IconButton(icon: Icon(Icons.refresh, color: textColor), onPressed: _fetchData)],
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYello)))
@@ -128,43 +144,43 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.all(16.0),
-                        child: _buildDashboardContent(),
+                        child: _buildDashboardContent(appLocalizations, textColor),
                       ),
                     )
-                  : Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text("No student data found. Please contact the teacher.", style: AppTextStyles.secondaryText, textAlign: TextAlign.center))),
+                  : Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text(appLocalizations.noStudentDataContactTeacher, style: AppTextStyles.secondaryText, textAlign: TextAlign.center))),
     );
   }
 
-  Widget _buildDashboardContent() {
+  Widget _buildDashboardContent(AppLocalizations appLocalizations, Color? textColor) {
     final sortedTodaySchedule = todayScheduleEntries;
     sortedTodaySchedule.sort((a, b) {
-        final statusA = _getCourseStatusDetails(a)['statusEnum'] as CourseStatus;
-        final statusB = _getCourseStatusDetails(b)['statusEnum'] as CourseStatus;
+        final statusA = _getCourseStatusDetails(a, appLocalizations)['statusEnum'] as CourseStatus;
+        final statusB = _getCourseStatusDetails(b, appLocalizations)['statusEnum'] as CourseStatus;
         return statusA.index.compareTo(statusB.index);
     });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildUserInfoSection(),
+        _buildUserInfoSection(appLocalizations, textColor),
         SizedBox(height: 20),
-        Text('Reports', style: AppTextStyles.heading2),
+        Text(appLocalizations.reports, style: AppTextStyles.heading2.copyWith(color: textColor)),
         SizedBox(height: 10),
         Row(
           children: [
-            Expanded(child: _buildSummaryCard(title: 'Assignments', value: '$totalAssignmentsCount Done', description: '$totalSubjectsWithAssignments Subjects', color: AppColors.primaryYello)),
+            Expanded(child: _buildSummaryCard(title: appLocalizations.assignments, value: '$totalAssignmentsCount ${appLocalizations.done}', description: '$totalSubjectsWithAssignments ${appLocalizations.subjects}', color: AppColors.primaryYello)),
             SizedBox(width: 15),
-            Expanded(child: _buildSummaryCard(title: 'Attendance', value: '$overallAttendancePercentage% Present', description: '$totalAttendanceDays days', color: AppColors.greenSuccess)),
+            Expanded(child: _buildSummaryCard(title: appLocalizations.attendance, value: '$overallAttendancePercentage% ${appLocalizations.present}', description: '$totalAttendanceDays ${appLocalizations.days}', color: AppColors.greenSuccess)),
           ],
         ),
         SizedBox(height: 20),
-        Text("Today's Courses", style: AppTextStyles.heading2),
+        Text(appLocalizations.todaysCourses, style: AppTextStyles.heading2.copyWith(color: textColor)),
         SizedBox(height: 10),
         if (sortedTodaySchedule.isEmpty)
-          Padding(padding: const EdgeInsets.symmetric(vertical: 20.0), child: Center(child: Text('No courses scheduled for today.', style: AppTextStyles.secondaryText)))
+          Padding(padding: const EdgeInsets.symmetric(vertical: 20.0), child: Center(child: Text(appLocalizations.noCoursesScheduled, style: AppTextStyles.secondaryText)))
         else
           ...sortedTodaySchedule.map((entry) {
-            final statusDetails = _getCourseStatusDetails(entry);
+            final statusDetails = _getCourseStatusDetails(entry, appLocalizations);
             return Padding(
               padding: const EdgeInsets.only(bottom: 10.0),
               child: _buildCourseCard(
@@ -176,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }).toList(),
         SizedBox(height: 20),
-        Text('Assignments by Subject', style: AppTextStyles.heading2),
+        Text(appLocalizations.assignmentsBySubject, style: AppTextStyles.heading2.copyWith(color: textColor)),
         SizedBox(height: 10),
         Container(
           height: 150,
@@ -190,12 +206,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 report.grades.sort((a, b) => b.date.compareTo(a.date));
                 latestGrade = report.grades.first.score;
               }
-              return _buildSubjectAssignmentCell(subject: report.subject, teacher: report.teacherName, percentage: latestGrade, allGrades: report.grades);
+              return _buildSubjectAssignmentCell(subject: report.subject, teacher: report.teacherName, percentage: latestGrade, allGrades: report.grades, appLocalizations: appLocalizations);
             },
           ),
         ),
         SizedBox(height: 20),
-        Text('Attendance by Subject', style: AppTextStyles.heading2),
+        Text(appLocalizations.attendanceBySubject, style: AppTextStyles.heading2.copyWith(color: textColor)),
         SizedBox(height: 10),
         Container(
           height: 150,
@@ -207,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
               final totalDays = report.attendance.length;
               final presentDays = report.attendance.where((a) => a.status.toLowerCase() == 'present').length;
               final percentage = totalDays == 0 ? 0 : (presentDays / totalDays * 100).toInt();
-              return _buildSubjectAttendanceCell(subject: report.subject, teacher: report.teacherName, percentage: percentage, allAttendance: report.attendance);
+              return _buildSubjectAttendanceCell(subject: report.subject, teacher: report.teacherName, percentage: percentage, allAttendance: report.attendance, appLocalizations: appLocalizations);
             },
           ),
         ),
@@ -215,20 +231,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
   
-  // --- WIDGET MODIFIED ---
-  Widget _buildUserInfoSection() {
+  Widget _buildUserInfoSection(AppLocalizations appLocalizations, Color? textColor) {
      return Row(
       children: [
-        // Re-added the CircleAvatar
         CircleAvatar(radius: 24, backgroundColor: Colors.grey[200], child: Icon(Icons.person, color: Colors.grey[600])), 
         SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Changed the welcome message
-              Text('Hello, ${_dashboardData?.studentName ?? "Student"}\'s parent!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text('Here is your latest report.', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+              Text('${appLocalizations.helloParent}, ${_dashboardData?.studentName ?? "Student"}\'s parent!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+              Text(appLocalizations.latestReportGreeting, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
             ],
           ),
         ),
@@ -237,13 +250,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSummaryCard({required String title, required String value, required String description, required Color color}) {
+    final isLightMode = Theme.of(context).brightness == Brightness.light;
     return Container(
       padding: EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))]),
+      decoration: BoxDecoration(
+        color: isLightMode ? Colors.white : Theme.of(context).cardColor, 
+        borderRadius: BorderRadius.circular(15), 
+        boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))] : null
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(title, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).textTheme.bodyLarge!.color)),
           SizedBox(height: 8),
           Text(value, style: AppTextStyles.heading1.copyWith(color: color, fontSize: 20)),
           SizedBox(height: 4),
@@ -254,14 +272,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCourseCard({required String subject, required String time, required String status, required Color statusColor}) {
+    final isLightMode = Theme.of(context).brightness == Brightness.light;
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isLightMode ? Colors.white : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: statusColor.withOpacity(0.5), width: 1.5),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))]
+        boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))] : null
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -270,7 +289,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(subject, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold)),
+                Text(subject, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
                 SizedBox(height: 4),
                 Text(time, style: AppTextStyles.secondaryText),
               ],
@@ -286,18 +305,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSubjectAssignmentCell({required String subject, required String teacher, required int percentage, required List<GradeRecord> allGrades}) {
+  Widget _buildSubjectAssignmentCell({required String subject, required String teacher, required int percentage, required List<GradeRecord> allGrades, required AppLocalizations appLocalizations}) {
+    final isLightMode = Theme.of(context).brightness == Brightness.light;
     return GestureDetector(
       onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => AssignmentDetailsScreen(subject: subject, grades: allGrades))),
       child: Container(
         width: 180,
         margin: EdgeInsets.only(right: 15),
         padding: EdgeInsets.all(15),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), spreadRadius: 1, blurRadius: 10)]),
+        decoration: BoxDecoration(
+          color: isLightMode ? Colors.white : Theme.of(context).cardColor, 
+          borderRadius: BorderRadius.circular(15), 
+          boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.08), spreadRadius: 1, blurRadius: 10)] : null
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(subject, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(subject, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color), maxLines: 1, overflow: TextOverflow.ellipsis),
             SizedBox(height: 4),
             Text(teacher, style: AppTextStyles.secondaryText.copyWith(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
             Spacer(),
@@ -308,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('$percentage%', style: AppTextStyles.heading2.copyWith(color: percentage >= 70 ? AppColors.greenSuccess : AppColors.primaryYello)),
-                    Text('Latest', style: AppTextStyles.secondaryText.copyWith(fontSize: 10)),
+                    Text(appLocalizations.latest, style: AppTextStyles.secondaryText.copyWith(fontSize: 10)),
                   ],
                 ),
                 Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
@@ -320,18 +344,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSubjectAttendanceCell({required String subject, required String teacher, required int percentage, required List<AttendanceRecord> allAttendance}) {
+  Widget _buildSubjectAttendanceCell({required String subject, required String teacher, required int percentage, required List<AttendanceRecord> allAttendance, required AppLocalizations appLocalizations}) {
+    final isLightMode = Theme.of(context).brightness == Brightness.light;
     return GestureDetector(
       onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => AttendanceDetailsScreen(subject: subject, attendanceRecords: allAttendance))),
       child: Container(
         width: 180,
         margin: EdgeInsets.only(right: 15),
         padding: EdgeInsets.all(15),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), spreadRadius: 1, blurRadius: 10)]),
+        decoration: BoxDecoration(
+          color: isLightMode ? Colors.white : Theme.of(context).cardColor, 
+          borderRadius: BorderRadius.circular(15), 
+          boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.08), spreadRadius: 1, blurRadius: 10)] : null
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(subject, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(subject, style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color), maxLines: 1, overflow: TextOverflow.ellipsis),
             SizedBox(height: 4),
             Text(teacher, style: AppTextStyles.secondaryText.copyWith(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
             Spacer(),
@@ -342,7 +371,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('$percentage%', style: AppTextStyles.heading2.copyWith(color: percentage >= 90 ? AppColors.greenSuccess : AppColors.primaryYello)),
-                    Text('Present', style: AppTextStyles.secondaryText.copyWith(fontSize: 10)),
+                    Text(appLocalizations.present, style: AppTextStyles.secondaryText.copyWith(fontSize: 10)),
                   ],
                 ),
                 Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),

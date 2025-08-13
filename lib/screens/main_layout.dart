@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:learnaria/screens/progress_report.dart';
-import 'package:learnaria/utils/app_styles.dart'; // Adjust import path
-import 'package:learnaria/screens/home.dart'; // Import HomeScreen
-import 'package:learnaria/screens/profile.dart'; // Import ProfileScreen
-// Import other main screens as needed (e.g., MyCoursesScreen, InboxScreen)
-
+import 'package:learnaria/utils/app_styles.dart';
+import 'package:learnaria/screens/home.dart';
+import 'package:learnaria/screens/more_screen.dart';
+import 'package:learnaria/l10n/app_localizations.dart';
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
 
   @override
-  _MainLayoutScreenState createState() => _MainLayoutScreenState();
+  _MainLayoutState createState() => _MainLayoutState();
 }
 
-class _MainLayoutScreenState extends State<MainLayoutScreen> {
-  int _selectedIndex = 0; // Initial selected tab (Home)
+class _MainLayoutState extends State<MainLayoutScreen> {
+  int _selectedIndex = 0;
   late PageController _pageController;
 
   @override
@@ -32,11 +31,13 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     setState(() {
       _selectedIndex = index;
     });
-    _pageController.jumpToPage(index); // Jump to the selected page
+    _pageController.jumpToPage(index);
   }
 
   @override
   Widget build(BuildContext context) {
+    final appLocalizations = AppLocalizations.of(context)!;
+    
     return Scaffold(
       body: PageView(
         controller: _pageController,
@@ -46,39 +47,39 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           });
         },
         children: const [
-          HomeScreen(), // Screen for 'HOME'
-          ProgressReportScreen(), // Screen for 'MY COURSES'
-          ProfileScreen(), // Screen for 'PROFILE'
+          HomeScreen(),
+          ProgressReportScreen(),
+          MoreScreen(), // Using the new MoreScreen
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.primaryBlack, // Changed to black
+        backgroundColor: AppColors.primaryBlack,
         selectedItemColor: AppColors.primaryYello,
         unselectedItemColor: AppColors.mediumGrey,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        items: const <BottomNavigationBarItem>[
+        items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: ImageIcon(
-              AssetImage('assets/images/home_icon.png'), // Replace with your actual home icon path
+            icon: const ImageIcon(
+              AssetImage('assets/images/home_icon.png'),
               size: 20,
             ),
-            label: 'HOME',
+            label: appLocalizations.home,
           ),
           BottomNavigationBarItem(
-            icon: ImageIcon(
-              AssetImage('assets/images/reports_icon.png'), // Replace with your actual reports icon path
+            icon: const ImageIcon(
+              AssetImage('assets/images/reports_icon.png'),
               size: 20,
             ),
-            label: 'REPORTS',
+            label: appLocalizations.reports,
           ),
           BottomNavigationBarItem(
-            icon: ImageIcon(
-              AssetImage('assets/images/profile_icon.png'), // Replace with your actual profile icon path
+            icon: const ImageIcon(
+              AssetImage('assets/images/menu.png'),
               size: 20,
             ),
-            label: 'PROFILE',
+            label: appLocalizations.more, // Using the new "More" label
           ),
         ],
       ),

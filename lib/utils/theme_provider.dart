@@ -1,31 +1,35 @@
+// lib/utils/theme_provider.dart
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider with ChangeNotifier {
-  bool _isDarkMode = false;
-  static const String _themePreferenceKey = 'isDarkMode';
+  static const THEME_STATUS = "THEME_STATUS";
+  bool _darkTheme = false;
+
+  bool get isDarkMode => _darkTheme;
+  ThemeMode get currentTheme => _darkTheme ? ThemeMode.dark : ThemeMode.light;
 
   ThemeProvider() {
-    _loadThemePreference();
+    getTheme();
   }
 
-  bool get isDarkMode => _isDarkMode;
-
-  ThemeMode get currentTheme => _isDarkMode ? ThemeMode.dark : ThemeMode.light;
-
-  // This method is called by the switch in the profile screen
-  void toggleTheme(bool isOn) async {
-    _isDarkMode = isOn;
-    notifyListeners(); // Notify widgets to rebuild with the new theme
-    // Save the user's preference
+  setDarkTheme(bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setBool(_themePreferenceKey, _isDarkMode);
+    prefs.setBool(THEME_STATUS, value);
+    _darkTheme = value;
+    notifyListeners();
   }
 
-  // Load the user's saved preference when the app starts
-  void _loadThemePreference() async {
+  Future<bool> getTheme() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    _isDarkMode = prefs.getBool(_themePreferenceKey) ?? false;
+    _darkTheme = prefs.getBool(THEME_STATUS) ?? false;
+    notifyListeners();
+    return _darkTheme;
+  }
+
+  void toggleTheme(bool isOn) {
+    _darkTheme = isOn;
+    setDarkTheme(isOn);
     notifyListeners();
   }
 }

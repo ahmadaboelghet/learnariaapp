@@ -3,8 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:learnaria/models/dashboard_data.dart';
+import 'package:learnaria/screens/notifications.dart';
 import 'package:learnaria/services/firestore_api.dart';
 import 'package:learnaria/utils/app_styles.dart';
+import 'package:learnaria/l10n/app_localizations.dart';
 
 class ProgressReportScreen extends StatefulWidget {
   const ProgressReportScreen({super.key});
@@ -54,14 +56,19 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appLocalizations = AppLocalizations.of(context)!;
+    
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: null,
         automaticallyImplyLeading: false,
-        title: Text('Progress Report', style: AppTextStyles.heading2),
+        title: Text(
+          appLocalizations.progressReport,
+          style: AppTextStyles.heading2.copyWith(color: Theme.of(context).textTheme.bodyLarge!.color),
+        ),
         centerTitle: false,
       ),
       body: _isLoading
@@ -91,13 +98,12 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                         ),
                       ),
                     )
-                  : Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text("No student data found for your account.", style: AppTextStyles.secondaryText, textAlign: TextAlign.center))),
+                  : Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text(appLocalizations.noStudentData, style: AppTextStyles.secondaryText, textAlign: TextAlign.center))),
     );
   }
 
-  // --- Widgets are now rebuilt to match the original design ---
-
   Widget _buildUserInfoSection() {
+    final appLocalizations = AppLocalizations.of(context)!;
     return Row(
       children: [
         CircleAvatar(radius: 24, backgroundColor: Colors.grey[200], child: Icon(Icons.person, color: Colors.grey[600])),
@@ -106,55 +112,73 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Hello, ${_dashboardData?.studentName ?? "Parent"}!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
-              Text('Today, ${DateFormat.yMMMMd().format(DateTime.now())}', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+              Text(
+                // --- تم تعديل رسالة الترحيب هنا ---
+                appLocalizations.helloStudentParent(_dashboardData?.studentName ?? "Student"),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color),
+              ),
+              Text(
+                '${appLocalizations.todayDate} ${DateFormat.yMMMMd().format(DateTime.now())}',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
             ],
           ),
         ),
-        Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10)),
-          child: Image(image: AssetImage('assets/images/notification-bell.png'), height: 24, width: 24),
+        GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context) => const NotificationsScreen()));
+          },
+          child: Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10)),
+            child: Image(image: AssetImage('assets/images/notification-bell.png'), height: 24, width: 24),
+          ),
         ),
       ],
     );
   }
 
   Widget _buildAttendanceSection() {
+    final appLocalizations = AppLocalizations.of(context)!;
     final allAttendance = _dashboardData!.reportsByTeacher.expand((report) => report.attendance).toList();
     final totalDays = allAttendance.length;
     final presentDays = allAttendance.where((record) => record.status.toLowerCase() == 'present').length;
     final missedDays = totalDays - presentDays;
+    final isLightMode = Theme.of(context).brightness == Brightness.light;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Attendance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+        Text(appLocalizations.attendance, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
         SizedBox(height: 10),
         Container(
           width: double.infinity,
           padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))]),
+          decoration: BoxDecoration(
+            color: isLightMode ? Colors.white : Theme.of(context).cardColor, 
+            borderRadius: BorderRadius.circular(15), 
+            boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))] : null,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('$presentDays days', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black)),
+                  Text('$presentDays ${appLocalizations.days}', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
                   SizedBox(width: 8),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4.0),
-                    child: Text('(out of $totalDays days)', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                    child: Text('(${appLocalizations.outOfDays} $totalDays ${appLocalizations.days})', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                   ),
                 ],
               ),
               SizedBox(height: 10),
               Row(
                 children: [
-                  Container(width: 8, height: 8, decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
+                  Container(width: 8, height: 8, decoration: BoxDecoration(color: AppColors.primaryYello, shape: BoxShape.circle)),
                   SizedBox(width: 8),
-                  Text('$missedDays days missed', style: TextStyle(color: Colors.black)),
+                  Text('$missedDays ${appLocalizations.daysMissed}', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge!.color)),
                 ],
               ),
             ],
@@ -165,14 +189,11 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
   }
 
   Widget _buildFeedbackSection() {
-    // Aggregate grades by subject across all teachers
+    final appLocalizations = AppLocalizations.of(context)!;
     final Map<String, List<GradeRecord>> gradesBySubject = {};
     for (var report in _dashboardData!.reportsByTeacher) {
       for (var grade in report.grades) {
-        if (!gradesBySubject.containsKey(report.subject)) {
-          gradesBySubject[report.subject] = [];
-        }
-        gradesBySubject[report.subject]!.add(grade);
+        gradesBySubject.putIfAbsent(report.subject, () => []).add(grade);
       }
     }
 
@@ -182,21 +203,20 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Feedback', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
-            Text('See All >', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+            Text(appLocalizations.feedback, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
           ],
         ),
         SizedBox(height: 10),
         if (gradesBySubject.isEmpty)
-          Center(child: Text("No feedback available."))
+          Center(child: Text(appLocalizations.noFeedback))
         else
           Row(
             children: gradesBySubject.entries.take(2).map((entry) {
               final subject = entry.key;
               final grades = entry.value;
               final averageScore = grades.map((g) => g.score).reduce((a, b) => a + b) / grades.length;
-              final status = averageScore >= 85 ? 'Excellent' : 'Needs Improvement';
-              final statusColor = averageScore >= 85 ? Colors.green : Colors.red;
+              final status = averageScore >= 85 ? appLocalizations.excellent : appLocalizations.needsImprovement;
+              final statusColor = averageScore >= 85 ? AppColors.greenSuccess : AppColors.primaryYello;
 
               return Expanded(
                 child: Padding(
@@ -211,21 +231,25 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
   }
 
   Widget _buildFeedbackCard(String subject, String status, Color statusColor, int percentage) {
+    final isLightMode = Theme.of(context).brightness == Brightness.light;
     return Container(
       padding: EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))]),
+      decoration: BoxDecoration(
+        color: isLightMode ? Colors.white : Theme.of(context).cardColor, 
+        borderRadius: BorderRadius.circular(15), 
+        boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))] : null,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(subject, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
+          Text(subject, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
           SizedBox(height: 5),
           Text(status, style: TextStyle(fontSize: 14, color: statusColor)),
           SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$percentage%', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
-              Icon(Icons.arrow_forward, color: Colors.black),
+              Text('$percentage%', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
             ],
           ),
         ],
@@ -234,6 +258,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
   }
 
   Widget _buildMonthViewSection() {
+    final appLocalizations = AppLocalizations.of(context)!;
     final allAttendance = _dashboardData!.reportsByTeacher.expand((report) => report.attendance).toList();
     final Map<int, int> monthlyData = {};
     for (var record in allAttendance) {
@@ -246,19 +271,24 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     }
     
     final barGroups = monthlyData.keys.toList()..sort();
+    final isLightMode = Theme.of(context).brightness == Brightness.light;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Month View', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+        Text(appLocalizations.monthView, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
         SizedBox(height: 10),
         Container(
           width: double.infinity,
           height: 220,
           padding: const EdgeInsets.only(top: 16, right: 16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))]),
+          decoration: BoxDecoration(
+            color: isLightMode ? Colors.white : Theme.of(context).cardColor, 
+            borderRadius: BorderRadius.circular(15), 
+            boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))] : null,
+          ),
           child: barGroups.isEmpty
-              ? Center(child: Text("No attendance data to display.", style: AppTextStyles.secondaryText))
+              ? Center(child: Text(appLocalizations.noAttendanceData, style: AppTextStyles.secondaryText))
               : BarChart(
                   BarChartData(
                     alignment: BarChartAlignment.spaceAround,
@@ -271,12 +301,12 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                           showTitles: true,
                           getTitlesWidget: (value, meta) => Padding(
                             padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(DateFormat('MMM').format(DateTime(0, value.toInt())), style: TextStyle(fontSize: 10)),
+                            child: Text(DateFormat('MMM').format(DateTime(0, value.toInt())), style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodySmall!.color)),
                           ),
                           reservedSize: 28,
                         ),
                       ),
-                      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28, getTitlesWidget: (v, m) => Text(v.toInt().toString(), style: TextStyle(fontSize: 10)))),
+                      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28, getTitlesWidget: (v, m) => Text(v.toInt().toString(), style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodySmall!.color)))),
                       topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     ),

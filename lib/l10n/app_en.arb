@@ -1,0 +1,137 @@
+{
+    "@@locale": "en",
+    "appName": "Learnaria",
+    "login": "Login",
+    "signup": "Sign Up",
+    "home": "Home",
+    "reports": "Reports",
+    "profile": "Profile",
+    "welcome": "Welcome",
+    "assignments": "Assignments",
+    "attendance": "Attendance",
+    "schedule": "Today's Schedule",
+    "progressReport": "Progress Report",
+    "darkMode": "Dark Mode",
+    "logout": "Logout",
+    "yourProfile": "Your Profile",
+    "notifications": "Notifications",
+    "security": "Security",
+    "language": "Language",
+    "confirmSignOut": "Confirm Sign Out",
+    "areYouSureSignOut": "Are you sure you want to sign out?",
+    "cancel": "Cancel",
+    "signOut": "Sign Out",
+    "studentParent": "Student's parent",
+    "editProfile": "Edit Profile",
+    "paymentOption": "Payment option",
+    "helloParent": "Hello",
+    "todayDate": "Today,",
+    "days": "days",
+    "outOfDays": "out of",
+    "daysMissed": "days missed",
+    "feedback": "Feedback",
+    "seeAll": "See All",
+    "excellent": "Excellent",
+    "needsImprovement": "Needs Improvement",
+    "monthView": "Month View",
+    "noFeedback": "No feedback available.",
+    "noAttendanceData": "No attendance data to display.",
+    "noStudentData": "No student data found for your account.",
+    "done": "Done",
+    "subjects": "Subjects",
+    "present": "Present",
+    "todaysCourses": "Today's Courses",
+    "noCoursesScheduled": "No courses scheduled for today.",
+    "finished": "Finished",
+    "ongoing": "Ongoing",
+    "upcoming": "Upcoming",
+    "scheduled": "Scheduled",
+    "assignmentsBySubject": "Assignments by Subject",
+    "attendanceBySubject": "Attendance by Subject",
+    "latest": "Latest",
+    "noStudentDataContactTeacher": "No student data found. Please contact the teacher.",
+    "latestReportGreeting": "Here is your latest report.",
+    "loginWelcome": "Welcome Back!",
+    "email": "Email",
+    "password": "Password",
+    "dontHaveAccount": "Don't have an account?",
+    "enterValidEmail": "Please enter a valid email",
+    "enterYourPassword": "Please enter your password",
+    "signupWelcome": "Create an Account",
+    "confirmPassword": "Confirm Password",
+    "alreadyHaveAccount": "Already have an account?",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "more": "More",
+    "assignmentsForSubject": "{subject} Assignments",
+    "@assignmentsForSubject": {
+        "placeholders": {
+            "subject": {
+                "type": "String"
+            }
+        }
+    },
+    "detailedGradesForSubject": "Detailed Assignment Grades for {subject}",
+    "@detailedGradesForSubject": {
+        "placeholders": {
+            "subject": {
+                "type": "String"
+            }
+        }
+    },
+    "noAssignmentsFound": "No assignments found for this subject.",
+    "dateLabel": "Date:",
+    "gradeLabel": "Grade:",
+    "attendanceForSubject": "{subject} Attendance",
+    "@attendanceForSubject": {
+        "placeholders": {
+            "subject": {
+                "type": "String"
+            }
+        }
+    },
+    "detailedAttendanceForSubject": "Detailed Attendance Records for {subject}",
+    "@detailedAttendanceForSubject": {
+        "placeholders": {
+            "subject": {
+                "type": "String"
+            }
+        }
+    },
+    "noAttendanceFound": "No attendance records found for this subject.",
+    "presentStatus": "Present",
+    "absentStatus": "Absent",
+    "noNotificationsYet": "No notifications yet.",
+    "helloStudentParent": "Hello, {studentName}'s parent!",
+    "@helloStudentParent": {
+        "placeholders": {
+            "studentName": {
+                "type": "String"
+            }
+        }
+    },
+
+    "introTitle1": "Track Their Academic Progress",
+    "introDesc1": "View assignments, test scores, and attendance records easily in one place.",
+    "introTitle2": "Never Miss an Update",
+    "introDesc2": "Get instant notifications for daily schedules, new grades, and important messages.",
+    "introTitle3": "Everything in One App",
+    "introDesc3": "Learnaria brings together all the important information to follow your children's educational journey.",
+    "getStarted": "Get Started",
+    "next": "Next",
+    "skip": "Skip",
+    "login": "Login",
+    "loginWelcomeMessage": "Welcome Back!",
+    "loginSubMessage": "Login with your phone number and password.",
+    "phoneNumber": "Phone Number",
+    "password": "Password",
+    "forgetPassword": "Forget Password?",
+    "dontHaveAccount": "Don't have an account?",
+    "signup": "Sign Up",
+    "signupCreateAccount": "Create Account",
+    "signupStartJourney": "Start your journey with Learnaria!",
+    "agreeToTerms": "I agree to the Terms & Conditions",
+    "mustAgreeToTermsError": "You must agree to the terms and conditions.",
+    "alreadyHaveAccount": "Already have an account?"
+
+}

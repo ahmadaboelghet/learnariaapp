@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/models/dashboard_data.dart';
+import 'package:learnaria/l10n/app_localizations.dart'; // استيراد الترجمة
 
 class AssignmentDetailsScreen extends StatelessWidget {
   final String subject;
@@ -14,19 +15,25 @@ class AssignmentDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appLocalizations = AppLocalizations.of(context)!;
+    final isLightMode = Theme.of(context).brightness == Brightness.light;
+
     // ترتيب الواجبات من الأحدث للأقدم
     grades.sort((a, b) => b.date.compareTo(a.date));
 
     return Scaffold(
-      backgroundColor: Color(0xFFF8F8F8), // لون خلفية فاتح جدًا لإبراز البطاقات
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primaryBlack),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('$subject Assignments', style: AppTextStyles.heading2),
+        title: Text(
+          appLocalizations.assignmentsForSubject(subject), // <-- نص مترجم
+          style: AppTextStyles.heading2.copyWith(color: Theme.of(context).textTheme.bodyLarge!.color),
+        ),
         centerTitle: false,
       ),
       body: Padding(
@@ -37,24 +44,23 @@ class AssignmentDetailsScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 8.0, bottom: 20.0),
               child: Text(
-                'Detailed Assignment Grades for $subject',
-                style: AppTextStyles.heading1,
+                appLocalizations.detailedGradesForSubject(subject), // <-- نص مترجم
+                style: AppTextStyles.heading1.copyWith(color: Theme.of(context).textTheme.bodyLarge!.color),
               ),
             ),
             Expanded(
               child: grades.isEmpty
-                  ? Center(child: Text('No assignments found for this subject.', style: AppTextStyles.secondaryText))
+                  ? Center(child: Text(appLocalizations.noAssignmentsFound, style: AppTextStyles.secondaryText)) // <-- نص مترجم
                   : ListView.builder(
                       itemCount: grades.length,
                       itemBuilder: (context, index) {
                         final assignment = grades[index];
-                        // استخدام تصميم البطاقة الجديد هنا
                         return Card(
-                          margin: EdgeInsets.symmetric(vertical: 8.0),
-                          elevation: 3,
+                          margin: const EdgeInsets.symmetric(vertical: 8.0),
+                          elevation: isLightMode ? 3 : 1,
                           shadowColor: Colors.grey.withOpacity(0.15),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          color: Colors.white, // --- تم إضافة هذا السطر لضمان اللون الأبيض ---
+                          color: Theme.of(context).cardColor,
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(
@@ -62,22 +68,26 @@ class AssignmentDetailsScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   assignment.assignmentName,
-                                  style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, fontSize: 16),
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Theme.of(context).textTheme.bodyLarge!.color,
+                                  ),
                                 ),
-                                SizedBox(height: 8),
+                                const SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'Date: ${assignment.date}',
+                                      '${appLocalizations.dateLabel} ${assignment.date}', // <-- نص مترجم
                                       style: AppTextStyles.secondaryText,
                                     ),
                                     Text(
-                                      'Grade: ${assignment.score}%',
+                                      '${appLocalizations.gradeLabel} ${assignment.score}%', // <-- نص مترجم
                                       style: AppTextStyles.bodyText.copyWith(
                                         color: assignment.score >= 70 ? AppColors.greenSuccess : AppColors.primaryYello,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 16
+                                        fontSize: 16,
                                       ),
                                     ),
                                   ],
