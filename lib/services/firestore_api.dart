@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:learnaria/models/dashboard_data.dart';
-import 'package:intl/intl.dart'; // To get day of the week
+import 'package:intl/intl.dart'; 
 
 class FirestoreApi {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -39,48 +39,71 @@ class FirestoreApi {
           );
         }
 
-        // --- NEW SCHEDULE LOGIC ---
-        // Fetch all types of schedules for the group
+        // ====================================================================
+        // ====================    بداية الحل الجذري والنهائي   ====================
+        // ====================================================================
         final recurringSchedulesSnap = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('recurringSchedules').get();
         final exceptionsSnap = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('scheduleExceptions').get();
         
         final today = DateTime.now();
         final todayString = DateFormat('yyyy-MM-dd').format(today);
-        final currentDayName = DateFormat('EEEE').format(today); // e.g., "Sunday"
+        
+        // الخطوة 1: الحصول على رقم اليوم الحالي (الأحد=0, الاثنين=1, ..)
+        // Dart's weekday: Mon=1..Sun=7. JS getDay(): Sun=0..Sat=6. We use the JS standard.
+        final int currentDayJs = today.weekday % 7; 
 
         List<ScheduleEntry> finalScheduleForToday = [];
 
-        // 1. Process recurring schedules for today
+        // الخطوة 2: معالجة الجداول المحفوظة والتحقق من التوافق مع اليوم الحالي
         for (var doc in recurringSchedulesSnap.docs) {
           final scheduleData = doc.data();
-          final days = List<String>.from(scheduleData['days'] ?? []);
-          if (days.contains(currentDayName)) {
+          final days = List.from(scheduleData['days'] ?? []);
+
+          if (days.isEmpty) continue; // تخطي الجدول إذا كان فارغًا
+
+          bool isClassToday = false;
+
+          // التحقق إذا كانت البيانات قديمة (أسماء) أم جديدة (أرقام)
+          if (days.first is String) {
+            // **منطق للتعامل مع البيانات القديمة (أسماء الأيام)**
+            final currentDayNameEn = DateFormat('EEEE', 'en_US').format(today); // e.g., "Sunday"
+            final currentDayNameAr = DateFormat('EEEE', 'ar_SA').format(today); // e.g., "الأحد"
+            if (days.contains(currentDayNameEn) || days.contains(currentDayNameAr)) {
+              isClassToday = true;
+            }
+          } else if (days.first is int) {
+            // **المنطق الجديد للتعامل مع الأرقام**
+            if (days.contains(currentDayJs)) {
+              isClassToday = true;
+            }
+          }
+
+          // إذا كانت الحصة مجدولة لليوم، أضفها للقائمة
+          if (isClassToday) {
             finalScheduleForToday.add(ScheduleEntry.fromFirestore({
               ...scheduleData,
-              'date': todayString, // Assign today's date
+              'date': todayString, 
             }));
           }
         }
         
-        // 2. Process exceptions for today
+        // الخطوة 3: تطبيق الاستثناءات (إلغاء أو تعديل موعد)
         for (var doc in exceptionsSnap.docs) {
           final exceptionData = doc.data();
           if (exceptionData['date'] == todayString) {
             final status = exceptionData['status'];
             if (status == 'cancelled') {
-              // Remove the class that was supposed to happen today
-              finalScheduleForToday.removeWhere((entry) => entry.subject == reportsMap[teacherId]!.subject);
+              finalScheduleForToday.clear(); // إلغاء كل حصص اليوم
             } else if (status == 'rescheduled') {
-              // Find the recurring schedule and update its time
-              final index = finalScheduleForToday.indexWhere((entry) => entry.subject == reportsMap[teacherId]!.subject);
-              if (index != -1) {
-                finalScheduleForToday[index] = finalScheduleForToday[index].copyWith(time: exceptionData['newTime']);
+              if (finalScheduleForToday.isNotEmpty) {
+                finalScheduleForToday[0] = finalScheduleForToday[0].copyWith(time: exceptionData['newTime']);
               }
             }
           }
         }
+        // =======================    نهاية الحل الجذري   =======================
+        // ====================================================================
 
-        // Add the processed schedule to the report
         reportsMap[teacherId]!.schedule.addAll(finalScheduleForToday);
 
         // Fetch Attendance
@@ -121,7 +144,7 @@ class FirestoreApi {
       );
 
     } catch (e) {
-      print('FATAL API Error: $e');
+      print('FATAL API Error in fetchDashboardData: $e');
       throw Exception('Failed to load dashboard data. A server error occurred.');
     }
   }

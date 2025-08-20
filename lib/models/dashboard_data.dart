@@ -1,71 +1,10 @@
-// Model for Attendance Records
-class AttendanceRecord {
+class DashboardData {
   final String studentName;
-  final String date;
-  final String status;
+  final List<TeacherReport> reportsByTeacher;
 
-  AttendanceRecord({
-    required this.studentName,
-    required this.date,
-    required this.status,
-  });
+  DashboardData({required this.studentName, required this.reportsByTeacher});
 }
 
-// Model for Grade Records
-class GradeRecord {
-  final String studentName;
-  final String assignmentName;
-  final int score;
-  final String date;
-
-  GradeRecord({
-    required this.studentName,
-    required this.assignmentName,
-    required this.score,
-    required this.date,
-  });
-}
-
-// Model for Schedule Entries
-class ScheduleEntry {
-  final String subject;
-  final String date;
-  final String time;
-  final String room;
-
-  ScheduleEntry({
-    required this.subject,
-    required this.date,
-    required this.time,
-    required this.room,
-  });
-
-  factory ScheduleEntry.fromFirestore(Map<String, dynamic> data) {
-    return ScheduleEntry(
-      subject: data['subject'] as String? ?? 'N/A',
-      date: data['date'] as String? ?? 'N/A',
-      time: data['time'] as String? ?? 'N/A',
-      room: data['room'] as String? ?? 'N/A',
-    );
-  }
-
-  // --- NEW: copyWith method added to fix the error ---
-  ScheduleEntry copyWith({
-    String? subject,
-    String? date,
-    String? time,
-    String? room,
-  }) {
-    return ScheduleEntry(
-      subject: subject ?? this.subject,
-      date: date ?? this.date,
-      time: time ?? this.time,
-      room: room ?? this.room,
-    );
-  }
-}
-
-// Model for Teacher's Report
 class TeacherReport {
   final String teacherId;
   final String teacherName;
@@ -84,13 +23,65 @@ class TeacherReport {
   });
 }
 
-// Main Dashboard Data Model
-class DashboardData {
+class AttendanceRecord {
   final String studentName;
-  final List<TeacherReport> reportsByTeacher;
+  final String date;
+  final String status;
 
-  DashboardData({
+  AttendanceRecord({
     required this.studentName,
-    required this.reportsByTeacher,
+    required this.date,
+    required this.status,
   });
+}
+
+class GradeRecord {
+  final String studentName;
+  final String assignmentName;
+  final int score;
+  final String date;
+
+  GradeRecord({
+    required this.studentName,
+    required this.assignmentName,
+    required this.score,
+    required this.date,
+  });
+}
+
+class ScheduleEntry {
+  final String subject;
+  final String time;
+  final String date;
+  final String location; // <-- الحقل الجديد
+
+  ScheduleEntry({
+    required this.subject,
+    required this.time,
+    required this.date,
+    required this.location, // <-- الحقل الجديد
+  });
+
+  factory ScheduleEntry.fromFirestore(Map<String, dynamic> data) {
+    return ScheduleEntry(
+      subject: data['subject'] ?? 'N/A',
+      time: data['time'] ?? 'N/A',
+      date: data['date'] ?? 'N/A',
+      location: data['location'] ?? 'N/A', // <-- الحقل الجديد
+    );
+  }
+  
+  ScheduleEntry copyWith({
+    String? subject,
+    String? time,
+    String? date,
+    String? location,
+  }) {
+    return ScheduleEntry(
+      subject: subject ?? this.subject,
+      time: time ?? this.time,
+      date: date ?? this.date,
+      location: location ?? this.location,
+    );
+  }
 }
