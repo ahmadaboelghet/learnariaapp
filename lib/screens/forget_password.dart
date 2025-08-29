@@ -1,78 +1,94 @@
 import 'package:flutter/material.dart';
-import 'package:learnaria/utils/app_styles.dart'; // Adjust import
-import 'package:learnaria/widgets/custom_text_field.dart'; // Adjust import
-import 'package:learnaria/screens/otp_verification.dart'; // Adjust import
+import 'package:learnaria/l10n/app_localizations.dart';
+import 'package:learnaria/screens/otp_verification.dart';
+import 'package:learnaria/utils/app_styles.dart';
+import 'package:learnaria/widgets/custom_text_field.dart';
 
-class ForgetPasswordScreen extends StatefulWidget {
-  const ForgetPasswordScreen({super.key});
+class ForgetPassword extends StatefulWidget {
+  const ForgetPassword({super.key});
 
   @override
-  _ForgetPasswordScreenState createState() => _ForgetPasswordScreenState();
+  State<ForgetPassword> createState() => _ForgetPasswordState();
 }
 
-class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
-  final TextEditingController _emailController = TextEditingController();
+class _ForgetPasswordState extends State<ForgetPassword> {
+  final _phoneController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
+  void _sendOtp() {
+    if (_formKey.currentState!.validate()) {
+      // TODO: Call cloud function to send OTP for password reset
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OtpVerificationScreen(phoneNumber: _phoneController.text),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primaryBlack),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+        title: Text(localizations.forgotPassword),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Forget Password',
-              style: AppTextStyles.heading1.copyWith(color: AppColors.primaryYello),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Write your email to send you the verification code',
-              style: AppTextStyles.secondaryText,
-            ),
-            SizedBox(height: 30),
-            CustomTextField(
-              controller: _emailController,
-              hintText: 'example@gmail.com',
-              prefixIcon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Simulate sending code and navigate to OTP verification
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => OtpVerificationScreen(
-                        email: _emailController.text.isNotEmpty ? _emailController.text : 'example@gmail.com',
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Image.asset('assets/images/logo.png', height: 120),
+                  const SizedBox(height: 20),
+                  Text(
+                    localizations.forgotPassword,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.heading1,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    localizations.enterPhoneToReset, // You need to add this key to your .arb files
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.secondaryText,
+                  ),
+                  const SizedBox(height: 30),
+                  CustomTextField(
+                    controller: _phoneController,
+                    labelText: localizations.phoneNumber,
+                    hintText: localizations.phoneNumber,
+                    keyboardType: TextInputType.phone,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return localizations.pleaseEnterPhone;
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 30),
+                  ElevatedButton(
+                    onPressed: _sendOtp,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryYello,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                  );
-                },
-                style: primaryButtonStyle(),
-                child: Text('Continue', style: AppTextStyles.buttonText),
+                    child: Text(
+                      localizations.continue_,
+                      style: AppTextStyles.buttonText,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

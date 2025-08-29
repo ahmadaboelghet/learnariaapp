@@ -305,4 +305,33 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noDataForChart => 'لا توجد بيانات متاحة للرسم البياني.';
+
+  @override
+  String get pleaseEnterPhone => 'يرجى إدخال رقم الهاتف.';
+
+  @override
+  String get verify => 'تحقق من رقم الهاتف.';
+
+  @override
+  String enterOtpSentTo(String phoneNumber) {
+    return 'أدخل رمز التحقق المرسل إلى $phoneNumber.';
+  }
+
+  @override
+  String get otpVerification => 'تحقق من رقم الهاتف.';
+
+  @override
+  String get pleaseEnterPassword => 'يرجى إدخال كلمة المرور.';
+
+  @override
+  String get forgotPassword => 'هل نسيت كلمة المرور؟';
+
+  @override
+  String get enterPhoneToReset => 'أدخل رقم الهاتف لإعادة تعيين كلمة المرور.';
+
+  @override
+  String get continue_ => 'متابعة';
+
+  @override
+  String get createPassword => 'إنشاء كلمة مرور';
 }

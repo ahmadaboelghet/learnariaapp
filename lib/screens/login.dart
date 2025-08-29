@@ -1,144 +1,133 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:learnaria/utils/app_styles.dart';
-import 'package:learnaria/widgets/custom_text_field.dart';
-import 'package:learnaria/widgets/password_text_field.dart';
-import 'package:learnaria/screens/signup.dart';
-import 'package:learnaria/screens/main_layout.dart';
-import 'package:learnaria/screens/forget_password.dart';
-import 'package:learnaria/l10n/app_localizations.dart';
+// import 'package:flutter/material.dart';
+// import 'package:learnaria/l10n/app_localizations.dart';
+// import 'package:learnaria/screens/forget_password.dart';
+// import 'package:learnaria/screens/main_layout.dart';
+// import 'package:learnaria/screens/signup.dart';
+// import 'package:learnaria/utils/app_styles.dart';
+// import 'package:learnaria/widgets/custom_text_field.dart';
+// import 'package:learnaria/widgets/password_text_field.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+// class Login extends StatefulWidget {
+//   const Login({super.key});
 
-  @override
-  _LoginScreenState createState() => _LoginScreenState();
-}
+//   @override
+//   State<Login> createState() => _LoginState();
+// }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  bool _isLoading = false;
-  String? _errorMessage;
+// class _LoginState extends State<Login> {
+//   final _formKey = GlobalKey<FormState>();
+//   final _phoneController = TextEditingController();
+//   final _passwordController = TextEditingController();
 
-  Future<void> _signIn() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+//   void _signIn() {
+//     if (_formKey.currentState!.validate()) {
+//       // TODO: Perform login with phone and password
+//       Navigator.pushReplacement(
+//         context,
+//         MaterialPageRoute(builder: (context) => const MainLayoutScreen()),
+//       );
+//     }
+//   }
 
-    try {
-      final String emailFormattedPhoneNumber = "${_phoneController.text.trim()}@learnaria.app";
-
-      await _auth.signInWithEmailAndPassword(
-        email: emailFormattedPhoneNumber,
-        password: _passwordController.text.trim(),
-      );
-      
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainLayoutScreen()), // Corrected to MainLayoutScreen
-        );
-      }
-
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.message ?? 'An error occurred.';
-        });
-      }
-    } finally {
-      if(mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _phoneController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final appLocalizations = AppLocalizations.of(context)!;
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(appLocalizations.login, style: AppTextStyles.heading2), // <-- نص مترجم
-        automaticallyImplyLeading: false,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 20),
-            Text(appLocalizations.loginWelcomeMessage, style: AppTextStyles.heading1.copyWith(color: AppColors.primaryYello)), // <-- نص مترجم
-            SizedBox(height: 8),
-            Text(appLocalizations.loginSubMessage, style: AppTextStyles.secondaryText), // <-- نص مترجم
-            SizedBox(height: 40),
-            CustomTextField(
-              controller: _phoneController,
-              hintText: appLocalizations.phoneNumber, // <-- نص مترجم
-              prefixIcon: Icons.phone,
-              keyboardType: TextInputType.phone,
-            ),
-            SizedBox(height: 20),
-            PasswordTextField(
-              controller: _passwordController,
-              hintText: appLocalizations.password, // <-- نص مترجم
-            ),
-            SizedBox(height: 15),
-            Align(
-              alignment: Alignment.centerRight,
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => ForgetPasswordScreen()),
-                  );
-                },
-                child: Text(appLocalizations.forgetPassword, style: AppTextStyles.linkText), // <-- نص مترجم
-              ),
-            ),
-            SizedBox(height: 20),
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 15.0),
-                child: Text(_errorMessage!, style: TextStyle(color: Colors.red)),
-              ),
-            _isLoading
-                ? Center(child: CircularProgressIndicator())
-                : SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _signIn,
-                      style: primaryButtonStyle(),
-                      child: Text(appLocalizations.login, style: AppTextStyles.buttonText), // <-- نص مترجم
-                    ),
-                  ),
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text("${appLocalizations.dontHaveAccount} ", style: AppTextStyles.secondaryText), // <-- نص مترجم
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => SignUpScreen()));
-                  },
-                  child: Text(appLocalizations.signup, style: AppTextStyles.linkText), // <-- نص مترجم
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     final localizations = AppLocalizations.of(context)!;
+//     return Scaffold(
+//       body: SafeArea(
+//         child: Center(
+//           child: SingleChildScrollView(
+//             padding: const EdgeInsets.all(24.0),
+//             child: Form(
+//               key: _formKey,
+//               child: Column(
+//                 mainAxisAlignment: MainAxisAlignment.center,
+//                 crossAxisAlignment: CrossAxisAlignment.stretch,
+//                 children: [
+//                   Image.asset('assets/images/logo.png', height: 120),
+//                   const SizedBox(height: 20),
+//                   Text(
+//                     localizations.login,
+//                     textAlign: TextAlign.center,
+//                     style: AppTextStyles.heading1,
+//                   ),
+//                   const SizedBox(height: 30),
+//                   CustomTextField(
+//                     controller: _phoneController,
+//                     labelText: localizations.phoneNumber,
+//                     hintText: localizations.phoneNumber, // Corrected
+//                     keyboardType: TextInputType.phone,
+//                     prefixIcon: Icons.phone_outlined,
+//                      validator: (value) {
+//                       if (value == null || value.isEmpty) {
+//                         return localizations.pleaseEnterPhone;
+//                       }
+//                       return null;
+//                     },
+//                   ),
+//                   const SizedBox(height: 20),
+//                   PasswordTextField(
+//                     controller: _passwordController,
+//                     labelText: localizations.password,
+//                     hintText: localizations.password, // Corrected
+//                      validator: (value) {
+//                       if (value == null || value.isEmpty) {
+//                         return localizations.pleaseEnterPassword;
+//                       }
+//                       return null;
+//                     },
+//                   ),
+//                   const SizedBox(height: 30),
+//                   ElevatedButton(
+//                     onPressed: _signIn,
+//                     style: ElevatedButton.styleFrom(
+//                       backgroundColor: AppColors.primaryYello,
+//                       padding: const EdgeInsets.symmetric(vertical: 16),
+//                        shape: RoundedRectangleBorder(
+//                         borderRadius: BorderRadius.circular(12),
+//                       ),
+//                     ),
+//                     child: Text(
+//                       localizations.login,
+//                       style: AppTextStyles.buttonText,
+//                     ),
+//                   ),
+//                    Align(
+//                     alignment: Alignment.centerRight,
+//                     child: TextButton(
+//                       onPressed: () {
+//                         Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgetPassword()));
+//                       },
+//                       child: Text(
+//                         localizations.forgetPassword,
+//                          style: AppTextStyles.linkText,
+//                       ),
+//                     ),
+//                   ),
+//                   const SizedBox(height: 20),
+//                   Row(
+//                     mainAxisAlignment: MainAxisAlignment.center,
+//                     children: [
+//                       Text(
+//                         localizations.dontHaveAccount,
+//                         style: AppTextStyles.bodyText,
+//                       ),
+//                       TextButton(
+//                         onPressed: () {
+//                           Navigator.push(context, MaterialPageRoute(builder: (context) => const SignUp()));
+//                         },
+//                         child: Text(
+//                           localizations.signup,
+//                            style: AppTextStyles.linkText,
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 ],
+//               ),
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }

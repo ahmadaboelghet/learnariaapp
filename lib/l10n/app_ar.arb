@@ -135,6 +135,21 @@
     "submitted": "تم التسليم",
     "notSubmitted": "لم يتم التسليم",
     "performanceOverview": "نظرة عامة على الأداء",
-    "noDataForChart": "لا توجد بيانات متاحة للرسم البياني."
-
+    "noDataForChart": "لا توجد بيانات متاحة للرسم البياني.",
+    "pleaseEnterPhone": "يرجى إدخال رقم الهاتف.",
+    "verify": "تحقق من رقم الهاتف.",
+    "enterOtpSentTo": "أدخل رمز التحقق المرسل إلى {phoneNumber}.",
+    "@enterOtpSentTo": {
+        "placeholders": {
+            "phoneNumber": {
+                "type": "String"
+            }
+        }
+    },
+    "otpVerification": "تحقق من رقم الهاتف.",
+    "pleaseEnterPassword": "يرجى إدخال كلمة المرور.",
+    "forgotPassword": "هل نسيت كلمة المرور؟",
+    "enterPhoneToReset": "أدخل رقم الهاتف لإعادة تعيين كلمة المرور.",
+    "continue_": "متابعة",
+    "createPassword": "إنشاء كلمة مرور"
 }

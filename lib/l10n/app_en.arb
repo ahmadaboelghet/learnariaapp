@@ -136,5 +136,21 @@
     "submitted": "Submitted",
     "notSubmitted": "Not Submitted",
     "performanceOverview": "Performance Overview",
-    "noDataForChart": "No data available for chart."
+    "noDataForChart": "No data available for chart.",
+    "pleaseEnterPhone": "Please enter your phone number.",
+    "verify": "Verify Phone Number",
+    "enterOtpSentTo": "Enter the verification code sent to {phoneNumber}.",
+    "@enterOtpSentTo": {
+        "placeholders": {
+            "phoneNumber": {
+                "type": "String"
+            }
+        }
+    },
+    "otpVerification": "Verify Phone Number",
+    "pleaseEnterPassword": "Please enter your password.",
+    "forgotPassword": "Forgot Password?",
+    "enterPhoneToReset": "Enter your phone number to reset your password.",
+    "continue_": "Continue",
+    "createPassword": "Create Password"
 }

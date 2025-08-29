@@ -1,83 +1,66 @@
 import 'package:flutter/material.dart';
-import 'package:learnaria/utils/app_styles.dart'; // Adjust import
-import 'package:learnaria/widgets/password_text_field.dart'; // Adjust import
-import 'package:learnaria/screens/password_reset_success.dart'; // Adjust import
+import 'package:learnaria/l10n/app_localizations.dart';
+import 'package:learnaria/screens/welcom.dart';
+import 'package:learnaria/utils/app_styles.dart';
+import 'package:learnaria/widgets/password_text_field.dart';
 
-class CreateNewPasswordScreen extends StatefulWidget {
-  const CreateNewPasswordScreen({super.key});
+class CreateNewPassword extends StatefulWidget {
+  const CreateNewPassword({super.key});
 
   @override
-  _CreateNewPasswordScreenState createState() => _CreateNewPasswordScreenState();
+  State<CreateNewPassword> createState() => _CreateNewPasswordState();
 }
 
-class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+class _CreateNewPasswordState extends State<CreateNewPassword> {
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
-  @override
-  void dispose() {
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
+  void _createPassword() {
+    // TODO: Save the new password
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primaryBlack),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+        title: Text(localizations.createPassword),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Create New Password',
-              style: AppTextStyles.heading1.copyWith(color: AppColors.primaryYello),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Create you new password',
-              style: AppTextStyles.secondaryText,
-            ),
-            SizedBox(height: 30),
             PasswordTextField(
               controller: _passwordController,
-              hintText: 'Password',
+              labelText: localizations.password,
+              hintText: localizations.password, // Corrected
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             PasswordTextField(
               controller: _confirmPasswordController,
-              hintText: 'Repeat Password',
+              labelText: localizations.confirmPassword,
+              hintText: localizations.confirmPassword, // Corrected
             ),
-            SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Simulate password change and navigate to success screen
-                  if (_passwordController.text == _confirmPasswordController.text &&
-                      _passwordController.text.isNotEmpty) {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (context) => PasswordResetSuccessScreen()),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Passwords do not match or are empty.')),
-                    );
-                  }
-                },
-                style: primaryButtonStyle(),
-                child: Text('Continue', style: AppTextStyles.buttonText),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: _createPassword,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryYello,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                localizations.continue_,
+                style: AppTextStyles.buttonText,
               ),
             ),
           ],

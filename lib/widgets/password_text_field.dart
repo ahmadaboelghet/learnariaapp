@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:learnaria/utils/app_styles.dart'; // Adjust import based on your project name
+import 'package:learnaria/utils/app_styles.dart';
 
 class PasswordTextField extends StatefulWidget {
-  final String hintText;
-  final TextEditingController? controller;
+  final TextEditingController controller;
+  final String labelText;
+  final String hintText; // Added hintText
+  final String? Function(String?)? validator;
 
   const PasswordTextField({
     super.key,
+    required this.controller,
+    required this.labelText,
     required this.hintText,
-    this.controller,
+    this.validator,
   });
 
   @override
-  _PasswordTextFieldState createState() => _PasswordTextFieldState();
+  State<PasswordTextField> createState() => _PasswordTextFieldState();
 }
 
 class _PasswordTextFieldState extends State<PasswordTextField> {
@@ -23,12 +27,13 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
     return TextFormField(
       controller: widget.controller,
       obscureText: _obscureText,
+      validator: widget.validator,
       decoration: AppInputDecoration.build(
-        widget.hintText,
+        widget.hintText, // Used hintText here
         prefixIcon: Icons.lock_outline,
         suffixIcon: IconButton(
           icon: Icon(
-            _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            _obscureText ? Icons.visibility_off : Icons.visibility,
             color: AppColors.mediumGrey,
           ),
           onPressed: () {

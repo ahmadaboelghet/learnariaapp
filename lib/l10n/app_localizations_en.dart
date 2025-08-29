@@ -305,4 +305,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noDataForChart => 'No data available for chart.';
+
+  @override
+  String get pleaseEnterPhone => 'Please enter your phone number.';
+
+  @override
+  String get verify => 'Verify Phone Number';
+
+  @override
+  String enterOtpSentTo(String phoneNumber) {
+    return 'Enter the verification code sent to $phoneNumber.';
+  }
+
+  @override
+  String get otpVerification => 'Verify Phone Number';
+
+  @override
+  String get pleaseEnterPassword => 'Please enter your password.';
+
+  @override
+  String get forgotPassword => 'Forgot Password?';
+
+  @override
+  String get enterPhoneToReset => 'Enter your phone number to reset your password.';
+
+  @override
+  String get continue_ => 'Continue';
+
+  @override
+  String get createPassword => 'Create Password';
 }

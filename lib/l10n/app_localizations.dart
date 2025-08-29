@@ -670,6 +670,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No data available for chart.'**
   String get noDataForChart;
+
+  /// No description provided for @pleaseEnterPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your phone number.'**
+  String get pleaseEnterPhone;
+
+  /// No description provided for @verify.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Phone Number'**
+  String get verify;
+
+  /// No description provided for @enterOtpSentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the verification code sent to {phoneNumber}.'**
+  String enterOtpSentTo(String phoneNumber);
+
+  /// No description provided for @otpVerification.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Phone Number'**
+  String get otpVerification;
+
+  /// No description provided for @pleaseEnterPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your password.'**
+  String get pleaseEnterPassword;
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot Password?'**
+  String get forgotPassword;
+
+  /// No description provided for @enterPhoneToReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your phone number to reset your password.'**
+  String get enterPhoneToReset;
+
+  /// No description provided for @continue_.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continue_;
+
+  /// No description provided for @createPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Password'**
+  String get createPassword;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
