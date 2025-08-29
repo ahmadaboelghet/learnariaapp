@@ -132,6 +132,9 @@
     "signupStartJourney": "Start your journey with Learnaria!",
     "agreeToTerms": "I agree to the Terms & Conditions",
     "mustAgreeToTermsError": "You must agree to the terms and conditions.",
-    "alreadyHaveAccount": "Already have an account?"
-
+    "alreadyHaveAccount": "Already have an account?",
+    "submitted": "Submitted",
+    "notSubmitted": "Not Submitted",
+    "performanceOverview": "Performance Overview",
+    "noDataForChart": "No data available for chart."
 }

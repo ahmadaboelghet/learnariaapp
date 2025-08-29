@@ -646,6 +646,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You must agree to the terms and conditions.'**
   String get mustAgreeToTermsError;
+
+  /// No description provided for @submitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted'**
+  String get submitted;
+
+  /// No description provided for @notSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Submitted'**
+  String get notSubmitted;
+
+  /// No description provided for @performanceOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Performance Overview'**
+  String get performanceOverview;
+
+  /// No description provided for @noDataForChart.
+  ///
+  /// In en, this message translates to:
+  /// **'No data available for chart.'**
+  String get noDataForChart;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

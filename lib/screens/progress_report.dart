@@ -91,7 +91,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                               SizedBox(height: 20),
                               _buildFeedbackSection(),
                               SizedBox(height: 20),
-                              _buildMonthViewSection(),
+                              _buildPerformanceChartSection(),
                               SizedBox(height: 20),
                             ],
                           ),
@@ -113,7 +113,6 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                // --- تم تعديل رسالة الترحيب هنا ---
                 appLocalizations.helloStudentParent(_dashboardData?.studentName ?? "Student"),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color),
               ),
@@ -190,12 +189,6 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
 
   Widget _buildFeedbackSection() {
     final appLocalizations = AppLocalizations.of(context)!;
-    final Map<String, List<GradeRecord>> gradesBySubject = {};
-    for (var report in _dashboardData!.reportsByTeacher) {
-      for (var grade in report.grades) {
-        gradesBySubject.putIfAbsent(report.subject, () => []).add(grade);
-      }
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,21 +200,33 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
           ],
         ),
         SizedBox(height: 10),
-        if (gradesBySubject.isEmpty)
+        if (_dashboardData!.reportsByTeacher.isEmpty)
           Center(child: Text(appLocalizations.noFeedback))
         else
           Row(
-            children: gradesBySubject.entries.take(2).map((entry) {
-              final subject = entry.key;
-              final grades = entry.value;
-              final averageScore = grades.map((g) => g.score).reduce((a, b) => a + b) / grades.length;
-              final status = averageScore >= 85 ? appLocalizations.excellent : appLocalizations.needsImprovement;
-              final statusColor = averageScore >= 85 ? AppColors.greenSuccess : AppColors.primaryYello;
+            children: _dashboardData!.reportsByTeacher.take(2).map((report) {
+              final totalAttendance = report.attendance.length;
+              final presentAttendance = report.attendance.where((a) => a.status.toLowerCase() == 'present').length;
+              final attendancePercent = totalAttendance > 0 ? (presentAttendance / totalAttendance) : 0.0;
+
+              final totalAssignments = report.grades.length;
+              final submittedAssignments = report.grades.where((g) => g.submitted).length;
+              final submissionPercent = totalAssignments > 0 ? (submittedAssignments / totalAssignments) : 0.0;
+              
+              final gradedAssignments = report.grades.where((g) => g.score != null).toList();
+              final averageScore = gradedAssignments.isNotEmpty
+                  ? gradedAssignments.map((g) => g.score!).reduce((a, b) => a + b) / gradedAssignments.length
+                  : 0.0;
+              
+              final finalFeedbackScore = (attendancePercent * 30) + (submissionPercent * 40) + (averageScore * 0.30);
+              
+              final status = finalFeedbackScore >= 85 ? appLocalizations.excellent : appLocalizations.needsImprovement;
+              final statusColor = finalFeedbackScore >= 85 ? AppColors.greenSuccess : AppColors.primaryYello;
 
               return Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8.0),
-                  child: _buildFeedbackCard(subject, status, statusColor, averageScore.toInt()),
+                  child: _buildFeedbackCard(report.subject, status, statusColor, finalFeedbackScore.toInt()),
                 ),
               );
             }).toList(),
@@ -257,26 +262,67 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     );
   }
 
-  Widget _buildMonthViewSection() {
+  // =======================    بداية الجزء الذي تم تعديله   =======================
+  // --- دالة جديدة لتحديد لون العمود بناءً على النسبة ---
+  Color _getPerformanceColor(double score) {
+    if (score < 50) {
+      return Colors.red;
+    } else if (score >= 50 && score < 70) {
+      return Colors.grey;
+    } else if (score >= 70 && score < 90) {
+      return AppColors.primaryYello;
+    } else { // score >= 90
+      return AppColors.greenSuccess;
+    }
+  }
+
+  Widget _buildPerformanceChartSection() {
     final appLocalizations = AppLocalizations.of(context)!;
-    final allAttendance = _dashboardData!.reportsByTeacher.expand((report) => report.attendance).toList();
-    final Map<int, int> monthlyData = {};
-    for (var record in allAttendance) {
-      try {
-        final date = DateFormat('yyyy-MM-dd').parse(record.date);
-        if (record.status.toLowerCase() == 'present') {
-          monthlyData[date.month] = (monthlyData[date.month] ?? 0) + 1;
-        }
-      } catch (e) {/* ignore */}
+    final isLightMode = Theme.of(context).brightness == Brightness.light;
+    
+    final List<BarChartGroupData> barGroups = [];
+    final reports = _dashboardData!.reportsByTeacher;
+
+    for (int i = 0; i < reports.length; i++) {
+      final report = reports[i];
+      
+      final totalAttendance = report.attendance.length;
+      final presentAttendance = report.attendance.where((a) => a.status.toLowerCase() == 'present').length;
+      final attendancePercent = totalAttendance > 0 ? (presentAttendance / totalAttendance) : 0.0;
+
+      final totalAssignments = report.grades.length;
+      final submittedAssignments = report.grades.where((g) => g.submitted).length;
+      final submissionPercent = totalAssignments > 0 ? (submittedAssignments / totalAssignments) : 0.0;
+      
+      final gradedAssignments = report.grades.where((g) => g.score != null).toList();
+      final averageScore = gradedAssignments.isNotEmpty
+          ? gradedAssignments.map((g) => g.score!).reduce((a, b) => a + b) / gradedAssignments.length
+          : 0.0;
+      
+      final finalFeedbackScore = (attendancePercent * 30) + (submissionPercent * 40) + (averageScore * 0.30);
+
+      // --- استخدام الدالة الجديدة لتحديد اللون ---
+      final barColor = _getPerformanceColor(finalFeedbackScore);
+
+      barGroups.add(
+        BarChartGroupData(
+          x: i,
+          barRods: [
+            BarChartRodData(
+              toY: finalFeedbackScore,
+              color: barColor, // <-- تم تطبيق اللون هنا
+              width: 16,
+              borderRadius: BorderRadius.circular(4)
+            )
+          ],
+        )
+      );
     }
     
-    final barGroups = monthlyData.keys.toList()..sort();
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(appLocalizations.monthView, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
+        Text(appLocalizations.performanceOverview, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
         SizedBox(height: 10),
         Container(
           width: double.infinity,
@@ -288,21 +334,27 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
             boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))] : null,
           ),
           child: barGroups.isEmpty
-              ? Center(child: Text(appLocalizations.noAttendanceData, style: AppTextStyles.secondaryText))
+              ? Center(child: Text(appLocalizations.noDataForChart, style: AppTextStyles.secondaryText))
               : BarChart(
                   BarChartData(
                     alignment: BarChartAlignment.spaceAround,
-                    maxY: 31,
+                    maxY: 100,
                     barTouchData: BarTouchData(enabled: true),
                     titlesData: FlTitlesData(
                       show: true,
                       bottomTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
-                          getTitlesWidget: (value, meta) => Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(DateFormat('MMM').format(DateTime(0, value.toInt())), style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodySmall!.color)),
-                          ),
+                          getTitlesWidget: (value, meta) {
+                             final index = value.toInt();
+                             if (index < reports.length) {
+                               return Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text(reports[index].subject, style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodySmall!.color)),
+                              );
+                             }
+                             return Text('');
+                          },
                           reservedSize: 28,
                         ),
                       ),
@@ -312,14 +364,12 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                     ),
                     gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade200, strokeWidth: 1)),
                     borderData: FlBorderData(show: false),
-                    barGroups: barGroups.map((monthInt) => BarChartGroupData(
-                      x: monthInt,
-                      barRods: [BarChartRodData(toY: monthlyData[monthInt]!.toDouble(), color: AppColors.primaryYello, width: 16, borderRadius: BorderRadius.circular(4))],
-                    )).toList(),
+                    barGroups: barGroups,
                   ),
                 ),
         ),
       ],
     );
   }
+  // =======================     نهاية الجزء الذي تم تعديله    =======================
 }

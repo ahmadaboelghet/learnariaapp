@@ -99,30 +99,22 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  int get totalAssignmentsCount {
+  // --- دالة لحساب الواجبات التي تم تسليمها ---
+  int get submittedAssignmentsCount {
     if (_dashboardData == null) return 0;
-    final now = DateTime.now();
-    final allGrades = _dashboardData!.reportsByTeacher.expand(
-      (report) => report.grades,
-    );
-    final doneGrades = allGrades.where((grade) {
-      try {
-        final gradeDate = DateFormat('yyyy-MM-dd').parse(grade.date);
-        return !gradeDate.isAfter(now);
-      } catch (e) {
-        return false;
-      }
-    });
-    return doneGrades.length;
+    return _dashboardData!.reportsByTeacher
+        .expand((report) => report.grades)
+        .where((grade) => grade.submitted == true)
+        .length;
   }
 
-  int get totalSubjectsWithAssignments =>
-      _dashboardData?.reportsByTeacher
-          .where((r) => r.grades.isNotEmpty)
-          .map((r) => r.subject)
-          .toSet()
-          .length ??
-      0;
+  // --- دالة لحساب الواجبات التي لم يتم تسليمها ---
+  int get notSubmittedAssignmentsCount {
+    if (_dashboardData == null) return 0;
+    // يتم حسابها من إجمالي الواجبات المسجلة للطالب
+    final totalAssignments = _dashboardData!.reportsByTeacher.expand((report) => report.grades).length;
+    return totalAssignments - submittedAssignmentsCount;
+  }
 
   int get overallAttendancePercentage {
     if (_dashboardData == null) return 0;
@@ -159,12 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: Padding(
-          padding: const EdgeInsets.only(
-            left: 8.0,
-            right: 8.0,
-            top: 8.0,
-            bottom: 8.0,
-          ),
+          padding: const EdgeInsets.all(8.0),
           child: Image.asset('assets/images/logo_bg.png'),
         ),
         title: Text(
@@ -189,36 +176,36 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             )
           : _errorMessage.isNotEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Text(
-                  _errorMessage,
-                  style: AppTextStyles.bodyText.copyWith(color: Colors.red),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            )
-          : _dashboardData != null &&
-                _dashboardData!.reportsByTeacher.isNotEmpty
-          ? RefreshIndicator(
-              onRefresh: _fetchData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16.0),
-                child: _buildDashboardContent(appLocalizations, textColor),
-              ),
-            )
-          : Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Text(
-                  appLocalizations.noStudentDataContactTeacher,
-                  style: AppTextStyles.secondaryText,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Text(
+                      _errorMessage,
+                      style: AppTextStyles.bodyText.copyWith(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : _dashboardData != null &&
+                      _dashboardData!.reportsByTeacher.isNotEmpty
+                  ? RefreshIndicator(
+                      onRefresh: _fetchData,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(16.0),
+                        child: _buildDashboardContent(appLocalizations, textColor),
+                      ),
+                    )
+                  : Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Text(
+                          appLocalizations.noStudentDataContactTeacher,
+                          style: AppTextStyles.secondaryText,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
     );
   }
 
@@ -237,6 +224,13 @@ class _HomeScreenState extends State<HomeScreen> {
       return statusA.index.compareTo(statusB.index);
     });
 
+    // =======================    بداية الجزء الذي تم تعديله   =======================
+    // --- فلترة التقارير لعرض فقط المواد التي لها درجات مرصودة ---
+    final reportsWithGradedAssignments = _dashboardData!.reportsByTeacher
+        .where((report) => report.grades.any((grade) => grade.score != null))
+        .toList();
+    // =======================     نهاية الجزء الذي تم تعديله    =======================
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -252,9 +246,9 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: _buildSummaryCard(
                 title: appLocalizations.assignments,
-                value: '$totalAssignmentsCount ${appLocalizations.done}',
+                value: '${appLocalizations.submitted}: $submittedAssignmentsCount',
                 description:
-                    '$totalSubjectsWithAssignments ${appLocalizations.subjects}',
+                    '${appLocalizations.notSubmitted}: $notSubmittedAssignmentsCount',
                 color: AppColors.primaryYello,
               ),
             ),
@@ -292,18 +286,15 @@ class _HomeScreenState extends State<HomeScreen> {
               entry,
               appLocalizations,
             );
-            // =======================    بداية التصحيح   =======================
-            // نقوم بتجهيز النص الذي سيتم عرضه
             String timeAndLocation = entry.time;
             if (entry.location.isNotEmpty) {
               timeAndLocation += ' - ${entry.location}';
             }
-            // =======================     نهاية التصحيح    =======================
             return Padding(
               padding: const EdgeInsets.only(bottom: 10.0),
               child: _buildCourseCard(
                 subject: entry.subject,
-                time: timeAndLocation, // نستخدم النص المدمج هنا
+                time: timeAndLocation,
                 status: statusDetails['status'],
                 statusColor: statusDetails['color'],
               ),
@@ -315,28 +306,34 @@ class _HomeScreenState extends State<HomeScreen> {
           style: AppTextStyles.heading2.copyWith(color: textColor),
         ),
         SizedBox(height: 10),
+        // =======================    بداية الجزء الذي تم تعديله   =======================
+        // --- استخدام القائمة المفلترة الجديدة ---
         Container(
           height: 150,
-          child: ListView.builder(
+          child: reportsWithGradedAssignments.isEmpty
+          ? Center(child: Text(appLocalizations.noAssignmentsFound, style: AppTextStyles.secondaryText))
+          : ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: _dashboardData!.reportsByTeacher.length,
+            itemCount: reportsWithGradedAssignments.length,
             itemBuilder: (context, index) {
-              final report = _dashboardData!.reportsByTeacher[index];
-              int latestGrade = 0;
-              if (report.grades.isNotEmpty) {
-                report.grades.sort((a, b) => b.date.compareTo(a.date));
-                latestGrade = report.grades.first.score;
-              }
+              final report = reportsWithGradedAssignments[index];
+              
+              // --- منطق جديد لجلب آخر درجة مرصودة فقط ---
+              final gradedAssignments = report.grades.where((g) => g.score != null).toList();
+              gradedAssignments.sort((a, b) => b.date.compareTo(a.date));
+              final latestGrade = gradedAssignments.first.score;
+
               return _buildSubjectAssignmentCell(
                 subject: report.subject,
                 teacher: report.teacherName,
-                percentage: latestGrade,
+                percentage: latestGrade ?? 0,
                 allGrades: report.grades,
                 appLocalizations: appLocalizations,
               );
             },
           ),
         ),
+        // =======================     نهاية الجزء الذي تم تعديله    =======================
         SizedBox(height: 20),
         Text(
           appLocalizations.attendanceBySubject,
@@ -466,14 +463,8 @@ class _HomeScreenState extends State<HomeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        // 1. استخدم لون الخلفية الأساسي (أبيض في الوضع الفاتح)
         color: isLightMode ? Colors.white : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(15),
-
-        // 2. أزل الإطار الملون (border)
-        // border: Border.all(color: statusColor.withOpacity(0.5), width: 1.5),
-
-        // 3. أضف الظل (shadow)
         boxShadow: isLightMode
             ? [
                 BoxShadow(
@@ -504,11 +495,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          // 4. الحاوية الملونة لحالة الحصة فقط
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1), // خلفية شفافة ملونة
+              color: statusColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(

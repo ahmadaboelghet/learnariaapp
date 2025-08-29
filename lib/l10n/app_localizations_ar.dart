@@ -293,4 +293,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mustAgreeToTermsError => 'يجب عليك الموافقة على الشروط والأحكام.';
+
+  @override
+  String get submitted => 'تم التسليم';
+
+  @override
+  String get notSubmitted => 'لم يتم التسليم';
+
+  @override
+  String get performanceOverview => 'نظرة عامة على الأداء';
+
+  @override
+  String get noDataForChart => 'لا توجد بيانات متاحة للرسم البياني.';
 }

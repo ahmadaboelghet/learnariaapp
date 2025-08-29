@@ -38,14 +38,16 @@ class AttendanceRecord {
 class GradeRecord {
   final String studentName;
   final String assignmentName;
-  final int score;
+  final int? score; // Can be null if not graded yet
   final String date;
+  final bool submitted; // To track if the assignment was handed in
 
   GradeRecord({
     required this.studentName,
     required this.assignmentName,
-    required this.score,
+    this.score,
     required this.date,
+    required this.submitted,
   });
 }
 
@@ -53,13 +55,13 @@ class ScheduleEntry {
   final String subject;
   final String time;
   final String date;
-  final String location; // <-- الحقل الجديد
+  final String location;
 
   ScheduleEntry({
     required this.subject,
     required this.time,
     required this.date,
-    required this.location, // <-- الحقل الجديد
+    required this.location,
   });
 
   factory ScheduleEntry.fromFirestore(Map<String, dynamic> data) {
@@ -67,10 +69,10 @@ class ScheduleEntry {
       subject: data['subject'] ?? 'N/A',
       time: data['time'] ?? 'N/A',
       date: data['date'] ?? 'N/A',
-      location: data['location'] ?? 'N/A', // <-- الحقل الجديد
+      location: data['location'] ?? 'N/A',
     );
   }
-  
+
   ScheduleEntry copyWith({
     String? subject,
     String? time,

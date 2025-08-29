@@ -131,6 +131,10 @@
     "signupStartJourney": "ابدأ رحلتك مع ليناريا!",
     "agreeToTerms": "أوافق على الشروط والأحكام",
     "mustAgreeToTermsError": "يجب عليك الموافقة على الشروط والأحكام.",
-    "alreadyHaveAccount": "هل لديك حساب بالفعل؟"
+    "alreadyHaveAccount": "هل لديك حساب بالفعل؟",
+    "submitted": "تم التسليم",
+    "notSubmitted": "لم يتم التسليم",
+    "performanceOverview": "نظرة عامة على الأداء",
+    "noDataForChart": "لا توجد بيانات متاحة للرسم البياني."
 
 }

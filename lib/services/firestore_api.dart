@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:learnaria/models/dashboard_data.dart';
-import 'package:intl/intl.dart'; 
+import 'package:intl/intl.dart';
 
 class FirestoreApi {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -38,47 +38,37 @@ class FirestoreApi {
             schedule: [],
           );
         }
-
-        // ====================================================================
-        // ====================    بداية الحل الجذري والنهائي   ====================
-        // ====================================================================
+        
         final recurringSchedulesSnap = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('recurringSchedules').get();
         final exceptionsSnap = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('scheduleExceptions').get();
         
         final today = DateTime.now();
         final todayString = DateFormat('yyyy-MM-dd').format(today);
         
-        // الخطوة 1: الحصول على رقم اليوم الحالي (الأحد=0, الاثنين=1, ..)
-        // Dart's weekday: Mon=1..Sun=7. JS getDay(): Sun=0..Sat=6. We use the JS standard.
         final int currentDayJs = today.weekday % 7; 
 
         List<ScheduleEntry> finalScheduleForToday = [];
 
-        // الخطوة 2: معالجة الجداول المحفوظة والتحقق من التوافق مع اليوم الحالي
         for (var doc in recurringSchedulesSnap.docs) {
           final scheduleData = doc.data();
           final days = List.from(scheduleData['days'] ?? []);
 
-          if (days.isEmpty) continue; // تخطي الجدول إذا كان فارغًا
+          if (days.isEmpty) continue;
 
           bool isClassToday = false;
 
-          // التحقق إذا كانت البيانات قديمة (أسماء) أم جديدة (أرقام)
           if (days.first is String) {
-            // **منطق للتعامل مع البيانات القديمة (أسماء الأيام)**
-            final currentDayNameEn = DateFormat('EEEE', 'en_US').format(today); // e.g., "Sunday"
-            final currentDayNameAr = DateFormat('EEEE', 'ar_SA').format(today); // e.g., "الأحد"
+            final currentDayNameEn = DateFormat('EEEE', 'en_US').format(today);
+            final currentDayNameAr = DateFormat('EEEE', 'ar_SA').format(today);
             if (days.contains(currentDayNameEn) || days.contains(currentDayNameAr)) {
               isClassToday = true;
             }
           } else if (days.first is int) {
-            // **المنطق الجديد للتعامل مع الأرقام**
             if (days.contains(currentDayJs)) {
               isClassToday = true;
             }
           }
 
-          // إذا كانت الحصة مجدولة لليوم، أضفها للقائمة
           if (isClassToday) {
             finalScheduleForToday.add(ScheduleEntry.fromFirestore({
               ...scheduleData,
@@ -87,13 +77,12 @@ class FirestoreApi {
           }
         }
         
-        // الخطوة 3: تطبيق الاستثناءات (إلغاء أو تعديل موعد)
         for (var doc in exceptionsSnap.docs) {
           final exceptionData = doc.data();
           if (exceptionData['date'] == todayString) {
             final status = exceptionData['status'];
             if (status == 'cancelled') {
-              finalScheduleForToday.clear(); // إلغاء كل حصص اليوم
+              finalScheduleForToday.clear();
             } else if (status == 'rescheduled') {
               if (finalScheduleForToday.isNotEmpty) {
                 finalScheduleForToday[0] = finalScheduleForToday[0].copyWith(time: exceptionData['newTime']);
@@ -101,12 +90,9 @@ class FirestoreApi {
             }
           }
         }
-        // =======================    نهاية الحل الجذري   =======================
-        // ====================================================================
 
         reportsMap[teacherId]!.schedule.addAll(finalScheduleForToday);
 
-        // Fetch Attendance
         final attendanceSnapshot = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('dailyAttendance').get();
         for (var doc in attendanceSnapshot.docs) {
           final records = doc.data()['records'] as List<dynamic>?;
@@ -121,20 +107,29 @@ class FirestoreApi {
           });
         }
 
-        // Fetch Grades
-        final gradesSnapshot = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('assignments').get();
-        for (var doc in gradesSnapshot.docs) {
-          final scores = doc.data()['scores'] as List<dynamic>?;
-          scores?.forEach((scoreRecord) {
-            if (scoreRecord['studentId'] == studentId) {
+        final assignmentsSnapshot = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('assignments').get();
+        for (var doc in assignmentsSnapshot.docs) {
+          final assignmentData = doc.data();
+          final scoresMap = assignmentData['scores'] as Map<String, dynamic>? ?? {};
+          final studentScoreData = scoresMap[studentId] as Map<String, dynamic>?;
+
+          if (studentScoreData != null) {
+              final scoreValue = studentScoreData['score'];
+              int? finalScore;
+              if (scoreValue is num) {
+                  finalScore = scoreValue.toInt();
+              } else if (scoreValue is String && scoreValue.isNotEmpty) {
+                  finalScore = int.tryParse(scoreValue);
+              }
+
               reportsMap[teacherId]!.grades.add(GradeRecord(
-                studentName: studentName,
-                assignmentName: doc.data()['name'],
-                score: (scoreRecord['score'] as num?)?.toInt() ?? 0,
-                date: doc.data()['date'] ?? 'N/A',
+                  studentName: studentName,
+                  assignmentName: assignmentData['name'] ?? 'N/A',
+                  score: finalScore,
+                  date: assignmentData['date'] ?? 'N/A',
+                  submitted: studentScoreData['submitted'] as bool? ?? false,
               ));
-            }
-          });
+          }
         }
       }
 

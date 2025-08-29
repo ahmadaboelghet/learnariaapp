@@ -293,4 +293,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mustAgreeToTermsError => 'You must agree to the terms and conditions.';
+
+  @override
+  String get submitted => 'Submitted';
+
+  @override
+  String get notSubmitted => 'Not Submitted';
+
+  @override
+  String get performanceOverview => 'Performance Overview';
+
+  @override
+  String get noDataForChart => 'No data available for chart.';
 }
