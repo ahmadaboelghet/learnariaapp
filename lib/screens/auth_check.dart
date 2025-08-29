@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:learnaria/screens/intro.dart';
+import 'package:learnaria/screens/auth_screen.dart'; // استيراد شاشة المصادقة الجديدة
 import 'package:learnaria/screens/main_layout.dart';
 
 class AuthCheck extends StatelessWidget {
@@ -13,14 +13,14 @@ class AuthCheck extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.active) {
           if (snapshot.hasData) {
-            // User is logged in
+            // المستخدم مسجل دخوله
             return const MainLayoutScreen();
           } else {
-            // User is not logged in, direct to SignUpScreen
-            return const IntroScreen();
+            // المستخدم ليس مسجل دخوله
+            return const AuthScreen(); // توجيه المستخدم إلى شاشة المصادقة
           }
         }
-        // While waiting for connection, show a loading indicator
+        // أثناء انتظار الاتصال، يتم عرض مؤشر تحميل
         return const Scaffold(
           body: Center(
             child: CircularProgressIndicator(),

@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
-import 'package:learnaria/screens/forget_password.dart';
-import 'package:learnaria/screens/main_layout.dart';
-import 'package:learnaria/screens/otp_verification.dart';
+import 'package:learnaria/services/auth_service.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/widgets/password_text_field.dart';
-import 'package:learnaria/widgets/phone_text_field.dart'; // Import the new widget
+import 'package:learnaria/widgets/phone_text_field.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -15,7 +12,8 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
+class _AuthScreenState extends State<AuthScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isKeyboardVisible = false;
 
@@ -41,14 +39,16 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: SizedBox(
-            height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
+            height: MediaQuery.of(context).size.height -
+                MediaQuery.of(context).padding.top,
             child: Column(
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                   height: _isKeyboardVisible ? 80 : 150,
-                  margin: EdgeInsets.only(top: _isKeyboardVisible ? 20 : 50, bottom: 20),
+                  margin: EdgeInsets.only(
+                      top: _isKeyboardVisible ? 20 : 50, bottom: 20),
                   child: Image.asset('assets/images/logo.png'),
                 ),
                 Text(
@@ -58,7 +58,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                 const SizedBox(height: 20),
                 TabBar(
                   controller: _tabController,
-                  labelStyle: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold),
+                  labelStyle: AppTextStyles.bodyText
+                      .copyWith(fontWeight: FontWeight.bold),
                   unselectedLabelStyle: AppTextStyles.bodyText,
                   indicatorColor: AppColors.primaryYello,
                   indicatorSize: TabBarIndicatorSize.tab,
@@ -97,15 +98,9 @@ class _LoginFormWidget extends StatefulWidget {
 
 class _LoginFormWidgetState extends State<_LoginFormWidget> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _phoneController;
-  late TextEditingController _passwordController;
-
-  @override
-  void initState() {
-    super.initState();
-    _phoneController = TextEditingController();
-    _passwordController = TextEditingController();
-  }
+  final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
@@ -114,14 +109,17 @@ class _LoginFormWidgetState extends State<_LoginFormWidget> {
     super.dispose();
   }
 
-  void _signIn() {
+  void _login() {
     if (_formKey.currentState!.validate()) {
-      final String fullPhoneNumber = "+20${_phoneController.text.substring(1)}";
-      print("Logging in with: $fullPhoneNumber");
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MainLayoutScreen()),
-      );
+      String phoneNumber = _phoneController.text.trim();
+      // --- START: FIX for extra zero ---
+      if (phoneNumber.startsWith('0')) {
+        phoneNumber = phoneNumber.substring(1);
+      }
+      final String fullPhoneNumber = "+20$phoneNumber";
+      // --- END: FIX ---
+      _authService.signInWithPhoneAndPassword(
+          context, fullPhoneNumber, _passwordController.text);
     }
   }
 
@@ -154,28 +152,10 @@ class _LoginFormWidgetState extends State<_LoginFormWidget> {
               controller: _passwordController,
               labelText: localizations.password,
               hintText: localizations.password,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return localizations.pleaseEnterPassword;
-                }
-                return null;
-              },
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgetPassword()));
-                },
-                child: Text(
-                  localizations.forgotPassword,
-                  style: AppTextStyles.linkText,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
             ElevatedButton(
-              onPressed: _signIn,
+              onPressed: _login,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryYello,
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -202,14 +182,9 @@ class _SignupFormWidget extends StatefulWidget {
 
 class __SignupFormWidgetState extends State<_SignupFormWidget> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _phoneController;
+  final _phoneController = TextEditingController();
   bool _agreedToTerms = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _phoneController = TextEditingController();
-  }
+  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
@@ -222,20 +197,20 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
       if (!_agreedToTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.agreeToTerms),
+            content: Text(AppLocalizations.of(context)!.mustAgreeToTermsError),
             backgroundColor: Colors.red,
           ),
         );
         return;
       }
-      final String fullPhoneNumber = "+20${_phoneController.text.substring(1)}";
-      print("Signing up with: $fullPhoneNumber");
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => OtpVerificationScreen(phoneNumber: fullPhoneNumber),
-        ),
-      );
+      String phoneNumber = _phoneController.text.trim();
+      // --- START: FIX for extra zero ---
+      if (phoneNumber.startsWith('0')) {
+        phoneNumber = phoneNumber.substring(1);
+      }
+      final String fullPhoneNumber = "+20$phoneNumber";
+      // --- END: FIX ---
+      _authService.sendOtpForSignup(context, fullPhoneNumber);
     }
   }
 
@@ -293,7 +268,8 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Text(localizations.signup, style: AppTextStyles.buttonText),
+              child:
+                  Text(localizations.signup, style: AppTextStyles.buttonText),
             ),
           ],
         ),
