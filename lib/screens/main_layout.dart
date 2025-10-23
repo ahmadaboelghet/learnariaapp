@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:learnaria/screens/progress_report.dart';
+import 'package:learnaria/services/notification_service.dart'; // <-- ١. استيراد الملف الجديد
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/screens/home.dart';
 import 'package:learnaria/screens/more_screen.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
+
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
 
@@ -19,8 +21,17 @@ class _MainLayoutState extends State<MainLayoutScreen> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
+    // --- ٢. استدعاء دالة إعداد الإشعارات ---
+    _setupNotifications();
   }
 
+  // --- ٣. إضافة هذه الدالة الجديدة ---
+  void _setupNotifications() async {
+    final notificationService = NotificationService();
+    // هذه الدالة ستقوم باشتراك المستخدم في الـ topic الخاص به
+    await notificationService.subscribeToUserTopic();
+  }
+  
   @override
   void dispose() {
     _pageController.dispose();
@@ -49,7 +60,7 @@ class _MainLayoutState extends State<MainLayoutScreen> {
         children: const [
           HomeScreen(),
           ProgressReportScreen(),
-          MoreScreen(), // Using the new MoreScreen
+          MoreScreen(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -79,7 +90,7 @@ class _MainLayoutState extends State<MainLayoutScreen> {
               AssetImage('assets/images/menu.png'),
               size: 20,
             ),
-            label: appLocalizations.more, // Using the new "More" label
+            label: appLocalizations.more,
           ),
         ],
       ),

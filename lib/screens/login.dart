@@ -29,7 +29,11 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final String emailFormattedPhoneNumber = "${_phoneController.text.trim()}@learnaria.app";
+      // -- Start: التعديل هنا --
+      // إضافة +2 إلى بداية رقم الهاتف
+      final String formattedPhoneNumber = "+2${_phoneController.text.trim()}";
+      final String emailFormattedPhoneNumber = "$formattedPhoneNumber@learnaria.app";
+      // -- End: التعديل هنا --
 
       await _auth.signInWithEmailAndPassword(
         email: emailFormattedPhoneNumber,
