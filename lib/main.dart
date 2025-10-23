@@ -20,19 +20,39 @@ import 'package:firebase_auth/firebase_auth.dart';
 // --- دالة للتعامل مع الإشعارات عندما يكون التطبيق في الخلفية ---
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // ملاحظة: لا تضع try/catch هنا إلا إذا كنت متأكداً
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   print("Handling a background message: ${message.messageId}");
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  
+  // --- !! DEBUG: سنقوم بتتبع كل خطوة !! ---
+  try {
+    print("MAIN: 1. Attempting Firebase.initializeApp...");
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print("MAIN: 2. Firebase.initializeApp SUCCESSFUL.");
+  } catch (e) {
+    // --- !! إذا فشلت التهيئة، سيظهر الخطأ هنا !! ---
+    print("!!!!!!!! MAIN: 1. ERROR during Firebase.initializeApp: $e");
+  }
 
+  // سيتم تحديدها حتى لو فشلت التهيئة، لكنها لن تعمل
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  await setupFirebaseMessaging();
 
+  try {
+    print("MAIN: 3. Attempting to call setupFirebaseMessaging...");
+    await setupFirebaseMessaging();
+    print("MAIN: 4. setupFirebaseMessaging call FINISHED.");
+  } catch (e) {
+    // --- !! إذا فشلت الدالة نفسها، سيظهر الخطأ هنا !! ---
+    print("!!!!!!!! MAIN: 3. ERROR during setupFirebaseMessaging call: $e");
+  }
+
+  print("MAIN: 5. Running app...");
   runApp(
     MultiProvider(
       providers: [
@@ -44,30 +64,67 @@ void main() async {
   );
 }
 
-// --- دالة مخصصة لتنظيم كود الإشعارات ---
-// --- دالة مخصصة لتنظيم كود الإشعارات (النسخة المحسنة) ---
-Future<void> setupFirebaseMessaging() async {
-  final messaging = FirebaseMessaging.instance;
-  await messaging.requestPermission();
 
-  // نستمع لتغيرات حالة الدخول أولاً
+// --- دالة مخصصة لتنظيم كود الإشعارات (النسخة المحسنة مع Try/Catch) ---
+Future<void> setupFirebaseMessaging() async {
+  
+  // --- !! DEBUG: هذا أهم سطر !! ---
+  print("SETUP: 0. ENTERED setupFirebaseMessaging function."); 
+
+  final messaging = FirebaseMessaging.instance;
+  
+  try {
+    print("SETUP: 1. Attempting messaging.requestPermission...");
+    await messaging.requestPermission();
+    print("SETUP: 2. messaging.requestPermission SUCCESSFUL.");
+  } catch (e) {
+    print("!!!!!!!! SETUP: 1. ERROR requesting permission: $e");
+  }
+
+
   FirebaseAuth.instance.authStateChanges().listen((user) async {
-    // إذا كان هناك مستخدم مسجل الدخول
+    print("SETUP (Auth): Auth state changed. User is: ${user?.uid}");
+
     if (user != null) {
-      // نقوم بالحصول على التوكن "بعد" التأكد من وجود مستخدم
-      final fcmToken = await messaging.getToken();
       
-      // نطبع التوكن هنا للتأكد في كل مرة يتم فيها الحفظ
-      print("Saving token for user ${user.uid}: $fcmToken");
+      String? fcmToken;
+      try {
+        print("SETUP (Auth): Getting token for user ${user.uid}...");
+        fcmToken = await messaging.getToken();
+        
+        // --- !! سنعرف هنا إذا كان التوكن null أم لا !! ---
+        print("SETUP (Auth): Got FCM Token: $fcmToken");
+
+      } catch (e) {
+        print("!!!!!!!! SETUP (Auth): ERROR getting FCM Token: $e");
+      }
+
 
       if (fcmToken != null) {
-        FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .set({'fcmToken': fcmToken}, SetOptions(merge: true));
+        try {
+          print("SETUP (Auth): Attempting to write token to Firestore: /users/${user.uid}");
+          
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({'fcmToken': fcmToken}, SetOptions(merge: true));
+
+          print("SETUP (Auth): SUCCESS: Token written to Firestore.");
+
+        } catch (e) {
+          // --- !! إذا فشلت الكتابة (بسبب القواعد مثلاً) سيظهر الخطأ هنا !! ---
+          print("!!!!!!!! SETUP (Auth): ERROR writing token to Firestore: $e");
+        }
+      } else {
+        print("SETUP (Auth): fcmToken is null. Skipping Firestore write.");
       }
+
+    } else {
+      print("SETUP (Auth): User is logged out.");
     }
   });
+
+
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     print('Got a message whilst in the foreground!');
     if (message.notification != null) {
@@ -77,6 +134,7 @@ Future<void> setupFirebaseMessaging() async {
   });
 }
 
+// --- (باقي كود MyApp كما هو بدون تغيير) ---
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 

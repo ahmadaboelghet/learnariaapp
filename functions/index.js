@@ -1,7 +1,3 @@
-//
-// functions/index.js
-//
-
 const {onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
@@ -38,17 +34,26 @@ exports.notifyOnAbsence = onDocumentWritten(
             console.log(`Student with ID ${record.studentId} not found.`);
             continue;
           }
-          const parentPhoneNumber = studentDoc.data().parentPhoneNumber;
 
-          const parentQuery = await admin
+          // --- !! التعديل الأساسي هنا !! ---
+          // 1. احصل على ID ولي الأمر من مستند الطالب
+          const parentUserId = studentDoc.data().parentUserId;
+
+          if (!parentUserId) {
+            const msg = `Parent User ID (parentUserId) not found for ` +
+                        `student ${record.studentId}`;
+            console.log(msg);
+            continue;
+          }
+
+          // 2. ابحث عن مستند ولي الأمر مباشرة من collection 'users'
+          const parentUserDoc = await admin
               .firestore()
-              .collectionGroup("students")
-              .where("parentPhoneNumber", "==", parentPhoneNumber)
-              .limit(1)
+              .collection("users")
+              .doc(parentUserId)
               .get();
 
-          if (!parentQuery.empty) {
-            const parentUserDoc = parentQuery.docs[0];
+          if (parentUserDoc.exists) {
             const fcmToken = parentUserDoc.data().fcmToken;
 
             if (fcmToken) {
@@ -60,18 +65,22 @@ exports.notifyOnAbsence = onDocumentWritten(
                                       `كـ "غائب" اليوم.`,
                 },
               };
-              const studentIdLog = studentDoc.id;
+              // --- (تم إصلاح max-len هنا) ---
               const msg = `Sending 'absence' notification for student ` +
-                                  `${studentIdLog}`;
+                          `${record.studentId} to parent ${parentUserId}`;
               console.log(msg);
               await admin.messaging().sendToDevice(fcmToken, payload);
             } else {
-              const studentIdLog = studentDoc.id;
-              const msg = `FCM token not found for parent of ` +
-                                  `student ${studentIdLog}`;
+              const msg = `FCM token not found for parent user ${parentUserId}`;
               console.log(msg);
             }
+          } else {
+            // --- (تم إصلاح max-len هنا) ---
+            const msg = `Parent user document not found in /users/` +
+                        `${parentUserId}`;
+            console.log(msg);
           }
+          // --- نهاية التعديل ---
         }
       }
     });
@@ -108,18 +117,27 @@ exports.notifyOnNewGrades = onDocumentWritten(
               console.log(`Student with ID ${studentId} not found.`);
               continue;
             }
-            const parentPhoneNumber =
-                        studentDoc.data().parentPhoneNumber;
 
-            const parentQuery = await admin
+            // --- !! التعديل الأساسي هنا !! ---
+            // 1. احصل على ID ولي الأمر من مستند الطالب
+            const parentUserId = studentDoc.data().parentUserId;
+
+            if (!parentUserId) {
+              const msg = `Parent User ID (parentUserId) not found for ` +
+                          `student ${studentId}`;
+              console.log(msg);
+              continue;
+            }
+
+            // 2. ابحث عن مستند ولي الأمر مباشرة من collection 'users'
+            const parentUserDoc = await admin
                 .firestore()
-                .collectionGroup("students")
-                .where("parentPhoneNumber", "==", parentPhoneNumber)
-                .limit(1)
+                .collection("users")
+                .doc(parentUserId)
                 .get();
 
-            if (!parentQuery.empty) {
-              const parentUserDoc = parentQuery.docs[0];
+
+            if (parentUserDoc.exists) {
               const fcmToken = parentUserDoc.data().fcmToken;
 
               if (fcmToken) {
@@ -131,17 +149,23 @@ exports.notifyOnNewGrades = onDocumentWritten(
                                           `لابنك/ابنتك ${studentName}.`,
                   },
                 };
+                // --- (تم إصلاح max-len هنا) ---
                 const msg = `Sending 'grades' notification for ` +
-                                      `student ${studentId}`;
+                            `student ${studentId} to parent ${parentUserId}`;
                 console.log(msg);
                 await admin.messaging()
                     .sendToDevice(fcmToken, payload);
               } else {
-                const msg = `FCM token not found for parent of ` +
-                                      `student ${studentId}`;
+                const msg = `FCM ken not found for parent user ${parentUserId}`;
                 console.log(msg);
               }
+            } else {
+              // --- (تم إصلاح max-len هنا) ---
+              const msg = `Parent user document not found in /users/` +
+                          `${parentUserId}`;
+              console.log(msg);
             }
+            // --- نهاية التعديل ---
           }
         }
       }
@@ -164,7 +188,7 @@ exports.lessonReminder = onSchedule("every 30 minutes", async (event) => {
     const lessonTime = new Date(`${schedule.date}T${schedule.time}`);
 
     if (lessonTime > now && lessonTime <= twoHoursFromNow) {
-      // (الكود هنا لإرسال إشعار الدرس)
+      // (الكود هنا لإرسال إشعار الدرس - لم يتم تعديله)
     }
   }
 });
@@ -185,7 +209,9 @@ exports.homeworkNotSubmitted = onSchedule("every day 09:00",
 
       for (const doc of assignmentsSnapshot.docs) {
         const assignment = doc.data();
-        // (الكود هنا لإرسال إشعار الواجب)
+        // (الكود هنا لإرسال إشعار الواجب - لم يتم تعديله)
         console.log(`Checking assignment: ${assignment.name}`);
       }
     });
+
+// --- (تم إصلاح eol-last هنا بإضافة سطر جديد) ---

@@ -1,19 +1,40 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:learnaria/models/dashboard_data.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // تأكد من وجود هذا السطر
 
 class FirestoreApi {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<DashboardData> fetchDashboardData({required String parentPhoneNumber}) async {
+  // --- !! تم تعديل الدالة !! ---
+  // لم نعد بحاجة لاستقبال parentPhoneNumber
+  Future<DashboardData> fetchDashboardData() async {
     String studentNameForDashboard = "Student";
     try {
+      
+      // --- !! 1. جلب بيانات ولي الأمر المسجل حالياً !! ---
+      final User? currentUser = FirebaseAuth.instance.currentUser;
+      
+      // إذا لم يكن هناك مستخدم مسجل، أرجع بيانات فارغة
+      if (currentUser == null || currentUser.phoneNumber == null) {
+        print('FirestoreAPI (خطأ ❌): لا يمكن جلب البيانات. المستخدم null أو لا يملك رقم هاتف.');
+        return DashboardData(studentName: studentNameForDashboard, reportsByTeacher: []);
+      }
+
+      final String parentUid = currentUser.uid;
+      final String parentPhoneNumber = currentUser.phoneNumber!;
+
+      print('FirestoreAPI (DEBUG): جاري البحث عن طالب برقم هاتف ولي الأمر: $parentPhoneNumber');
+      // --- !! نهاية التعديل !! ---
+      
+
       final studentsSnapshot = await _firestore
           .collectionGroup('students')
           .where('parentPhoneNumber', isEqualTo: parentPhoneNumber)
           .get();
 
       if (studentsSnapshot.docs.isEmpty) {
+        print('FirestoreAPI (DEBUG): لم يتم العثور على طالب برقم الهاتف هذا.');
         return DashboardData(studentName: studentNameForDashboard, reportsByTeacher: []);
       }
       
@@ -21,6 +42,26 @@ class FirestoreApi {
       Map<String, TeacherReport> reportsMap = {};
 
       for (var studentDoc in studentsSnapshot.docs) {
+
+        // --- !! 2. ربط الطالب بولي الأمر (حلقة الوصل) !! ---
+        // (هذا الكود سيعمل الآن لأننا متأكدون من وجود parentUid)
+        try {
+          print('FirestoreAPI (محاولة الربط): جاري ربط UID ${parentUid} بالطالب ${studentDoc.id}');
+          
+          await studentDoc.reference.set(
+            {'parentUserId': parentUid},
+            SetOptions(merge: true), // merge:true ليتم الإضافة/التحديث بدون مسح بيانات
+          );
+          
+          print('FirestoreAPI (نجاح ✅): تم ربط الطالب بنجاح.');
+        
+        } catch (e) {
+          print('FirestoreAPI (خطأ ❌): فشل ربط الطالب ${studentDoc.id}. خطأ: $e');
+        }
+        // --- !! نهاية التعديل !! ---
+
+
+        // --- (باقي الكود الخاص بك كما هو) ---
         final studentId = studentDoc.id;
         final studentName = studentDoc.data()['name'] ?? 'N/A';
         final pathSegments = studentDoc.reference.path.split('/');
@@ -38,6 +79,8 @@ class FirestoreApi {
             schedule: [],
           );
         }
+        
+        // ... (باقي الكود بدون تغيير) ...
         
         final recurringSchedulesSnap = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('recurringSchedules').get();
         final exceptionsSnap = await _firestore.collection('teachers').doc(teacherId).collection('groups').doc(groupId).collection('scheduleExceptions').get();
