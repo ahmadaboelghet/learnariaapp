@@ -256,30 +256,10 @@
              // يمكنك تخصيص ألوان وعناصر أخرى للثيم الفاتح
              colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.amber).copyWith(secondary: Colors.redAccent), // تحديد لون ثانوي
           ),
-         darkTheme: ThemeData(
-             brightness: Brightness.dark,
-             primarySwatch: Colors.amber,
-             scaffoldBackgroundColor: const Color(0xFF121212),
-             primaryColor: AppColors.primaryYello,
-             appBarTheme: const AppBarTheme(
-                 backgroundColor: Color(0xFF1E1E1E), // لون أغمق قليلاً للخلفية
-                 elevation: 0,
-                 iconTheme: IconThemeData(color: Colors.white),
-                 titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Inter'),
-                 centerTitle: false,
-             ),
-             fontFamily: 'Inter',
-             // تخصيص ألوان وعناصر الثيم الداكن
-             colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.amber, brightness: Brightness.dark).copyWith(secondary: Colors.redAccent),
-         ),
-         // استخدام AuthCheck كشاشة رئيسية
-         home: const AuthCheck(),
-         // يمكنك تعريف الـ routes هنا إذا أردت استخدام التنقل بالأسماء
-         // routes: {
-         //   '/attendance': (context) => AttendanceDetailsScreen(),
-         //   '/grades': (context) => AssignmentDetailsScreen(),
-         //   // ... other routes
-         // },
-       );
-     }
-   }
+          
+          home: const SplashScreen(),
+        );
+      },
+    );
+  }
+}
