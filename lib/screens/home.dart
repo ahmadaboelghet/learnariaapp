@@ -39,9 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'Could not determine your phone number from your email.',
         );
       }
-      final data = await FirestoreApi().fetchDashboardData(
-        parentPhoneNumber: parentPhone,
-      );
+      final data = await FirestoreApi().fetchDashboardData();
       if (mounted) {
         setState(() {
           _dashboardData = data;
