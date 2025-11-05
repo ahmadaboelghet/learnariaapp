@@ -3,6 +3,7 @@
    import 'package:firebase_core/firebase_core.dart';
    import 'package:learnaria/firebase_options.dart';
    import 'package:learnaria/screens/auth_check.dart'; // <-- تأكد من وجود هذا الملف
+import 'package:learnaria/screens/splash.dart';
    import 'package:learnaria/utils/app_styles.dart';
    import 'package:provider/provider.dart';
    import 'package:learnaria/utils/theme_provider.dart';
@@ -259,7 +260,6 @@
           
           home: const SplashScreen(),
         );
-      },
-    );
+      }
   }
-}
+
