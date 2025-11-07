@@ -1,191 +1,190 @@
 //
-// functions/index.js
+// functions/index.js (النسخة النهائية - تستخدم v1 API .send())
 //
-
+/* eslint-disable max-len */
 const {onDocumentWritten} = require("firebase-functions/v2/firestore");
-const {onSchedule} = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
 
+/**
+ * دالة مساعدة للبحث عن ولي الأمر بالإيميل وإرسال الإشعار
+ * @param {string} parentPhoneNumber رقم هاتف ولي الأمر (e.g., "+20100...")
+ * @param {object} payload حمولة الإشعار (notification + data).
+ * @param {string} context سياق الدالة (للـ logging).
+ * @param {string} studentId هوية الطالب (للـ logging).
+ * @return {Promise<void>}
+ */
+async function sendNotificationToParentByPhone(parentPhoneNumber, payload, context, studentId) {
+  if (!parentPhoneNumber) {
+    console.log(`${context} (Error ❌): Student ${studentId} has no 'parentPhoneNumber'. Skipping.`);
+    return;
+  }
+
+  // 1. بناء الإيميل من رقم الهاتف
+  const parentEmail = `${parentPhoneNumber}@learnaria.app`;
+
+  let parentUserDoc;
+  try {
+    // 2. البحث في collection 'users' باستخدام الإيميل
+    console.log(`${context} (Info): Searching for parent user with email: ${parentEmail}`);
+    const userQuery = await admin.firestore().collection("users")
+        .where("email", "==", parentEmail) // <-- [تم التغيير] البحث بالإيميل
+        .limit(1)
+        .get();
+
+    if (userQuery.empty) {
+      console.log(`${context} (Error ❌): Parent user not found with email ${parentEmail} for student ${studentId}.`);
+      return;
+    }
+
+    parentUserDoc = userQuery.docs[0];
+  } catch (error) {
+    console.error(`${context}: Error querying parent user by email ${parentEmail}:`, error);
+    return;
+  }
+
+  const parentData = parentUserDoc.data();
+  const parentUserId = parentUserDoc.id;
+  const fcmToken = parentData.fcmToken;
+
+  if (fcmToken) {
+    // --- [التغيير الرئيسي هنا] ---
+    // 3. بناء الرسالة (v1 API)
+    // الدالة الجديدة تتطلب أن يكون التوكن جزءًا من الرسالة نفسها
+    const message = {
+      notification: payload.notification,
+      data: payload.data,
+      token: fcmToken, // <-- التوكن يوضع هنا
+    };
+
+    // 4. إرسال الرسالة باستخدام .send()
+    try {
+      console.log(`${context} (Attempt): Sending v1 message to parent ${parentUserId} (token: ${fcmToken})`);
+
+      // [تم التغيير] استخدام .send() بدلاً من .sendToDevice()
+      await admin.messaging().send(message);
+
+      console.log(`${context} (Success ✅): Notification sent successfully.`);
+    } catch (error) {
+      console.error(`${context} (Error ❌): Failed sending notification to token ${fcmToken}:`, error);
+      // (هنا يمكنك إضافة منطق لحذف التوكن إذا كان غير صالح)
+      // if (error.code === 'messaging/registration-token-not-registered') { ... }
+    }
+    // --- نهاية التغيير ---
+  } else {
+    console.log(`${context} (Error ❌): FCM token not found for parent ${parentUserId} (email ${parentEmail}).`);
+  }
+}
+
+
 // --- 1. إشعار عند تسجيل غياب الطالب ---
+// (هذه الدالة لا تحتاج أي تغيير، لأنها تستدعي الدالة المساعدة)
 exports.notifyOnAbsence = onDocumentWritten(
     "teachers/{teacherId}/groups/{groupId}/dailyAttendance/{date}",
     async (event) => {
-      const path = event.data.after.ref.path;
-      console.log(`Function notifyOnAbsence triggered for path: ${path}`);
+      const functionContext = "notifyOnAbsence";
+      const teacherId = event.params.teacherId;
+      const groupId = event.params.groupId;
+      console.log(`${functionContext}: Triggered for teachers/${teacherId}/groups/${groupId}/dailyAttendance/{date}`);
 
       const snap = event.data.after;
-      if (!snap || !snap.exists) {
-        console.log("Document was deleted or does not exist.");
-        return;
-      }
+      if (!snap || !snap.exists) return;
+
       const attendanceData = snap.data();
-      const records = attendanceData.records;
-      const context = event.params;
+      const records = Array.isArray(attendanceData.records) ? attendanceData.records : [];
 
       for (const record of records) {
-        if (record.status === "absent") {
-          const studentDocPath = `teachers/${context.teacherId}/groups/` +
-                                     `${context.groupId}/students`;
-          const studentDoc = await admin
-              .firestore()
-              .collection(studentDocPath)
-              .doc(record.studentId)
-              .get();
-
-          if (!studentDoc.exists) {
-            console.log(`Student with ID ${record.studentId} not found.`);
-            continue;
-          }
-          const parentPhoneNumber = studentDoc.data().parentPhoneNumber;
-
-          const parentQuery = await admin
-              .firestore()
-              .collectionGroup("students")
-              .where("parentPhoneNumber", "==", parentPhoneNumber)
-              .limit(1)
-              .get();
-
-          if (!parentQuery.empty) {
-            const parentUserDoc = parentQuery.docs[0];
-            const fcmToken = parentUserDoc.data().fcmToken;
-
-            if (fcmToken) {
-              const studentName = studentDoc.data().name;
-              const payload = {
-                notification: {
-                  title: "غياب الطالب",
-                  body: `تم تسجيل ابنك/ابنتك ${studentName} ` +
-                                      `كـ "غائب" اليوم.`,
-                },
-              };
-              const studentIdLog = studentDoc.id;
-              const msg = `Sending 'absence' notification for student ` +
-                                  `${studentIdLog}`;
-              console.log(msg);
-              await admin.messaging().sendToDevice(fcmToken, payload);
-            } else {
-              const studentIdLog = studentDoc.id;
-              const msg = `FCM token not found for parent of ` +
-                                  `student ${studentIdLog}`;
-              console.log(msg);
-            }
-          }
+        if (!record || !record.studentId || record.status !== "absent") {
+          continue;
         }
+
+        const studentId = record.studentId;
+        let studentDoc;
+        try {
+          studentDoc = await admin.firestore().doc(`teachers/${teacherId}/groups/${groupId}/students/${studentId}`).get();
+        } catch (error) {
+          console.error(`${functionContext}: Error fetching student ${studentId}:`, error);
+          continue;
+        }
+
+        if (!studentDoc.exists) {
+          console.log(`${functionContext}: Student ${studentId} not found.`);
+          continue;
+        }
+
+        const studentData = studentDoc.data();
+        const parentPhoneNumber = studentData.parentPhoneNumber;
+        const studentName = studentData.name || "طالب";
+
+        const payload = {
+          notification: {
+            title: "غياب الطالب",
+            body: `تم تسجيل ابنك/ابنتك ${studentName} كـ "غائب" اليوم.`,
+          },
+          data: {"screen": "attendance", "studentId": studentId},
+        };
+
+        await sendNotificationToParentByPhone(parentPhoneNumber, payload, functionContext, studentId);
       }
     });
 
 // --- 2. إشعار عند إضافة درجات جديدة ---
+// (هذه الدالة لا تحتاج أي تغيير، لأنها تستدعي الدالة المساعدة)
 exports.notifyOnNewGrades = onDocumentWritten(
     "teachers/{teacherId}/groups/{groupId}/assignments/{assignmentId}",
     async (event) => {
-      const path = event.data.after.ref.path;
-      console.log(`Function notifyOnNewGrades triggered for path: ${path}`);
+      const functionContext = "notifyOnNewGrades";
+      const teacherId = event.params.teacherId;
+      const groupId = event.params.groupId;
+      const assignmentId = event.params.assignmentId;
+      console.log(`${functionContext}: Triggered for teachers/${teacherId}/groups/${groupId}/assignments/${assignmentId}`);
 
-      const snap = event.data.after;
-      if (!snap || !snap.exists) {
-        console.log("Document was deleted or does not exist.");
-        return;
-      }
-      const assignmentData = snap.data();
-      const assignmentName = assignmentData.name;
-      const scores = assignmentData.scores;
-      const context = event.params;
+      const snapAfter = event.data.after;
+      if (!snapAfter || !snapAfter.exists) return;
 
-      for (const studentId in scores) {
-        if (Object.prototype.hasOwnProperty.call(scores, studentId)) {
-          const studentScore = scores[studentId];
-          if (studentScore.score) {
-            const studentDocPath = `teachers/${context.teacherId}/` +
-                        `groups/${context.groupId}/students`;
-            const studentDoc = await admin
-                .firestore()
-                .collection(studentDocPath)
-                .doc(studentId)
-                .get();
-            if (!studentDoc.exists) {
-              console.log(`Student with ID ${studentId} not found.`);
-              continue;
-            }
-            const parentPhoneNumber =
-                        studentDoc.data().parentPhoneNumber;
+      const beforeData = event.data.before ? event.data.before.data() : {};
+      const afterData = snapAfter.data();
+      const assignmentName = afterData.name || "واجب";
+      const scoresAfter = afterData.scores || {};
+      const scoresBefore = beforeData.scores || {};
 
-            const parentQuery = await admin
-                .firestore()
-                .collectionGroup("students")
-                .where("parentPhoneNumber", "==", parentPhoneNumber)
-                .limit(1)
-                .get();
+      for (const studentId in scoresAfter) {
+        if (!Object.prototype.hasOwnProperty.call(scoresAfter, studentId)) continue;
 
-            if (!parentQuery.empty) {
-              const parentUserDoc = parentQuery.docs[0];
-              const fcmToken = parentUserDoc.data().fcmToken;
+        const scoreDataAfter = scoresAfter[studentId] || {};
+        const scoreDataBefore = scoresBefore[studentId] || {};
+        const currentScore = scoreDataAfter.score;
 
-              if (fcmToken) {
-                const studentName = studentDoc.data().name;
-                const payload = {
-                  notification: {
-                    title: "تم إضافة درجة جديدة",
-                    body: `تم إضافة درجة "${assignmentName}" ` +
-                                          `لابنك/ابنتك ${studentName}.`,
-                  },
-                };
-                const msg = `Sending 'grades' notification for ` +
-                                      `student ${studentId}`;
-                console.log(msg);
-                await admin.messaging()
-                    .sendToDevice(fcmToken, payload);
-              } else {
-                const msg = `FCM token not found for parent of ` +
-                                      `student ${studentId}`;
-                console.log(msg);
-              }
-            }
+        const shouldNotify = currentScore != null && currentScore !== "" && currentScore !== scoreDataBefore.score;
+
+        if (shouldNotify) {
+          let studentDoc;
+          try {
+            studentDoc = await admin.firestore().doc(`teachers/${teacherId}/groups/${groupId}/students/${studentId}`).get();
+          } catch (error) {
+            console.error(`${functionContext}: Error fetching student ${studentId}:`, error);
+            continue;
           }
+
+          if (!studentDoc.exists) {
+            console.log(`${functionContext}: Student ${studentId} not found.`);
+            continue;
+          }
+
+          const studentData = studentDoc.data();
+          const parentPhoneNumber = studentData.parentPhoneNumber;
+          const studentName = studentData.name || "طالب";
+
+          const payload = {
+            notification: {
+              title: "تم إضافة درجة جديدة",
+              body: `تم إضافة درجة "${assignmentName}" لابنك/ابنتك ${studentName}.`,
+            },
+            data: {"screen": "grades", "assignmentId": assignmentId},
+          };
+
+          await sendNotificationToParentByPhone(parentPhoneNumber, payload, functionContext, studentId);
         }
-      }
-    });
-
-
-// --- 3. إشعار بتذكير موعد الدرس ---
-exports.lessonReminder = onSchedule("every 30 minutes", async (event) => {
-  console.log("Function lessonReminder triggered by scheduler.");
-  const now = new Date();
-  const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-
-  const schedulesSnapshot = await admin
-      .firestore()
-      .collectionGroup("recurringSchedules")
-      .get();
-
-  for (const doc of schedulesSnapshot.docs) {
-    const schedule = doc.data();
-    const lessonTime = new Date(`${schedule.date}T${schedule.time}`);
-
-    if (lessonTime > now && lessonTime <= twoHoursFromNow) {
-      // (الكود هنا لإرسال إشعار الدرس)
-    }
-  }
-});
-
-// --- 4. إشعار عند عدم تسليم الواجب ---
-exports.homeworkNotSubmitted = onSchedule("every day 09:00",
-    async (event) => {
-      console.log("Function homeworkNotSubmitted triggered by scheduler.");
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayString = yesterday.toISOString().split("T")[0];
-
-      const assignmentsSnapshot = await admin
-          .firestore()
-          .collectionGroup("assignments")
-          .where("date", "==", yesterdayString)
-          .get();
-
-      for (const doc of assignmentsSnapshot.docs) {
-        const assignment = doc.data();
-        // (الكود هنا لإرسال إشعار الواجب)
-        console.log(`Checking assignment: ${assignment.name}`);
       }
     });
