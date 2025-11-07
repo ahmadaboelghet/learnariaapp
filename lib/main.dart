@@ -1,3 +1,4 @@
+// (ملف: lib/main.dart - نسخة محدثة مع طباعة الأخطاء وتهيئة التاريخ)
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:learnaria/firebase_options.dart';
@@ -177,26 +178,29 @@ Future<void> setupFirebaseMessaging() async {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
-    return Consumer2<ThemeProvider, LocaleProvider>(
-      builder: (context, themeProvider, localeProvider, child) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          onGenerateTitle: (context) => AppLocalizations.of(context)!.appName,
+     @override
+     Widget build(BuildContext context) {
+       // قراءة الـ Providers هنا
+       final themeProvider = Provider.of<ThemeProvider>(context);
+       final localeProvider = Provider.of<LocaleProvider>(context);
 
-          // --- إعدادات الترجمة ---
-          locale: localeProvider.locale,
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: const [
-            Locale('en', ''), // English
-            Locale('ar', ''), // Arabic
-          ],
+       return MaterialApp(
+         // navigatorKey: navigatorKey, // لتمكين التنقل من handleMessageNavigation
+         debugShowCheckedModeBanner: false,
+         // استخدام AppLocalizations لجلب العنوان المترجم
+         onGenerateTitle: (context) {
+           // التأكد من أن Localizations جاهزة قبل استخدامها
+           final localizations = AppLocalizations.of(context);
+           return localizations?.appName ?? 'Learnaria'; // عنوان افتراضي
+         },
+         locale: localeProvider.locale,
+         localizationsDelegates: const [
+           AppLocalizations.delegate,
+           GlobalMaterialLocalizations.delegate,
+           GlobalWidgetsLocalizations.delegate,
+           GlobalCupertinoLocalizations.delegate,
+         ],
+         supportedLocales: AppLocalizations.supportedLocales, // استخدام القائمة من AppLocalizations
 
           // --- إعدادات المظهر (تم تصحيحها) ---
           themeMode: themeProvider.currentTheme, // provider.themeMode هو الصحيح
@@ -231,7 +235,5 @@ class MyApp extends StatelessWidget {
 
           home: const SplashScreen(),
         );
-      },
-    );
+      }
   }
-}
