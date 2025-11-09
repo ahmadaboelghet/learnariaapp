@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:learnaria/screens/auth_screen.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/widgets/custom_text_field.dart';
 import 'package:learnaria/widgets/password_text_field.dart';
 import 'package:learnaria/screens/main_layout.dart';
-import 'package:learnaria/screens/login.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -139,7 +139,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     Text("${appLocalizations.alreadyHaveAccount} ", style: AppTextStyles.secondaryText), // <-- نص مترجم
                     GestureDetector(
                       onTap: () {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (context) => LoginScreen()));
+                        Navigator.of(context).push(MaterialPageRoute(builder: (context) => AuthScreen()));
                       },
                       child: Text(appLocalizations.login, style: AppTextStyles.linkText), // <-- نص مترجم
                     ),

@@ -305,4 +305,54 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noDataForChart => 'لا توجد بيانات متاحة للرسم البياني.';
+
+  @override
+  String get authLogin => 'تسجيل الدخول';
+
+  @override
+  String get authSignup => 'إنشاء حساب';
+
+  @override
+  String get authSubtitle => 'سندسل لك كود تحقق (OTP)';
+
+  @override
+  String get authPhoneLabel => 'رقم الهاتف';
+
+  @override
+  String get authSendCode => 'إرسال الكود';
+
+  @override
+  String get authPhoneHint => 'الرجاء إدخال رقم هاتف صحيح';
+
+  @override
+  String get authErrorGeneric => 'حدث خطأ، يرجى المحاولة مرة أخرى';
+
+  @override
+  String get authErrorInvalidPhone => 'الرجاء إدخال رقم هاتف صحيح';
+
+  @override
+  String authErrorSendingCode(Object message) {
+    return 'فشل إرسال الكود: $message';
+  }
+
+  @override
+  String get otpVerifyTitle => 'التحقق من الكود';
+
+  @override
+  String get otpSentTo => 'تم إرسال كود من 6 أرقام إلى';
+
+  @override
+  String get otpVerifyButton => 'تحقق';
+
+  @override
+  String get otpErrorInvalidCode => 'خطأ في التحقق: الكود غير صحيح';
+
+  @override
+  String get otpChangePhone => 'تغيير رقم الهاتف؟';
+
+  @override
+  String get otpEnter6Digits => 'الرجاء إدخال 6 أرقام';
+
+  @override
+  String get pleaseEnterPhone => 'الرجاء إدخال رقم الهاتف';
 }

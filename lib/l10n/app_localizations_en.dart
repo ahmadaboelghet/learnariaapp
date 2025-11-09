@@ -305,4 +305,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noDataForChart => 'No data available for chart.';
+
+  @override
+  String get authLogin => 'Login';
+
+  @override
+  String get authSignup => 'Sign Up';
+
+  @override
+  String get authSubtitle => 'We will send you an OTP code';
+
+  @override
+  String get authPhoneLabel => 'Phone Number';
+
+  @override
+  String get authSendCode => 'Send Code';
+
+  @override
+  String get authPhoneHint => 'Please enter a valid phone number';
+
+  @override
+  String get authErrorGeneric => 'An error occurred, please try again';
+
+  @override
+  String get authErrorInvalidPhone => 'Please enter a valid phone number';
+
+  @override
+  String authErrorSendingCode(Object message) {
+    return 'Failed to send code: $message';
+  }
+
+  @override
+  String get otpVerifyTitle => 'Verify Code';
+
+  @override
+  String get otpSentTo => 'A 6-digit code was sent to';
+
+  @override
+  String get otpVerifyButton => 'Verify';
+
+  @override
+  String get otpErrorInvalidCode => 'Verification failed: Invalid code';
+
+  @override
+  String get otpChangePhone => 'Change phone number?';
+
+  @override
+  String get otpEnter6Digits => 'Please enter 6 digits';
+
+  @override
+  String get pleaseEnterPhone => 'Please enter your phone number';
 }

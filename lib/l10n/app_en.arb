@@ -136,5 +136,22 @@
     "submitted": "Submitted",
     "notSubmitted": "Not Submitted",
     "performanceOverview": "Performance Overview",
-    "noDataForChart": "No data available for chart."
+    "noDataForChart": "No data available for chart.",
+    "authLogin": "Login",
+    "authSignup": "Sign Up",
+    "authSubtitle": "We will send you an OTP code",
+    "authPhoneLabel": "Phone Number",
+    "authSendCode": "Send Code",
+    "authPhoneHint": "Please enter a valid phone number",
+    "authErrorGeneric": "An error occurred, please try again",
+    "authErrorInvalidPhone": "Please enter a valid phone number",
+    "authErrorSendingCode": "Failed to send code: {message}",
+
+    "otpVerifyTitle": "Verify Code",
+    "otpSentTo": "A 6-digit code was sent to",
+    "otpVerifyButton": "Verify",
+    "otpErrorInvalidCode": "Verification failed: Invalid code",
+    "otpChangePhone": "Change phone number?",
+    "otpEnter6Digits": "Please enter 6 digits",
+    "pleaseEnterPhone": "Please enter your phone number"
 }

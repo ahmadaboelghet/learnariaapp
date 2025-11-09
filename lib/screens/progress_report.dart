@@ -30,13 +30,6 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final parentPhone = user?.email?.split('@').first;
-
-      if (parentPhone == null || parentPhone.isEmpty) {
-        throw Exception('Could not determine your phone number from your email.');
-      }
-
       final data = await FirestoreApi().fetchDashboardData();
       if (mounted) {
         setState(() {

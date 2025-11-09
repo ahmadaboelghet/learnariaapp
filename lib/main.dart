@@ -107,20 +107,21 @@ Future<void> setupFirebaseMessaging() async {
       // نقوم بالحصول على التوكن "بعد" التأكد من وجود مستخدم
       final fcmToken = await messaging.getToken();
       
-      // --- [تم التعديل هنا] ---
-      // لازم نحفظ الإيميل والتوكن مع بعض
-      print("Saving token and email for user ${user.uid}: $fcmToken, ${user.email}");
+      // --- [التعديل الجوهري هنا] ---
+      // المستخدم اللي جاي من (OTP) بيكون معاه رقم تليفونه
+      if (fcmToken != null && user.phoneNumber != null) {
+        print("Saving token and PHONE NUMBER for user ${user.uid}: ${user.phoneNumber}: ${fcmToken}");
 
-      if (fcmToken != null && user.email != null) {
         FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .set({
               'fcmToken': fcmToken,
-              'email': user.email  // <-- [مهم جداً] إضافة الإيميل هنا
+              'phoneNumber': user.phoneNumber  // <-- [مهم جداً] حفظ رقم التليفون
             }, SetOptions(merge: true));
+      } else {
+         print("User is logged in but has no phone number (maybe old account?)");
       }
-      // --- نهاية التعديل ---
     }
   });
 

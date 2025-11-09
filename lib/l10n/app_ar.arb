@@ -135,6 +135,22 @@
     "submitted": "تم التسليم",
     "notSubmitted": "لم يتم التسليم",
     "performanceOverview": "نظرة عامة على الأداء",
-    "noDataForChart": "لا توجد بيانات متاحة للرسم البياني."
+    "noDataForChart": "لا توجد بيانات متاحة للرسم البياني.",
+    "authLogin": "تسجيل الدخول",
+    "authSignup": "إنشاء حساب",
+    "authSubtitle": "سندسل لك كود تحقق (OTP)",
+    "authPhoneLabel": "رقم الهاتف",
+    "authSendCode": "إرسال الكود",
+    "authPhoneHint": "الرجاء إدخال رقم هاتف صحيح",
+    "authErrorGeneric": "حدث خطأ، يرجى المحاولة مرة أخرى",
+    "authErrorInvalidPhone": "الرجاء إدخال رقم هاتف صحيح",
+    "authErrorSendingCode": "فشل إرسال الكود: {message}",
 
+    "otpVerifyTitle": "التحقق من الكود",
+    "otpSentTo": "تم إرسال كود من 6 أرقام إلى",
+    "otpVerifyButton": "تحقق",
+    "otpErrorInvalidCode": "خطأ في التحقق: الكود غير صحيح",
+    "otpChangePhone": "تغيير رقم الهاتف؟",
+    "otpEnter6Digits": "الرجاء إدخال 6 أرقام",
+    "pleaseEnterPhone": "الرجاء إدخال رقم الهاتف"
 }

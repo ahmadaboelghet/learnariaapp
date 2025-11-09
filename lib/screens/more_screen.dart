@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:learnaria/screens/auth_screen.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:learnaria/screens/login.dart';
 import 'package:learnaria/screens/notifications.dart';
 import 'package:provider/provider.dart';
 import 'package:learnaria/utils/theme_provider.dart';
@@ -42,7 +42,7 @@ class _MoreScreenState extends State<MoreScreen> {
       await FirebaseAuth.instance.signOut();
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (context) => const AuthScreen()),
           (route) => false,
         );
       }

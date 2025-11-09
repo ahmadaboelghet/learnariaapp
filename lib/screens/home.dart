@@ -4,7 +4,6 @@ import 'package:learnaria/screens/assignment_details.dart';
 import 'package:learnaria/screens/attendance_details.dart';
 import 'package:learnaria/models/dashboard_data.dart';
 import 'package:learnaria/services/firestore_api.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
 
@@ -31,14 +30,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      final parentPhone = user?.email?.split('@').first;
-      if (parentPhone == null || parentPhone.isEmpty) {
-        throw Exception(
-          'Could not determine your phone number from your email.',
-        );
-      }
+  try {
+      // --- [تم التعديل] ---
+      // تم حذف التحقق من الإيميل القديم.
+      // الدالة الجديدة في firestore_api.dart هي من تتحقق من رقم الهاتف
+      // اللي متسجل في currentUser.phoneNumber
       final data = await FirestoreApi().fetchDashboardData();
       if (mounted) {
         setState(() {

@@ -670,6 +670,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No data available for chart.'**
   String get noDataForChart;
+
+  /// No description provided for @authLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get authLogin;
+
+  /// No description provided for @authSignup.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Up'**
+  String get authSignup;
+
+  /// No description provided for @authSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We will send you an OTP code'**
+  String get authSubtitle;
+
+  /// No description provided for @authPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone Number'**
+  String get authPhoneLabel;
+
+  /// No description provided for @authSendCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Code'**
+  String get authSendCode;
+
+  /// No description provided for @authPhoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid phone number'**
+  String get authPhoneHint;
+
+  /// No description provided for @authErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred, please try again'**
+  String get authErrorGeneric;
+
+  /// No description provided for @authErrorInvalidPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid phone number'**
+  String get authErrorInvalidPhone;
+
+  /// No description provided for @authErrorSendingCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send code: {message}'**
+  String authErrorSendingCode(Object message);
+
+  /// No description provided for @otpVerifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Code'**
+  String get otpVerifyTitle;
+
+  /// No description provided for @otpSentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'A 6-digit code was sent to'**
+  String get otpSentTo;
+
+  /// No description provided for @otpVerifyButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get otpVerifyButton;
+
+  /// No description provided for @otpErrorInvalidCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification failed: Invalid code'**
+  String get otpErrorInvalidCode;
+
+  /// No description provided for @otpChangePhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Change phone number?'**
+  String get otpChangePhone;
+
+  /// No description provided for @otpEnter6Digits.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter 6 digits'**
+  String get otpEnter6Digits;
+
+  /// No description provided for @pleaseEnterPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your phone number'**
+  String get pleaseEnterPhone;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
