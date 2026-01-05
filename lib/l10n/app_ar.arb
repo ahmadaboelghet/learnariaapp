@@ -152,5 +152,12 @@
     "otpErrorInvalidCode": "خطأ في التحقق: الكود غير صحيح",
     "otpChangePhone": "تغيير رقم الهاتف؟",
     "otpEnter6Digits": "الرجاء إدخال 6 أرقام",
-    "pleaseEnterPhone": "الرجاء إدخال رقم الهاتف"
+    "pleaseEnterPhone": "الرجاء إدخال رقم الهاتف",
+    "authTitle": "Learnaria",
+    "authSlogan": "Learn more, learn smarter",
+    "authContinue": "متابعة",
+    "authTermsPrefix": "بالضغط على 'متابعة' أنت توافق على",
+    "authTermsLink": "الشروط والأحكام",
+    "authParentNotFoundError": "لا يوجد بيانات لولي الأمر هذا. من فضلك أخبر مدرس ابنك عن Learnaria.",
+    "authChecking": "جاري التحقق..."
 }

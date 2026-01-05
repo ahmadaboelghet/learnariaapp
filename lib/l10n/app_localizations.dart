@@ -766,6 +766,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please enter your phone number'**
   String get pleaseEnterPhone;
+
+  /// No description provided for @authTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Learnaria'**
+  String get authTitle;
+
+  /// No description provided for @authSlogan.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn more, learn smarter'**
+  String get authSlogan;
+
+  /// No description provided for @authContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get authContinue;
+
+  /// No description provided for @authTermsPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'By clicking continue, you accept our'**
+  String get authTermsPrefix;
+
+  /// No description provided for @authTermsLink.
+  ///
+  /// In en, this message translates to:
+  /// **'terms and conditions'**
+  String get authTermsLink;
+
+  /// No description provided for @authParentNotFoundError.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no data for this parent. Please tell your son\'s teacher about Learnaria.'**
+  String get authParentNotFoundError;
+
+  /// No description provided for @authChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking...'**
+  String get authChecking;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

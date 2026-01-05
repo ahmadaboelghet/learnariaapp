@@ -2,10 +2,20 @@ import 'package:flutter/material.dart';
 
 // Define common colors
 class AppColors {
-  static const Color primaryYello = Color.fromARGB(255, 229, 173, 53); // A vibrant red
+  static const Color primaryYello = Color.fromARGB(
+    255,
+    229,
+    173,
+    53,
+  ); // A vibrant red
   static const Color primaryBlack = Color(0xFF212121); // Dark text/button color
   static const Color lightGrey = Color(0xFFF5F5F5); // Background/field color
-  static const Color mediumGrey = Color.fromARGB(255, 170, 169, 162); // Icon/placeholder color
+  static const Color mediumGrey = Color.fromARGB(
+    255,
+    170,
+    169,
+    162,
+  ); // Icon/placeholder color
   static const Color darkGrey = Color(0xFF616161); // Secondary text color
   static const Color greenSuccess = Color(0xFF4CAF50); // Green for success
 }
@@ -59,13 +69,19 @@ class AppTextStyles {
 
 // Define common input decoration
 class AppInputDecoration {
-  static InputDecoration build(String hintText, {IconData? prefixIcon, Widget? suffixIcon}) {
+  static InputDecoration build(
+    String hintText, {
+    IconData? prefixIcon,
+    Widget? suffixIcon,
+  }) {
     return InputDecoration(
       hintText: hintText,
       hintStyle: AppTextStyles.secondaryText,
       filled: true,
       fillColor: AppColors.lightGrey,
-      prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: AppColors.mediumGrey) : null,
+      prefixIcon: prefixIcon != null
+          ? Icon(prefixIcon, color: AppColors.mediumGrey)
+          : null,
       suffixIcon: suffixIcon,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.0),
@@ -77,7 +93,10 @@ class AppInputDecoration {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.0),
-        borderSide: BorderSide(color: AppColors.primaryYello, width: 1.5), // Highlight on focus
+        borderSide: BorderSide(
+          color: AppColors.primaryYello,
+          width: 1.5,
+        ), // Highlight on focus
       ),
       contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
     );
@@ -99,7 +118,10 @@ class AppInputDecoration {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10.0),
-        borderSide: BorderSide(color: AppColors.primaryYello, width: 1.5), // Highlight on focus
+        borderSide: BorderSide(
+          color: AppColors.primaryYello,
+          width: 1.5,
+        ), // Highlight on focus
       ),
       contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
       counterText: "", // Hide character counter
@@ -113,9 +135,7 @@ ButtonStyle primaryButtonStyle() {
     backgroundColor: AppColors.primaryBlack, // Button background color
     foregroundColor: Colors.white, // Text color
     padding: EdgeInsets.symmetric(vertical: 16.0),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10.0),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
     elevation: 5,
     shadowColor: Colors.black.withOpacity(0.2),
   );

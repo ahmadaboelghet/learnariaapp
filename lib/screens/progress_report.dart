@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:learnaria/models/dashboard_data.dart';
 import 'package:learnaria/screens/notifications.dart';
 import 'package:learnaria/services/firestore_api.dart';

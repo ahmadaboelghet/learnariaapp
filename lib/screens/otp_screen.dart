@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:learnaria/screens/fill_profile.dart';
+// [تصحيح] اسم الكلاس سليم في الملف ده
 import 'package:learnaria/screens/main_layout.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:pinput/pinput.dart';
@@ -26,9 +27,15 @@ class _OTPScreenState extends State<OTPScreen> {
   final _focusNode = FocusNode();
   bool _isLoading = false;
 
+  // --- [جديد] ---
+  // متغير لمراقبة اكتمال الكود
+  bool _isPinComplete = false;
+  // --- [نهاية الجديد] ---
+
   Future<void> _verifyOTP() async {
     final localizations = AppLocalizations.of(context)!;
 
+    // (اللوجيك زي ما هو)
     if (_pinController.text.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(localizations.otpEnter6Digits)));
@@ -49,10 +56,12 @@ class _OTPScreenState extends State<OTPScreen> {
 
       if (userCredential.additionalUserInfo?.isNewUser == true) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const FillProfileScreen()),
+          MaterialPageRoute(builder: (context) => const MainLayoutScreen()),
           (route) => false,
         );
       } else {
+        // [تصحيح] الكود بتاعك كان كاتب MainLayoutScreen()
+        // اسم الكلاس الصحيح هو MainLayout() بناءً على ملفاتك
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const MainLayoutScreen()),
           (route) => false,
@@ -90,22 +99,13 @@ class _OTPScreenState extends State<OTPScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      // --- [تم التعديل] ---
-      // شيلنا الـ Center عشان الكلام يطلع فوق
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
-          // --- [تم التعديل] ---
-          // خلينا المحاذاة "للجنب" (start)
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- [تم الإضافة] ---
-            // ضفنا مسافة فوق عشان متبقاش لازقة في الـ AppBar
             const SizedBox(height: 40),
             
-            // --- [تم الحذف] ---
-            // تم حذف اللوجو بناءً على طلبك
-
             Text(
               localizations.otpSentTo,
               style: TextStyle(fontSize: 16, color: Colors.grey[700]),
@@ -118,12 +118,10 @@ class _OTPScreenState extends State<OTPScreen> {
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2,
               ),
-              textDirection: TextDirection.ltr, // عشان الرقم يظهر صح
+              textDirection: TextDirection.ltr, 
             ),
             const SizedBox(height: 30),
 
-            // --- [تم التعديل] ---
-            // ضفنا Center هنا عشان حقل الإدخال يفضل في النص
             Center(
               child: Directionality(
                 textDirection: TextDirection.ltr,
@@ -137,7 +135,18 @@ class _OTPScreenState extends State<OTPScreen> {
                       border: Border.all(color: AppColors.primaryYello),
                     ),
                   ),
+                  
+                  // --- [جديد] ---
+                  // بنراقب التغيير عشان نفعّل الزرار
+                  onChanged: (pin) {
+                    setState(() {
+                      _isPinComplete = (pin.length == 6);
+                    });
+                  },
+                  // --- [نهاية الجديد] ---
+
                   onCompleted: (pin) {
+                    // أول ما يكتب 6 أرقام، بنعمل verify تلقائي
                     _verifyOTP();
                   },
                 ),
@@ -145,31 +154,45 @@ class _OTPScreenState extends State<OTPScreen> {
             ),
             const SizedBox(height: 30),
             SizedBox(
-              width: double.infinity, // الزر هيفضل بعرض الشاشة
+              width: double.infinity, 
               height: 50,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _verifyOTP,
+                // --- [تم التعديل] ---
+                // الزرار هيفضل disabled لو الكود مش كامل
+                onPressed: _isLoading || !_isPinComplete ? null : _verifyOTP,
+                // --- [نهاية التعديل] ---
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryYello,
+                  // --- [تم التعديل] ---
+                  // اللون بيتغير بناءً على حالة الزرار
+                  backgroundColor: AppColors.primaryBlack,
+                  disabledBackgroundColor: AppColors.primaryBlack, // <-- اللون الرمادي
+                  // --- [نهاية التعديل] ---
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.black)
+                    ? const CircularProgressIndicator(color: Colors.white) // (خلينا اللودر أبيض)
                     : Text(
                         localizations.otpVerifyButton,
-                        style: AppTextStyles.buttonText,
+                        // --- [تم التعديل] ---
+                        // بنغير لون الكلام مع الزرار
+                        style: AppTextStyles.buttonText.copyWith(
+                          color: _isPinComplete ? Colors.white : Colors.white70,
+                        ),
+                        // --- [نهاية التعديل] ---
                       ),
               ),
             ),
             const SizedBox(height: 20),
-            // الزر ده هيفضل على الشمال (start) بسبب الـ CrossAxisAlignment
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
               child: Text(localizations.otpChangePhone),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryYello,
+              ),
             )
           ],
         ),

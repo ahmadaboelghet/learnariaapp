@@ -355,4 +355,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pleaseEnterPhone => 'Please enter your phone number';
+
+  @override
+  String get authTitle => 'Learnaria';
+
+  @override
+  String get authSlogan => 'Learn more, learn smarter';
+
+  @override
+  String get authContinue => 'Continue';
+
+  @override
+  String get authTermsPrefix => 'By clicking continue, you accept our';
+
+  @override
+  String get authTermsLink => 'terms and conditions';
+
+  @override
+  String get authParentNotFoundError => 'There is no data for this parent. Please tell your son\'s teacher about Learnaria.';
+
+  @override
+  String get authChecking => 'Checking...';
 }
