@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:learnaria/models/dashboard_data.dart';
-import 'package:learnaria/screens/notifications.dart';
 import 'package:learnaria/services/firestore_api.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
+import 'package:learnaria/widgets/glass_card.dart';
 
 class ProgressReportScreen extends StatefulWidget {
   const ProgressReportScreen({super.key});
@@ -49,319 +48,214 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
   @override
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
-    
+    final theme = Theme.of(context);
+    final List<TeacherReport> reports = _dashboardData?.reportsByTeacher ?? [];
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        leading: null,
-        automaticallyImplyLeading: false,
         title: Text(
           appLocalizations.progressReport,
-          style: AppTextStyles.heading2.copyWith(color: Theme.of(context).textTheme.bodyLarge!.color),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        centerTitle: false,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: theme.iconTheme.color),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYello)))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : _errorMessage.isNotEmpty
-              ? Center(child: Padding(padding: const EdgeInsets.all(16.0), child: Text(_errorMessage, textAlign: TextAlign.center, style: TextStyle(color: Colors.red))))
-              : _dashboardData != null && _dashboardData!.reportsByTeacher.isNotEmpty
-                  ? RefreshIndicator(
-                      onRefresh: _fetchReportData,
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildUserInfoSection(),
-                              SizedBox(height: 20),
-                              _buildAttendanceSection(),
-                              SizedBox(height: 20),
-                              _buildFeedbackSection(),
-                              SizedBox(height: 20),
-                              _buildPerformanceChartSection(),
-                              SizedBox(height: 20),
-                            ],
+          ? Center(
+              child: Text(
+                _errorMessage,
+                style: const TextStyle(color: Colors.red),
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  GlassCard(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          appLocalizations.performanceOverview,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                    )
-                  : Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text(appLocalizations.noStudentData, style: AppTextStyles.secondaryText, textAlign: TextAlign.center))),
-    );
-  }
+                        const SizedBox(height: 30),
+                        AspectRatio(
+                          aspectRatio: 1.5,
+                          child: BarChart(
+                            BarChartData(
+                              alignment: BarChartAlignment.spaceAround,
+                              maxY: 100,
+                              // 1. إصلاح إعدادات الـ Tooltip
+                              barTouchData: BarTouchData(
+                                touchTooltipData: BarTouchTooltipData(
+                                  // تم استبدال tooltipBgColor بـ getTooltipColor
+                                  getTooltipColor: (group) => theme.cardColor,
+                                  getTooltipItem:
+                                      (group, groupIndex, rod, rodIndex) {
+                                        // التأكد من أن الإندكس موجود داخل القائمة
+                                        if (group.x.toInt() >= reports.length)
+                                          return null;
 
-  Widget _buildUserInfoSection() {
-    final appLocalizations = AppLocalizations.of(context)!;
-    return Row(
-      children: [
-        CircleAvatar(radius: 24, backgroundColor: Colors.grey[200], child: Icon(Icons.person, color: Colors.grey[600])),
-        SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                appLocalizations.helloStudentParent(_dashboardData?.studentName ?? "Student"),
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color),
-              ),
-              Text(
-                '${appLocalizations.todayDate} ${DateFormat.yMMMMd().format(DateTime.now())}',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
-            ],
-          ),
-        ),
-        GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (context) => const NotificationsScreen()));
-          },
-          child: Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10)),
-            child: Image(image: AssetImage('assets/images/notification-bell.png'), height: 24, width: 24),
-          ),
-        ),
-      ],
-    );
-  }
+                                        String subject =
+                                            reports[group.x.toInt()].subject;
+                                        return BarTooltipItem(
+                                          '$subject\n',
+                                          TextStyle(
+                                            color: theme
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.color,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          children: [
+                                            TextSpan(
+                                              text: '${rod.toY.toInt()}%',
+                                              style: const TextStyle(
+                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                ),
+                              ),
+                              titlesData: FlTitlesData(
+                                show: true,
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    getTitlesWidget: (value, meta) {
+                                      final index = value.toInt();
+                                      if (index >= 0 &&
+                                          index < reports.length) {
+                                        String label =
+                                            reports[index].subject.length > 3
+                                            ? reports[index].subject.substring(
+                                                0,
+                                                3,
+                                              )
+                                            : reports[index].subject;
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 8.0,
+                                          ),
+                                          child: Text(
+                                            label,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: theme
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.color,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      return const SizedBox();
+                                    },
+                                    reservedSize: 30,
+                                  ),
+                                ),
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 30,
+                                    getTitlesWidget: (value, meta) {
+                                      if (value % 20 == 0) {
+                                        return Text(
+                                          value.toInt().toString(),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: theme
+                                                .textTheme
+                                                .bodySmall
+                                                ?.color,
+                                          ),
+                                        );
+                                      }
+                                      return const SizedBox();
+                                    },
+                                  ),
+                                ),
+                                topTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                rightTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                              ),
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                                getDrawingHorizontalLine: (value) => FlLine(
+                                  color: theme.dividerColor.withOpacity(0.1),
+                                  strokeWidth: 1,
+                                ),
+                              ),
+                              borderData: FlBorderData(show: false),
+                              // 2. إصلاح القائمة (List) باستخدام List.generate
+                              barGroups: List.generate(reports.length, (index) {
+                                final grades = reports[index].grades
+                                    .where((g) => g.score != null)
+                                    .toList();
+                                double avgScore = 0;
+                                if (grades.isNotEmpty) {
+                                  double total = grades.fold(
+                                    0,
+                                    (sum, item) => sum + (item.score ?? 0),
+                                  );
+                                  avgScore = total / grades.length;
+                                }
 
-  Widget _buildAttendanceSection() {
-    final appLocalizations = AppLocalizations.of(context)!;
-    final allAttendance = _dashboardData!.reportsByTeacher.expand((report) => report.attendance).toList();
-    final totalDays = allAttendance.length;
-    final presentDays = allAttendance.where((record) => record.status.toLowerCase() == 'present').length;
-    final missedDays = totalDays - presentDays;
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(appLocalizations.attendance, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
-        SizedBox(height: 10),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: isLightMode ? Colors.white : Theme.of(context).cardColor, 
-            borderRadius: BorderRadius.circular(15), 
-            boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))] : null,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('$presentDays ${appLocalizations.days}', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
-                  SizedBox(width: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4.0),
-                    child: Text('(${appLocalizations.outOfDays} $totalDays ${appLocalizations.days})', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-                  ),
-                ],
-              ),
-              SizedBox(height: 10),
-              Row(
-                children: [
-                  Container(width: 8, height: 8, decoration: BoxDecoration(color: AppColors.primaryYello, shape: BoxShape.circle)),
-                  SizedBox(width: 8),
-                  Text('$missedDays ${appLocalizations.daysMissed}', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge!.color)),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFeedbackSection() {
-    final appLocalizations = AppLocalizations.of(context)!;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(appLocalizations.feedback, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
-          ],
-        ),
-        SizedBox(height: 10),
-        if (_dashboardData!.reportsByTeacher.isEmpty)
-          Center(child: Text(appLocalizations.noFeedback))
-        else
-          Row(
-            children: _dashboardData!.reportsByTeacher.take(2).map((report) {
-              final totalAttendance = report.attendance.length;
-              final presentAttendance = report.attendance.where((a) => a.status.toLowerCase() == 'present').length;
-              final attendancePercent = totalAttendance > 0 ? (presentAttendance / totalAttendance) : 0.0;
-
-              final totalAssignments = report.grades.length;
-              final submittedAssignments = report.grades.where((g) => g.submitted).length;
-              final submissionPercent = totalAssignments > 0 ? (submittedAssignments / totalAssignments) : 0.0;
-              
-              final gradedAssignments = report.grades.where((g) => g.score != null).toList();
-              final averageScore = gradedAssignments.isNotEmpty
-                  ? gradedAssignments.map((g) => g.score!).reduce((a, b) => a + b) / gradedAssignments.length
-                  : 0.0;
-              
-              final finalFeedbackScore = (attendancePercent * 30) + (submissionPercent * 40) + (averageScore * 0.30);
-              
-              final status = finalFeedbackScore >= 85 ? appLocalizations.excellent : appLocalizations.needsImprovement;
-              final statusColor = finalFeedbackScore >= 85 ? AppColors.greenSuccess : AppColors.primaryYello;
-
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: _buildFeedbackCard(report.subject, status, statusColor, finalFeedbackScore.toInt()),
-                ),
-              );
-            }).toList(),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildFeedbackCard(String subject, String status, Color statusColor, int percentage) {
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-    return Container(
-      padding: EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: isLightMode ? Colors.white : Theme.of(context).cardColor, 
-        borderRadius: BorderRadius.circular(15), 
-        boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))] : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(subject, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
-          SizedBox(height: 5),
-          Text(status, style: TextStyle(fontSize: 14, color: statusColor)),
-          SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('$percentage%', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // =======================    بداية الجزء الذي تم تعديله   =======================
-  // --- دالة جديدة لتحديد لون العمود بناءً على النسبة ---
-  Color _getPerformanceColor(double score) {
-    if (score < 50) {
-      return Colors.red;
-    } else if (score >= 50 && score < 70) {
-      return Colors.grey;
-    } else if (score >= 70 && score < 90) {
-      return AppColors.primaryYello;
-    } else { // score >= 90
-      return AppColors.greenSuccess;
-    }
-  }
-
-  Widget _buildPerformanceChartSection() {
-    final appLocalizations = AppLocalizations.of(context)!;
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-    
-    final List<BarChartGroupData> barGroups = [];
-    final reports = _dashboardData!.reportsByTeacher;
-
-    for (int i = 0; i < reports.length; i++) {
-      final report = reports[i];
-      
-      final totalAttendance = report.attendance.length;
-      final presentAttendance = report.attendance.where((a) => a.status.toLowerCase() == 'present').length;
-      final attendancePercent = totalAttendance > 0 ? (presentAttendance / totalAttendance) : 0.0;
-
-      final totalAssignments = report.grades.length;
-      final submittedAssignments = report.grades.where((g) => g.submitted).length;
-      final submissionPercent = totalAssignments > 0 ? (submittedAssignments / totalAssignments) : 0.0;
-      
-      final gradedAssignments = report.grades.where((g) => g.score != null).toList();
-      final averageScore = gradedAssignments.isNotEmpty
-          ? gradedAssignments.map((g) => g.score!).reduce((a, b) => a + b) / gradedAssignments.length
-          : 0.0;
-      
-      final finalFeedbackScore = (attendancePercent * 30) + (submissionPercent * 40) + (averageScore * 0.30);
-
-      // --- استخدام الدالة الجديدة لتحديد اللون ---
-      final barColor = _getPerformanceColor(finalFeedbackScore);
-
-      barGroups.add(
-        BarChartGroupData(
-          x: i,
-          barRods: [
-            BarChartRodData(
-              toY: finalFeedbackScore,
-              color: barColor, // <-- تم تطبيق اللون هنا
-              width: 16,
-              borderRadius: BorderRadius.circular(4)
-            )
-          ],
-        )
-      );
-    }
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(appLocalizations.performanceOverview, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
-        SizedBox(height: 10),
-        Container(
-          width: double.infinity,
-          height: 220,
-          padding: const EdgeInsets.only(top: 16, right: 16),
-          decoration: BoxDecoration(
-            color: isLightMode ? Colors.white : Theme.of(context).cardColor, 
-            borderRadius: BorderRadius.circular(15), 
-            boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))] : null,
-          ),
-          child: barGroups.isEmpty
-              ? Center(child: Text(appLocalizations.noDataForChart, style: AppTextStyles.secondaryText))
-              : BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.spaceAround,
-                    maxY: 100,
-                    barTouchData: BarTouchData(enabled: true),
-                    titlesData: FlTitlesData(
-                      show: true,
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                             final index = value.toInt();
-                             if (index < reports.length) {
-                               return Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: Text(reports[index].subject, style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodySmall!.color)),
-                              );
-                             }
-                             return Text('');
-                          },
-                          reservedSize: 28,
+                                return BarChartGroupData(
+                                  x: index,
+                                  barRods: [
+                                    BarChartRodData(
+                                      toY: avgScore,
+                                      color: AppColors.primary,
+                                      width: 16,
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(6),
+                                      ),
+                                      backDrawRodData:
+                                          BackgroundBarChartRodData(
+                                            show: true,
+                                            toY: 100,
+                                            color:
+                                                theme.brightness ==
+                                                    Brightness.dark
+                                                ? Colors.white10
+                                                : Colors.grey.shade200,
+                                          ),
+                                    ),
+                                  ],
+                                );
+                              }),
+                            ),
+                          ),
                         ),
-                      ),
-                      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28, getTitlesWidget: (v, m) => Text(v.toInt().toString(), style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodySmall!.color)))),
-                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      ],
                     ),
-                    gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade200, strokeWidth: 1)),
-                    borderData: FlBorderData(show: false),
-                    barGroups: barGroups,
                   ),
-                ),
-        ),
-      ],
+                ],
+              ),
+            ),
     );
   }
-  // =======================     نهاية الجزء الذي تم تعديله    =======================
 }

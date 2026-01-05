@@ -6,15 +6,16 @@ class DashboardData {
 
   factory DashboardData.fromJson(Map<String, dynamic> json) {
     var reportsList = (json['reportsByTeacher'] as List? ?? [])
-        .map((reportJson) =>
-            TeacherReport.fromJson(reportJson as Map<String, dynamic>))
+        .map(
+          (reportJson) =>
+              TeacherReport.fromJson(reportJson as Map<String, dynamic>),
+        )
         .toList();
     return DashboardData(
       studentName: json['studentName'] as String,
       reportsByTeacher: reportsList,
     );
   }
-  
 }
 
 class TeacherReport {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
-// استيراد الترجمة
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -9,27 +8,50 @@ class NotificationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      // --- دعم الوضع المظلم ---
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        // --- دعم الترجمة والوضع المظلم ---
         title: Text(
-          appLocalizations.notifications, // <-- نص مترجم
-          style: AppTextStyles.heading2.copyWith(color: Theme.of(context).textTheme.bodyLarge!.color),
+          appLocalizations.notifications,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: theme.textTheme.bodyLarge?.color,
+          ),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
+          icon: Icon(Icons.arrow_back, color: theme.iconTheme.color),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: Center(
-        child: Text(
-          appLocalizations.noNotificationsYet, // <-- نص مترجم
-          style: AppTextStyles.secondaryText,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.notifications_off_outlined,
+                size: 50,
+                color: theme.disabledColor,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              appLocalizations.noNotificationsYet,
+              style: TextStyle(
+                fontSize: 16,
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+              ),
+            ),
+          ],
         ),
       ),
     );

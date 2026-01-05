@@ -1,78 +1,68 @@
 import 'package:flutter/material.dart';
-import 'package:learnaria/screens/main_layout.dart';
-import 'package:learnaria/utils/app_styles.dart'; // Adjust import
-import 'dart:async';
+import 'package:learnaria/screens/auth_screen.dart';
+import 'package:learnaria/utils/app_styles.dart';
+import 'package:learnaria/widgets/glass_card.dart';
 
-class PasswordResetSuccessScreen extends StatefulWidget {
+class PasswordResetSuccessScreen extends StatelessWidget {
   const PasswordResetSuccessScreen({super.key});
-
-  @override
-  _PasswordResetSuccessScreenState createState() => _PasswordResetSuccessScreenState();
-}
-
-class _PasswordResetSuccessScreenState extends State<PasswordResetSuccessScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Navigate to home page after a few seconds
-    Timer(Duration(seconds: 3), () {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => MainLayoutScreen()),
-      );
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
-          child: Container(
-            padding: EdgeInsets.all(30),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 5,
-                  blurRadius: 10,
-                  offset: Offset(0, 5),
-                ),
-              ],
-            ),
+          child: GlassCard(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset(
-                  'assets/images/done.png', // Replace with your actual success image
-                  height: 150,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Image.asset(
-                      'assets/images/done.png', // Replace with your actual error image
-                      height: 150,
-                      fit: BoxFit.contain,
-                    );
-                  },
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Image.asset(
+                    'assets/images/done.png',
+                    height: 60,
+                  ), // تأكد من وجود الصورة
                 ),
-                SizedBox(height: 30),
-                Text(
-                  'Congratulations',
-                  style: AppTextStyles.heading1.copyWith(color: AppColors.primaryYello),
+                const SizedBox(height: 30),
+                const Text(
+                  'Password Changed!',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Your password has been changed successfully.',
                   textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
                 ),
-                SizedBox(height: 15),
-                Text(
-                  'Your Account is Ready to Use. You will be redirected to the Home Page in a Few Seconds.',
-                  style: AppTextStyles.secondaryText,
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 30),
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYello),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const AuthScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Back to Login',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ),
               ],
             ),

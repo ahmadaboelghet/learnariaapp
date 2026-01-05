@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-
-import 'package:flutter/services.dart'; // For FilteringTextInputFormatter
-
-import 'package:learnaria/utils/app_styles.dart'; // Adjust import
-
-import 'package:learnaria/widgets/custom_text_field.dart'; // Adjust import
-import 'package:learnaria/screens/create_new_password.dart'; // Adjust import
-import 'dart:async'; // For Timer
+import 'package:learnaria/utils/app_styles.dart';
+import 'package:learnaria/screens/create_new_password.dart';
+import 'package:learnaria/widgets/glass_card.dart';
+import 'package:pinput/pinput.dart'; // تأكد من وجود مكتبة pinput في pubspec.yaml
 
 class OtpVerificationScreen extends StatefulWidget {
   final String email;
-
   const OtpVerificationScreen({super.key, required this.email});
 
   @override
@@ -18,216 +13,95 @@ class OtpVerificationScreen extends StatefulWidget {
 }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
-  final List<TextEditingController> _otpControllers = List.generate(
-    4,
-    (index) => TextEditingController(),
-  );
-
-  final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
-
-  int _resendCountdown = 60;
-
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _startResendTimer();
-
-    for (int i = 0; i < _otpControllers.length; i++) {
-      _otpControllers[i].addListener(() {
-        if (_otpControllers[i].text.length == 1 &&
-            i < _otpControllers.length - 1) {
-          _focusNodes[i + 1].requestFocus();
-        } else if (_otpControllers[i].text.isEmpty && i > 0) {
-          _focusNodes[i - 1].requestFocus();
-        }
-      });
-    }
-  }
-
-  void _startResendTimer() {
-    _resendCountdown = 60; // Reset timer
-
-    _timer?.cancel(); // Cancel any existing timer
-
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_resendCountdown > 0) {
-          _resendCountdown--;
-        } else {
-          _timer?.cancel();
-        }
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-
-    for (var controller in _otpControllers) {
-      controller.dispose();
-    }
-
-    for (var focusNode in _focusNodes) {
-      focusNode.dispose();
-    }
-
-    super.dispose();
-  }
+  final TextEditingController _otpController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
+    final theme = Theme.of(context);
 
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-
-        elevation: 0,
-
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primaryBlack),
-
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+    // ستايل الـ Pin Code
+    final defaultPinTheme = PinTheme(
+      width: 56,
+      height: 56,
+      textStyle: TextStyle(
+        fontSize: 20,
+        color: theme.textTheme.bodyLarge?.color,
+        fontWeight: FontWeight.w600,
       ),
-
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-
-          children: [
-            Text(
-              'Forget Password',
-
-              style: AppTextStyles.heading1.copyWith(
-                color: AppColors.primaryYello,
-              ),
-            ),
-
-            SizedBox(height: 8),
-
-            Text(
-              'Code has been sent to ${widget.email}',
-
-              style: AppTextStyles.secondaryText,
-            ),
-
-            SizedBox(height: 30),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-
-              children: List.generate(4, (index) {
-                return SizedBox(
-                  width: 60,
-
-                  child: CustomTextField(
-                    controller: _otpControllers[index],
-
-                    hintText: '*',
-
-                    keyboardType: TextInputType.number,
-                  ),
-                );
-              }),
-            ),
-
-            SizedBox(height: 20),
-
-            Align(
-              alignment: Alignment.center,
-
-              child: GestureDetector(
-                onTap: _resendCountdown == 0 ? _startResendTimer : null,
-
-                child: Text(
-                  _resendCountdown == 0
-                      ? 'Resend Code'
-                      : 'Resend Code in ${_resendCountdown}s',
-
-                  style: _resendCountdown == 0
-                      ? AppTextStyles.linkText
-                      : AppTextStyles.secondaryText.copyWith(
-                          color: AppColors.mediumGrey,
-                        ),
-                ),
-              ),
-            ),
-
-            SizedBox(height: 40),
-
-            SizedBox(
-              width: double.infinity,
-
-              child: ElevatedButton(
-                onPressed: () {
-                  // Simulate OTP verification and navigate to create new password
-
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => CreateNewPasswordScreen(),
-                    ),
-                  );
-                },
-
-                style: primaryButtonStyle(),
-
-                child: Text('Verify', style: AppTextStyles.buttonText),
-              ),
-            ),
-          ],
-        ),
+      decoration: BoxDecoration(
+        color: theme.inputDecorationTheme.fillColor,
+        border: Border.all(color: AppColors.inputBorderLight),
+        borderRadius: BorderRadius.circular(12),
       ),
     );
-  }
-}
 
-// Helper widget for OTP input that centers text and limits length
-
-class OtpInput extends StatelessWidget {
-  final TextEditingController controller;
-
-  final FocusNode focusNode;
-
-  const OtpInput({
-    super.key,
-
-    required this.controller,
-
-    required this.focusNode,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 60,
-
-      child: TextField(
-        controller: controller,
-
-        focusNode: focusNode,
-
-        keyboardType: TextInputType.number,
-
-        textAlign: TextAlign.center,
-
-        inputFormatters: [
-          LengthLimitingTextInputFormatter(1),
-
-          FilteringTextInputFormatter.digitsOnly,
-        ],
-
-        decoration: AppInputDecoration.buildOTP('*'),
-
-        style: AppTextStyles.heading2,
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: theme.iconTheme.color),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
+          child: GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  'Verification',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'We sent a code to ${widget.email}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                Pinput(
+                  controller: _otpController,
+                  length: 4,
+                  defaultPinTheme: defaultPinTheme,
+                  focusedPinTheme: defaultPinTheme.copyDecorationWith(
+                    border: Border.all(color: AppColors.primary),
+                  ),
+                ),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const CreateNewPasswordScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Verify',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:learnaria/models/dashboard_data.dart';
 import 'package:learnaria/services/firestore_api.dart';
 import 'package:intl/intl.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
+import 'package:learnaria/widgets/glass_card.dart'; // تأكد من الاستيراد
 
 enum CourseStatus { Upcoming, Ongoing, Finished }
 
@@ -30,11 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
-  try {
-      // --- [تم التعديل] ---
-      // تم حذف التحقق من الإيميل القديم.
-      // الدالة الجديدة في firestore_api.dart هي من تتحقق من رقم الهاتف
-      // اللي متسجل في currentUser.phoneNumber
+    try {
       final data = await FirestoreApi().fetchDashboardData();
       if (mounted) {
         setState(() {
@@ -56,44 +53,43 @@ class _HomeScreenState extends State<HomeScreen> {
     ScheduleEntry entry,
     AppLocalizations appLocalizations,
   ) {
+    // ... (نفس المنطق القديم بدون تغيير) ...
     final now = DateTime.now();
     try {
       final timeParts = entry.time.split(':');
       final hour = int.parse(timeParts[0]);
       final minute = int.parse(timeParts[1]);
-
       final startTime = DateTime(now.year, now.month, now.day, hour, minute);
       final endTime = startTime.add(const Duration(hours: 2));
 
       if (now.isAfter(endTime)) {
         return {
           'status': appLocalizations.finished,
-          'color': AppColors.mediumGrey,
+          'color': Colors.grey,
           'statusEnum': CourseStatus.Finished,
         };
       } else if (now.isAfter(startTime) && now.isBefore(endTime)) {
         return {
           'status': appLocalizations.ongoing,
-          'color': AppColors.greenSuccess,
+          'color': AppColors.primary,
           'statusEnum': CourseStatus.Ongoing,
         };
       } else {
         return {
           'status': appLocalizations.upcoming,
-          'color': AppColors.primaryYello,
+          'color': AppColors.primary,
           'statusEnum': CourseStatus.Upcoming,
         };
       }
     } catch (e) {
       return {
         'status': appLocalizations.scheduled,
-        'color': AppColors.mediumGrey,
+        'color': Colors.grey,
         'statusEnum': CourseStatus.Upcoming,
       };
     }
   }
 
-  // --- دالة لحساب الواجبات التي تم تسليمها ---
   int get submittedAssignmentsCount {
     if (_dashboardData == null) return 0;
     return _dashboardData!.reportsByTeacher
@@ -102,11 +98,11 @@ class _HomeScreenState extends State<HomeScreen> {
         .length;
   }
 
-  // --- دالة لحساب الواجبات التي لم يتم تسليمها ---
   int get notSubmittedAssignmentsCount {
     if (_dashboardData == null) return 0;
-    // يتم حسابها من إجمالي الواجبات المسجلة للطالب
-    final totalAssignments = _dashboardData!.reportsByTeacher.expand((report) => report.grades).length;
+    final totalAssignments = _dashboardData!.reportsByTeacher
+        .expand((report) => report.grades)
+        .length;
     return totalAssignments - submittedAssignmentsCount;
   }
 
@@ -124,7 +120,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int get totalAttendanceDays =>
       _dashboardData?.reportsByTeacher.expand((r) => r.attendance).length ?? 0;
-
   List<ScheduleEntry> get todayScheduleEntries {
     if (_dashboardData == null) return [];
     final todayString = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -137,12 +132,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
-    final textColor = Theme.of(context).textTheme.bodyLarge!.color;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
@@ -150,62 +145,48 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         title: Text(
           appLocalizations.appName,
-          style: AppTextStyles.heading2.copyWith(color: textColor),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            color: theme.textTheme.bodyLarge!.color,
+          ),
         ),
         centerTitle: false,
-        titleSpacing: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh, color: textColor),
+            icon: Icon(Icons.refresh, color: theme.iconTheme.color),
             onPressed: _fetchData,
           ),
         ],
       ),
       body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  AppColors.primaryYello,
-                ),
-              ),
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
             )
           : _errorMessage.isNotEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Text(
-                      _errorMessage,
-                      style: AppTextStyles.bodyText.copyWith(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                )
-              : _dashboardData != null &&
-                      _dashboardData!.reportsByTeacher.isNotEmpty
-                  ? RefreshIndicator(
-                      onRefresh: _fetchData,
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.all(16.0),
-                        child: _buildDashboardContent(appLocalizations, textColor),
-                      ),
-                    )
-                  : Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Text(
-                          appLocalizations.noStudentDataContactTeacher,
-                          style: AppTextStyles.secondaryText,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
+          ? Center(
+              child: Text(
+                _errorMessage,
+                style: const TextStyle(color: Colors.red),
+              ),
+            )
+          : _dashboardData != null &&
+                _dashboardData!.reportsByTeacher.isNotEmpty
+          ? RefreshIndicator(
+              onRefresh: _fetchData,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16.0),
+                child: _buildDashboardContent(appLocalizations, theme),
+              ),
+            )
+          : Center(child: Text(appLocalizations.noStudentDataContactTeacher)),
     );
   }
 
   Widget _buildDashboardContent(
     AppLocalizations appLocalizations,
-    Color? textColor,
+    ThemeData theme,
   ) {
     final sortedTodaySchedule = todayScheduleEntries;
     sortedTodaySchedule.sort((a, b) {
@@ -218,60 +199,55 @@ class _HomeScreenState extends State<HomeScreen> {
       return statusA.index.compareTo(statusB.index);
     });
 
-    // =======================    بداية الجزء الذي تم تعديله   =======================
-    // --- فلترة التقارير لعرض فقط المواد التي لها درجات مرصودة ---
     final reportsWithGradedAssignments = _dashboardData!.reportsByTeacher
         .where((report) => report.grades.any((grade) => grade.score != null))
         .toList();
-    // =======================     نهاية الجزء الذي تم تعديله    =======================
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildUserInfoSection(appLocalizations, textColor),
-        SizedBox(height: 20),
+        _buildUserInfoSection(appLocalizations, theme),
+        const SizedBox(height: 20),
         Text(
           appLocalizations.reports,
-          style: AppTextStyles.heading2.copyWith(color: textColor),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
               child: _buildSummaryCard(
                 title: appLocalizations.assignments,
-                value: '${appLocalizations.submitted}: $submittedAssignmentsCount',
+                value:
+                    '${appLocalizations.submitted}: $submittedAssignmentsCount',
                 description:
                     '${appLocalizations.notSubmitted}: $notSubmittedAssignmentsCount',
-                color: AppColors.primaryYello,
+                color: AppColors.primary,
               ),
             ),
-            SizedBox(width: 15),
+            const SizedBox(width: 15),
             Expanded(
               child: _buildSummaryCard(
                 title: appLocalizations.attendance,
                 value:
                     '$overallAttendancePercentage% ${appLocalizations.present}',
                 description: '$totalAttendanceDays ${appLocalizations.days}',
-                color: AppColors.greenSuccess,
+                color: Colors.green,
               ),
             ),
           ],
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Text(
           appLocalizations.todaysCourses,
-          style: AppTextStyles.heading2.copyWith(color: textColor),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         if (sortedTodaySchedule.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20.0),
-            child: Center(
-              child: Text(
-                appLocalizations.noCoursesScheduled,
-                style: AppTextStyles.secondaryText,
-              ),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(appLocalizations.noCoursesScheduled),
             ),
           )
         else
@@ -281,9 +257,8 @@ class _HomeScreenState extends State<HomeScreen> {
               appLocalizations,
             );
             String timeAndLocation = entry.time;
-            if (entry.location.isNotEmpty) {
+            if (entry.location.isNotEmpty)
               timeAndLocation += ' - ${entry.location}';
-            }
             return Padding(
               padding: const EdgeInsets.only(bottom: 10.0),
               child: _buildCourseCard(
@@ -294,46 +269,43 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
           }).toList(),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Text(
           appLocalizations.assignmentsBySubject,
-          style: AppTextStyles.heading2.copyWith(color: textColor),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 10),
-        // =======================    بداية الجزء الذي تم تعديله   =======================
-        // --- استخدام القائمة المفلترة الجديدة ---
+        const SizedBox(height: 10),
         Container(
           height: 150,
           child: reportsWithGradedAssignments.isEmpty
-          ? Center(child: Text(appLocalizations.noAssignmentsFound, style: AppTextStyles.secondaryText))
-          : ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: reportsWithGradedAssignments.length,
-            itemBuilder: (context, index) {
-              final report = reportsWithGradedAssignments[index];
-              
-              // --- منطق جديد لجلب آخر درجة مرصودة فقط ---
-              final gradedAssignments = report.grades.where((g) => g.score != null).toList();
-              gradedAssignments.sort((a, b) => b.date.compareTo(a.date));
-              final latestGrade = gradedAssignments.first.score;
+              ? Center(child: Text(appLocalizations.noAssignmentsFound))
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: reportsWithGradedAssignments.length,
+                  itemBuilder: (context, index) {
+                    final report = reportsWithGradedAssignments[index];
+                    final gradedAssignments = report.grades
+                        .where((g) => g.score != null)
+                        .toList();
+                    gradedAssignments.sort((a, b) => b.date.compareTo(a.date));
+                    final latestGrade = gradedAssignments.first.score;
 
-              return _buildSubjectAssignmentCell(
-                subject: report.subject,
-                teacher: report.teacherName,
-                percentage: latestGrade ?? 0,
-                allGrades: report.grades,
-                appLocalizations: appLocalizations,
-              );
-            },
-          ),
+                    return _buildSubjectAssignmentCell(
+                      subject: report.subject,
+                      teacher: report.teacherName,
+                      percentage: latestGrade ?? 0,
+                      allGrades: report.grades,
+                      appLocalizations: appLocalizations,
+                    );
+                  },
+                ),
         ),
-        // =======================     نهاية الجزء الذي تم تعديله    =======================
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Text(
           appLocalizations.attendanceBySubject,
-          style: AppTextStyles.heading2.copyWith(color: textColor),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Container(
           height: 150,
           child: ListView.builder(
@@ -364,36 +336,41 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildUserInfoSection(
     AppLocalizations appLocalizations,
-    Color? textColor,
+    ThemeData theme,
   ) {
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: Colors.grey[200],
-          child: Icon(Icons.person, color: Colors.grey[600]),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${appLocalizations.helloParent}, ${_dashboardData?.studentName ?? "Student"}\'s parent!',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                ),
-              ),
-              Text(
-                appLocalizations.latestReportGreeting,
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
-            ],
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: AppColors.primary.withOpacity(0.2),
+            child: const Icon(Icons.person, color: AppColors.primary),
           ),
-        ),
-      ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${appLocalizations.helloParent}, ${_dashboardData?.studentName ?? "Student"}\'s parent!',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  appLocalizations.latestReportGreeting,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -403,43 +380,28 @@ class _HomeScreenState extends State<HomeScreen> {
     required String description,
     required Color color,
   }) {
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-    return Container(
-      padding: EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: isLightMode ? Colors.white : Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: isLightMode
-            ? [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 5,
-                  offset: Offset(0, 3),
-                ),
-              ]
-            : null,
-      ),
+    return GlassCard(
+      padding: const EdgeInsets.all(15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: AppTextStyles.bodyText.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Theme.of(context).textTheme.bodyLarge!.color,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             value,
-            style: AppTextStyles.heading1.copyWith(color: color, fontSize: 20),
+            style: TextStyle(
+              color: color,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
             description,
-            style: AppTextStyles.secondaryText.copyWith(fontSize: 12),
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
       ),
@@ -452,24 +414,8 @@ class _HomeScreenState extends State<HomeScreen> {
     required String status,
     required Color statusColor,
   }) {
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-    return Container(
-      width: double.infinity,
+    return GlassCard(
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: isLightMode ? Colors.white : Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: isLightMode
-            ? [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 5,
-                  offset: const Offset(0, 3),
-                ),
-              ]
-            : null,
-      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -479,20 +425,20 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   subject,
-                  style: AppTextStyles.bodyText.copyWith(
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.bodyLarge!.color,
+                    fontSize: 16,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(time, style: AppTextStyles.secondaryText),
+                Text(time, style: const TextStyle(color: Colors.grey)),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
+              color: statusColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -516,7 +462,6 @@ class _HomeScreenState extends State<HomeScreen> {
     required List<GradeRecord> allGrades,
     required AppLocalizations appLocalizations,
   }) {
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
@@ -526,69 +471,57 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Container(
         width: 180,
-        margin: EdgeInsets.only(right: 15),
-        padding: EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: isLightMode ? Colors.white : Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: isLightMode
-              ? [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.08),
-                    spreadRadius: 1,
-                    blurRadius: 10,
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              subject,
-              style: AppTextStyles.bodyText.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.bodyLarge!.color,
+        margin: const EdgeInsets.only(right: 15),
+        child: GlassCard(
+          padding: const EdgeInsets.all(15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                subject,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: 4),
-            Text(
-              teacher,
-              style: AppTextStyles.secondaryText.copyWith(fontSize: 12),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$percentage%',
-                      style: AppTextStyles.heading2.copyWith(
-                        color: percentage >= 70
-                            ? AppColors.greenSuccess
-                            : AppColors.primaryYello,
+              const SizedBox(height: 4),
+              Text(
+                teacher,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$percentage%',
+                        style: TextStyle(
+                          color: percentage >= 70
+                              ? Colors.green
+                              : AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
-                    ),
-                    Text(
-                      appLocalizations.latest,
-                      style: AppTextStyles.secondaryText.copyWith(fontSize: 10),
-                    ),
-                  ],
-                ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Colors.grey[400],
-                ),
-              ],
-            ),
-          ],
+                      Text(
+                        appLocalizations.latest,
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    ],
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -601,7 +534,6 @@ class _HomeScreenState extends State<HomeScreen> {
     required List<AttendanceRecord> allAttendance,
     required AppLocalizations appLocalizations,
   }) {
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
@@ -613,69 +545,57 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Container(
         width: 180,
-        margin: EdgeInsets.only(right: 15),
-        padding: EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: isLightMode ? Colors.white : Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: isLightMode
-              ? [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.08),
-                    spreadRadius: 1,
-                    blurRadius: 10,
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              subject,
-              style: AppTextStyles.bodyText.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.bodyLarge!.color,
+        margin: const EdgeInsets.only(right: 15),
+        child: GlassCard(
+          padding: const EdgeInsets.all(15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                subject,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: 4),
-            Text(
-              teacher,
-              style: AppTextStyles.secondaryText.copyWith(fontSize: 12),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$percentage%',
-                      style: AppTextStyles.heading2.copyWith(
-                        color: percentage >= 90
-                            ? AppColors.greenSuccess
-                            : AppColors.primaryYello,
+              const SizedBox(height: 4),
+              Text(
+                teacher,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$percentage%',
+                        style: TextStyle(
+                          color: percentage >= 90
+                              ? Colors.green
+                              : AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
-                    ),
-                    Text(
-                      appLocalizations.present,
-                      style: AppTextStyles.secondaryText.copyWith(fontSize: 10),
-                    ),
-                  ],
-                ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Colors.grey[400],
-                ),
-              ],
-            ),
-          ],
+                      Text(
+                        appLocalizations.present,
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    ],
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

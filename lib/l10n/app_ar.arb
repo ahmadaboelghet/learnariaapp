@@ -159,5 +159,6 @@
     "authTermsPrefix": "بالضغط على 'متابعة' أنت توافق على",
     "authTermsLink": "الشروط والأحكام",
     "authParentNotFoundError": "لا يوجد بيانات لولي الأمر هذا. من فضلك أخبر مدرس ابنك عن Learnaria.",
-    "authChecking": "جاري التحقق..."
+    "authChecking": "جاري التحقق...",
+    
 }

@@ -18,6 +18,7 @@ class _IntroScreenState extends State<IntroScreen> {
   @override
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     final List<Map<String, String>> introPages = [
       {
@@ -38,9 +39,9 @@ class _IntroScreenState extends State<IntroScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           TextButton(
@@ -51,7 +52,9 @@ class _IntroScreenState extends State<IntroScreen> {
             },
             child: Text(
               appLocalizations.skip,
-              style: AppTextStyles.secondaryText,
+              style: TextStyle(
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+              ),
             ),
           ),
         ],
@@ -72,37 +75,55 @@ class _IntroScreenState extends State<IntroScreen> {
                   introPages[index]['image']!,
                   introPages[index]['title']!,
                   introPages[index]['description']!,
+                  theme,
                 );
               },
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 30.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: List.generate(
                     introPages.length,
-                    (index) => _buildDot(index),
+                    (index) => _buildDot(index, theme),
                   ),
                 ),
                 _currentPage == introPages.length - 1
                     ? ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (context) => const AuthScreen()),
+                            MaterialPageRoute(
+                              builder: (context) => const AuthScreen(),
+                            ),
                           );
                         },
-                        style: primaryButtonStyle().copyWith(
-                          padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 30, vertical: 15)),
-                          minimumSize: MaterialStateProperty.all(const Size(150, 50)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 30,
+                            vertical: 15,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            Text(appLocalizations.getStarted, style: AppTextStyles.buttonText),
+                            Text(
+                              appLocalizations.getStarted,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             const SizedBox(width: 10),
-                            const Icon(Icons.arrow_forward, color: Colors.white),
+                            const Icon(Icons.arrow_forward),
                           ],
                         ),
                       )
@@ -113,8 +134,11 @@ class _IntroScreenState extends State<IntroScreen> {
                             curve: Curves.easeIn,
                           );
                         },
-                        backgroundColor: AppColors.primaryBlack,
-                        child: const Icon(Icons.arrow_forward, color: Colors.white),
+                        backgroundColor: theme.colorScheme.onBackground,
+                        child: Icon(
+                          Icons.arrow_forward,
+                          color: theme.scaffoldBackgroundColor,
+                        ),
                       ),
               ],
             ),
@@ -124,7 +148,12 @@ class _IntroScreenState extends State<IntroScreen> {
     );
   }
 
-  Widget _buildIntroPage(String imagePath, String title, String description) {
+  Widget _buildIntroPage(
+    String imagePath,
+    String title,
+    String description,
+    ThemeData theme,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Column(
@@ -137,9 +166,12 @@ class _IntroScreenState extends State<IntroScreen> {
             errorBuilder: (context, error, stackTrace) {
               return Container(
                 height: MediaQuery.of(context).size.height * 0.4,
-                color: AppColors.lightGrey,
+                color: Colors.grey.withOpacity(0.2),
                 child: Center(
-                  child: Text('Image not found: $imagePath', textAlign: TextAlign.center),
+                  child: Text(
+                    'Image not found: $imagePath',
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               );
             },
@@ -147,13 +179,16 @@ class _IntroScreenState extends State<IntroScreen> {
           const SizedBox(height: 40),
           Text(
             title,
-            style: AppTextStyles.heading2,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
           Text(
             description,
-            style: AppTextStyles.secondaryText,
+            style: TextStyle(
+              fontSize: 16,
+              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -161,14 +196,16 @@ class _IntroScreenState extends State<IntroScreen> {
     );
   }
 
-  Widget _buildDot(int index) {
+  Widget _buildDot(int index, ThemeData theme) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.only(right: 5),
       height: 8,
       width: _currentPage == index ? 24 : 8,
       decoration: BoxDecoration(
-        color: _currentPage == index ? AppColors.primaryBlack : AppColors.mediumGrey,
+        color: _currentPage == index
+            ? AppColors.primary
+            : Colors.grey.withOpacity(0.5),
         borderRadius: BorderRadius.circular(5),
       ),
     );

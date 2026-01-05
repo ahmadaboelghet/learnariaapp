@@ -1,142 +1,105 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-// Define common colors
 class AppColors {
-  static const Color primaryYello = Color.fromARGB(
-    255,
-    229,
-    173,
-    53,
-  ); // A vibrant red
-  static const Color primaryBlack = Color(0xFF212121); // Dark text/button color
-  static const Color lightGrey = Color(0xFFF5F5F5); // Background/field color
-  static const Color mediumGrey = Color.fromARGB(
-    255,
-    170,
-    169,
-    162,
-  ); // Icon/placeholder color
-  static const Color darkGrey = Color(0xFF616161); // Secondary text color
-  static const Color greenSuccess = Color(0xFF4CAF50); // Green for success
+  // نفس الألوان من ملف style.css
+  static const Color primary = Color(0xFFF2CE5A); // الأصفر بتاعنا
+  static const Color primaryHover = Color(0xFFE6C045);
+
+  static const Color lightBg = Color(0xFFF3F4F6); // رمادي فاتح للخلفية
+  static const Color lightSurface = Colors.white;
+
+  static const Color darkBg = Color(0xFF121212); // الخلفية الغامقة
+  static const Color darkSurface = Color(0xFF1E1E1E); // الكروت الغامقة
+
+  static const Color textGrayLight = Color(0xFF1F2937);
+  static const Color textGrayDark = Color(0xFFF3F4F6);
+
+  static const Color inputBorderLight = Color(0xFFE5E7EB);
+  static const Color inputBorderDark = Color(0xFF374151);
 }
 
-// Define common text styles
-class AppTextStyles {
-  static const TextStyle heading1 = TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.bold,
-    color: AppColors.primaryBlack,
-  );
+class AppTheme {
+  // إعدادات الـ Light Theme
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      primaryColor: AppColors.primary,
+      scaffoldBackgroundColor: AppColors.lightBg,
+      fontFamily: GoogleFonts.cairo().fontFamily, // خط كايرو
 
-  static const TextStyle heading2 = TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.bold,
-    color: AppColors.primaryBlack,
-  );
-
-  static const TextStyle bodyText = TextStyle(
-    fontSize: 16,
-    color: AppColors.primaryBlack,
-  );
-
-  static const TextStyle secondaryText = TextStyle(
-    fontSize: 14,
-    color: AppColors.darkGrey,
-  );
-
-  static const TextStyle linkText = TextStyle(
-    fontSize: 14,
-    color: AppColors.primaryYello,
-    fontWeight: FontWeight.w600,
-  );
-
-  static const TextStyle buttonText = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-  );
-
-  static const TextStyle smallRedText = TextStyle(
-    fontSize: 12,
-    color: AppColors.primaryYello,
-  );
-
-  static const TextStyle smallGreenText = TextStyle(
-    fontSize: 12,
-    color: AppColors.greenSuccess,
-  );
-}
-
-// Define common input decoration
-class AppInputDecoration {
-  static InputDecoration build(
-    String hintText, {
-    IconData? prefixIcon,
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      hintText: hintText,
-      hintStyle: AppTextStyles.secondaryText,
-      filled: true,
-      fillColor: AppColors.lightGrey,
-      prefixIcon: prefixIcon != null
-          ? Icon(prefixIcon, color: AppColors.mediumGrey)
-          : null,
-      suffixIcon: suffixIcon,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10.0),
-        borderSide: BorderSide.none, // No border line
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.primary,
+        secondary: AppColors.darkBg,
+        surface: AppColors.lightSurface,
+        background: AppColors.lightBg,
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10.0),
-        borderSide: BorderSide.none,
+
+      // ستايل الحقول (Inputs) زي الويب
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFFF9FAFB),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.inputBorderLight),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.inputBorderLight),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10.0),
-        borderSide: BorderSide(
-          color: AppColors.primaryYello,
-          width: 1.5,
-        ), // Highlight on focus
-      ),
-      contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
     );
   }
 
-  static InputDecoration buildOTP(String hintText) {
-    return InputDecoration(
-      hintText: hintText,
-      hintStyle: AppTextStyles.secondaryText,
-      filled: true,
-      fillColor: AppColors.lightGrey,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10.0),
-        borderSide: BorderSide.none, // No border line
+  // إعدادات الـ Dark Theme
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      primaryColor: AppColors.primary,
+      scaffoldBackgroundColor: AppColors.darkBg,
+      fontFamily: GoogleFonts.cairo().fontFamily,
+
+      colorScheme: const ColorScheme.dark(
+        primary: AppColors.primary,
+        secondary: Colors.white,
+        surface: AppColors.darkSurface,
+        background: AppColors.darkBg,
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10.0),
-        borderSide: BorderSide.none,
+
+      // ستايل الحقول في الدارك مود
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF1F1F1F),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.inputBorderDark),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.inputBorderDark),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        hintStyle: const TextStyle(
+          color: Color(0xFFA1A1AA),
+        ), // لون الـ Placeholder
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10.0),
-        borderSide: BorderSide(
-          color: AppColors.primaryYello,
-          width: 1.5,
-        ), // Highlight on focus
-      ),
-      contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-      counterText: "", // Hide character counter
     );
   }
-}
-
-// Custom button style
-ButtonStyle primaryButtonStyle() {
-  return ElevatedButton.styleFrom(
-    backgroundColor: AppColors.primaryBlack, // Button background color
-    foregroundColor: Colors.white, // Text color
-    padding: EdgeInsets.symmetric(vertical: 16.0),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-    elevation: 5,
-    shadowColor: Colors.black.withOpacity(0.2),
-  );
 }

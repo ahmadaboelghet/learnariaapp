@@ -33,7 +33,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 const AndroidNotificationChannel channel = AndroidNotificationChannel(
   'high_importance_channel', // id
   'High Importance Notifications', // title
-  description: 'This channel is used for important notifications.', // description
+  description:
+      'This channel is used for important notifications.', // description
   importance: Importance.max,
   playSound: true,
 );
@@ -45,9 +46,7 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // --- [جديد] تهيئة الإشعارات المحلية قبل استدعاء setupFirebaseMessaging ---
   // 1. إعدادات الأندرويد (استخدام أيقونة التطبيق الافتراضية)
@@ -66,7 +65,8 @@ void main() async {
   // 3. [جديد] إنشاء القناة على أجهزة الأندرويد
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
+        AndroidFlutterLocalNotificationsPlugin
+      >()
       ?.createNotificationChannel(channel);
   print("MAIN: Android Notification Channel created.");
   // --- نهاية تهيئة الإشعارات المحلية ---
@@ -89,16 +89,15 @@ void main() async {
 // --- دالة مخصصة لتنظيم كود الإشعارات (النسخة المحسنة) ---
 Future<void> setupFirebaseMessaging() async {
   final messaging = FirebaseMessaging.instance;
-  
+
   // ... (كود طلب الإذن زي ما هو) ...
   NotificationSettings settings = await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
+    alert: true,
+    badge: true,
+    sound: true,
+    provisional: false,
+  );
   print("User notification permission status: ${settings.authorizationStatus}");
-
 
   // نستمع لتغيرات حالة الدخول أولاً
   FirebaseAuth.instance.authStateChanges().listen((user) async {
@@ -106,21 +105,20 @@ Future<void> setupFirebaseMessaging() async {
     if (user != null) {
       // نقوم بالحصول على التوكن "بعد" التأكد من وجود مستخدم
       final fcmToken = await messaging.getToken();
-      
+
       // --- [التعديل الجوهري هنا] ---
       // المستخدم اللي جاي من (OTP) بيكون معاه رقم تليفونه
       if (fcmToken != null && user.phoneNumber != null) {
-        print("Saving token and PHONE NUMBER for user ${user.uid}: ${user.phoneNumber}: ${fcmToken}");
+        print(
+          "Saving token and PHONE NUMBER for user ${user.uid}: ${user.phoneNumber}: ${fcmToken}",
+        );
 
-        FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .set({
-              'fcmToken': fcmToken,
-              'phoneNumber': user.phoneNumber  // <-- [مهم جداً] حفظ رقم التليفون
-            }, SetOptions(merge: true));
+        FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'fcmToken': fcmToken,
+          'phoneNumber': user.phoneNumber, // <-- [مهم جداً] حفظ رقم التليفون
+        }, SetOptions(merge: true));
       } else {
-         print("User is logged in but has no phone number (maybe old account?)");
+        print("User is logged in but has no phone number (maybe old account?)");
       }
     }
   });
@@ -134,7 +132,9 @@ Future<void> setupFirebaseMessaging() async {
 
     // التأكد من وجود إشعار ومن أننا على نظام أندرويد لعرضه
     if (notification != null && android != null) {
-      print('Foreground Notification: ${notification.title} / ${notification.body}');
+      print(
+        'Foreground Notification: ${notification.title} / ${notification.body}',
+      );
 
       // [جديد] استخدام الإشعارات المحلية لإظهار الإشعار في شريط الحالة
       flutterLocalNotificationsPlugin.show(
@@ -147,9 +147,11 @@ Future<void> setupFirebaseMessaging() async {
             channel.name,
             channelDescription: channel.description,
             playSound: true,
-            icon: '@drawable/ic_notification', 
-            color: Colors.amber, 
-            largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+            icon: '@drawable/ic_notification',
+            color: Colors.amber,
+            largeIcon: const DrawableResourceAndroidBitmap(
+              '@mipmap/ic_launcher',
+            ),
             priority: Priority.high,
           ),
         ),
@@ -160,11 +162,13 @@ Future<void> setupFirebaseMessaging() async {
   });
 
   // (يمكنك إضافة onMessageOpenedApp و getInitialMessage هنا لاحقاً لمعالجة التوجيه)
-  
+
   // 5. التعامل مع فتح التطبيق من إشعار (عندما يكون مغلقاً)
   FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
     if (message != null) {
-      print('App opened from terminated state by message. Data: ${message.data}');
+      print(
+        'App opened from terminated state by message. Data: ${message.data}',
+      );
       // _handleMessageNavigation(message.data); // دالة لمعالجة التوجيه
     }
   });
@@ -179,62 +183,36 @@ Future<void> setupFirebaseMessaging() async {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-     @override
-     Widget build(BuildContext context) {
-       // قراءة الـ Providers هنا
-       final themeProvider = Provider.of<ThemeProvider>(context);
-       final localeProvider = Provider.of<LocaleProvider>(context);
+  @override
+  Widget build(BuildContext context) {
+    // قراءة الـ Providers هنا
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final localeProvider = Provider.of<LocaleProvider>(context);
 
-       return MaterialApp(
-         // navigatorKey: navigatorKey, // لتمكين التنقل من handleMessageNavigation
-         debugShowCheckedModeBanner: false,
-         // استخدام AppLocalizations لجلب العنوان المترجم
-         onGenerateTitle: (context) {
-           // التأكد من أن Localizations جاهزة قبل استخدامها
-           final localizations = AppLocalizations.of(context);
-           return localizations?.appName ?? 'Learnaria'; // عنوان افتراضي
-         },
-         locale: localeProvider.locale,
-         localizationsDelegates: const [
-           AppLocalizations.delegate,
-           GlobalMaterialLocalizations.delegate,
-           GlobalWidgetsLocalizations.delegate,
-           GlobalCupertinoLocalizations.delegate,
-         ],
-         supportedLocales: AppLocalizations.supportedLocales, // استخدام القائمة من AppLocalizations
+    return MaterialApp(
+      // navigatorKey: navigatorKey, // لتمكين التنقل من handleMessageNavigation
+      debugShowCheckedModeBanner: false,
+      // استخدام AppLocalizations لجلب العنوان المترجم
+      onGenerateTitle: (context) {
+        // التأكد من أن Localizations جاهزة قبل استخدامها
+        final localizations = AppLocalizations.of(context);
+        return localizations?.appName ?? 'Learnaria'; // عنوان افتراضي
+      },
+      locale: localeProvider.locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations
+          .supportedLocales, // استخدام القائمة من AppLocalizations
+      // --- إعدادات المظهر (تم تصحيحها) ---
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
 
-          // --- إعدادات المظهر (تم تصحيحها) ---
-          themeMode: themeProvider.currentTheme, // provider.themeMode هو الصحيح
-          theme: ThemeData(
-            brightness: Brightness.light,
-            scaffoldBackgroundColor: Colors.white,
-            primaryColor: AppColors.primaryYello,
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.white,
-              elevation: 0,
-              iconTheme: IconThemeData(color: AppColors.primaryBlack),
-              titleTextStyle: TextStyle(
-                  color: AppColors.primaryBlack,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold),
-            ),
-          ),
-          darkTheme: ThemeData(
-            brightness: Brightness.dark,
-            scaffoldBackgroundColor: const Color(0xFF121212),
-            primaryColor: AppColors.primaryYello,
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF121212),
-              elevation: 0,
-              iconTheme: IconThemeData(color: Colors.white),
-              titleTextStyle: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold),
-            ),
-          ),
-
-          home: const SplashScreen(),
-        );
-      }
+      home: const SplashScreen(),
+    );
   }
+}

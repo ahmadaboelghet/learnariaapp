@@ -1,98 +1,96 @@
 import 'package:flutter/material.dart';
-import 'package:learnaria/screens/progress_report.dart';
-import 'package:learnaria/services/notification_service.dart'; // <-- ١. استيراد الملف الجديد
-import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/screens/home.dart';
 import 'package:learnaria/screens/more_screen.dart';
+import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
+
+// ملاحظة: افترضنا أن الشاشات الأخرى موجودة، إذا لم تكن موجودة استبدلها مؤقتاً بـ Placeholder
+// import 'package:learnaria/screens/inbox_screen.dart';
+// import 'package:learnaria/screens/reports_screen.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
 
   @override
-  _MainLayoutState createState() => _MainLayoutState();
+  _MainLayoutScreenState createState() => _MainLayoutScreenState();
 }
 
-class _MainLayoutState extends State<MainLayoutScreen> {
-  int _selectedIndex = 0;
-  late PageController _pageController;
+class _MainLayoutScreenState extends State<MainLayoutScreen> {
+  int _currentIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(initialPage: _selectedIndex);
-    // --- ٢. استدعاء دالة إعداد الإشعارات ---
-    _setupNotifications();
-  }
-
-  // --- ٣. إضافة هذه الدالة الجديدة ---
-  void _setupNotifications() async {
-    final notificationService = NotificationService();
-    // هذه الدالة ستقوم باشتراك المستخدم في الـ topic الخاص به
-    await notificationService.subscribeToUserTopic();
-  }
-  
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    _pageController.jumpToPage(index);
-  }
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const Scaffold(
+      body: Center(child: Text("Reports")),
+    ), // Placeholder until file is ready
+    const Scaffold(
+      body: Center(child: Text("Inbox")),
+    ), // Placeholder until file is ready
+    const MoreScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
-    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        children: const [
-          HomeScreen(),
-          ProgressReportScreen(),
-          MoreScreen(),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.primaryBlack,
-        selectedItemColor: AppColors.primaryYello,
-        unselectedItemColor: AppColors.mediumGrey,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: const ImageIcon(
-              AssetImage('assets/images/home_icon.png'),
-              size: 20,
+      body: _screens[_currentIndex],
+      // شريط تنقل عائم وعصري
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
             ),
-            label: appLocalizations.home,
-          ),
-          BottomNavigationBarItem(
-            icon: const ImageIcon(
-              AssetImage('assets/images/reports_icon.png'),
-              size: 20,
+          ],
+        ),
+        child: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            indicatorColor: AppColors.primary.withOpacity(0.2),
+            labelTextStyle: MaterialStateProperty.all(
+              const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
-            label: appLocalizations.reports,
           ),
-          BottomNavigationBarItem(
-            icon: const ImageIcon(
-              AssetImage('assets/images/menu.png'),
-              size: 20,
-            ),
-            label: appLocalizations.more,
+          child: NavigationBar(
+            height: 70,
+            backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (index) =>
+                setState(() => _currentIndex = index),
+            destinations: [
+              NavigationDestination(
+                icon: const Icon(Icons.home_outlined),
+                selectedIcon: const Icon(Icons.home, color: AppColors.primary),
+                label: appLocalizations.home,
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.bar_chart_outlined),
+                selectedIcon: const Icon(
+                  Icons.bar_chart,
+                  color: AppColors.primary,
+                ),
+                label: appLocalizations.reports,
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.mail_outline),
+                selectedIcon: const Icon(Icons.mail, color: AppColors.primary),
+                label: appLocalizations.inbox,
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.grid_view),
+                selectedIcon: const Icon(
+                  Icons.grid_view_rounded,
+                  color: AppColors.primary,
+                ),
+                label: appLocalizations.more,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

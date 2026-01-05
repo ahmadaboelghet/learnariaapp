@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:learnaria/screens/main_layout.dart';
-import 'package:learnaria/utils/app_styles.dart'; // Adjust import
-import 'package:learnaria/widgets/custom_text_field.dart'; // Adjust import
-// Adjust import
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:learnaria/utils/app_styles.dart';
+import 'package:learnaria/widgets/custom_text_field.dart';
+import 'package:intl/intl.dart';
+import 'package:learnaria/widgets/glass_card.dart'; // import
 
 class FillProfileScreen extends StatefulWidget {
   const FillProfileScreen({super.key});
@@ -13,13 +13,13 @@ class FillProfileScreen extends StatefulWidget {
 }
 
 class _FillProfileScreenState extends State<FillProfileScreen> {
+  // ... (نفس المتغيرات والـ Controllers) ...
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   String? _selectedGender;
   final List<String> _genders = ['Male', 'Female', 'Other'];
-
   DateTime? _selectedDate;
 
   Future<void> _selectDate(BuildContext context) async {
@@ -31,15 +31,9 @@ class _FillProfileScreenState extends State<FillProfileScreen> {
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppColors.primaryYello, // Header background color
-              onPrimary: Colors.white, // Header text color
-              onSurface: AppColors.primaryBlack, // Body text color
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primaryYello, // Button text color
-              ),
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.black,
             ),
           ),
           child: child!,
@@ -55,133 +49,151 @@ class _FillProfileScreenState extends State<FillProfileScreen> {
   }
 
   @override
-  void dispose() {
-    _fullNameController.dispose();
-    _emailController.dispose();
-    _dobController.dispose();
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primaryBlack),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).iconTheme.color,
+          ),
+          onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Fill Profile',
-          style: AppTextStyles.heading2,
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        centerTitle: false,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundColor: AppColors.lightGrey,
-                    child: Icon(Icons.person_outline, size: 60, color: AppColors.mediumGrey),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryYello,
-                        shape: BoxShape.circle,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
+          child: GlassCard(
+            // تغليف الفورم بالكامل
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 60,
+                        backgroundColor: Colors.grey.withOpacity(0.2),
+                        child: const Icon(
+                          Icons.person_outline,
+                          size: 60,
+                          color: Colors.grey,
+                        ),
                       ),
-                      child: Icon(Icons.camera_alt_outlined, color: Colors.white, size: 20),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_outlined,
+                            color: Colors.black,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+                CustomTextField(
+                  controller: _fullNameController,
+                  hintText: 'Full name',
+                  prefixIcon: Icons.person_outline,
+                ),
+                const SizedBox(height: 20),
+                CustomTextField(
+                  controller: _emailController,
+                  hintText: 'Email',
+                  prefixIcon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 20),
+                CustomTextField(
+                  controller: _dobController,
+                  hintText: 'Date of birth',
+                  prefixIcon: Icons.calendar_today_outlined,
+                  readOnly: true,
+                  onTap: () => _selectDate(context),
+                ),
+                const SizedBox(height: 20),
+                CustomTextField(
+                  controller: _phoneController,
+                  hintText: 'Phone number',
+                  prefixIcon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 20),
+                // Dropdown Wrapped
+                DropdownButtonFormField<String>(
+                  value: _selectedGender,
+                  hint: const Text('Gender'),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.transgender),
+                    filled: true,
+                    fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                    border: Theme.of(context).inputDecorationTheme.border,
+                    enabledBorder: Theme.of(
+                      context,
+                    ).inputDecorationTheme.enabledBorder,
+                    focusedBorder: Theme.of(
+                      context,
+                    ).inputDecorationTheme.focusedBorder,
+                  ),
+                  items: _genders.map((String gender) {
+                    return DropdownMenuItem<String>(
+                      value: gender,
+                      child: Text(gender),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedGender = newValue;
+                    });
+                  },
+                ),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const MainLayoutScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Done',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            SizedBox(height: 30),
-            CustomTextField(
-              controller: _fullNameController,
-              hintText: 'Full name',
-              prefixIcon: Icons.person_outline,
-            ),
-            SizedBox(height: 20),
-            CustomTextField(
-              controller: _emailController,
-              hintText: 'Email',
-              prefixIcon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            SizedBox(height: 20),
-            CustomTextField(
-              controller: _dobController,
-              hintText: 'Date of birth',
-              prefixIcon: Icons.calendar_today_outlined,
-              readOnly: true,
-              onTap: () => _selectDate(context),
-            ),
-            SizedBox(height: 20),
-            CustomTextField(
-              controller: _phoneController,
-              hintText: 'Phone number',
-              prefixIcon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone
-            ),
-            SizedBox(height: 20),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppColors.lightGrey,
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: DropdownButtonFormField<String>(
-                value: _selectedGender,
-                hint: Text('Gender', style: AppTextStyles.secondaryText),
-                decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.transgender, color: AppColors.mediumGrey),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 16.0),
                 ),
-                icon: Icon(Icons.keyboard_arrow_down, color: AppColors.mediumGrey),
-                items: _genders.map((String gender) {
-                  return DropdownMenuItem<String>(
-                    value: gender,
-                    child: Text(gender, style: AppTextStyles.bodyText),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedGender = newValue;
-                  });
-                },
-              ),
+              ],
             ),
-            SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Simulate saving profile and navigate to ProfileScreen
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => MainLayoutScreen()),
-                  );
-                },
-                style: primaryButtonStyle(),
-                child: Text('Done', style: AppTextStyles.buttonText),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
