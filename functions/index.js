@@ -12,8 +12,8 @@ admin.initializeApp();
 
 /**
  * جلب اسم المادة للمدرس.
- * @param {string} teacherId
- * @return {Promise<string>}
+ * @param {string} teacherId - معرف المدرس
+ * @return {Promise<string>} - اسم المادة
  */
 async function getTeacherSubject(teacherId) {
   try {
@@ -28,18 +28,70 @@ async function getTeacherSubject(teacherId) {
 }
 
 /**
- * إرسال إشعار لولي الأمر.
- * @param {object} studentData
- * @param {object} payload
- * @param {string} context
- * @param {string} studentId
+ * تنسيق التاريخ YYYY-MM-DD.
+ * @param {Date} date - كائن التاريخ
+ * @return {string}
+ */
+function formatDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * جلب رقم اليوم من 0 إلى 6.
+ * @param {Date} date - كائن التاريخ
+ * @return {number}
+ */
+function getDayDart(date) {
+  return date.getDay();
+}
+
+/**
+ * تحويل الوقت إلى صيغة 12 ساعة.
+ * @param {string} timeString - الوقت بصيغة HH:mm
+ * @return {string}
+ */
+function formatTime12Hour(timeString) {
+  if (!timeString) return "";
+  const [h, m] = timeString.split(":");
+  const hour = parseInt(h);
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const formattedHour = ((hour + 11) % 12 + 1);
+  return `${formattedHour}:${m} ${suffix}`;
+}
+
+/**
+ * إرسال إشعار لولي الأمر (يدعم تطبيق الويب والموبايل).
+ * @param {object} studentData - بيانات الطالب
+ * @param {object} payload - محتوى الإشعار
+ * @param {string} context - سياق الوظيفة
+ * @param {string} studentId - معرف الطالب
+ * @return {Promise<void>}
  */
 async function sendNotificationToParent(studentData, payload, context, studentId) {
+  // 1. الأولوية للويب
+  if (studentData.parentFcmToken) {
+    const message = {
+      notification: payload.notification,
+      data: payload.data,
+      token: studentData.parentFcmToken,
+    };
+    try {
+      await admin.messaging().send(message);
+      console.log(`${context}: ✅ Web Notification sent directly.`);
+      return;
+    } catch (error) {
+      console.error(`${context}: ❌ Failed Web Notification:`, error);
+    }
+  }
+
+  // 2. تطبيق الموبايل
   const parentUserId = studentData.parentUserId;
   const parentPhoneNumber = studentData.parentPhoneNumber;
   let parentUserDoc;
 
-  // 1. البحث باستخدام parentUserId
   if (parentUserId) {
     try {
       const doc = await admin.firestore().collection("users").doc(parentUserId).get();
@@ -49,7 +101,6 @@ async function sendNotificationToParent(studentData, payload, context, studentId
     }
   }
 
-  // 2. البحث باستخدام رقم الهاتف
   if (!parentUserDoc && parentPhoneNumber) {
     try {
       const q = await admin.firestore().collection("users")
@@ -61,7 +112,7 @@ async function sendNotificationToParent(studentData, payload, context, studentId
   }
 
   if (!parentUserDoc) {
-    console.log(`${context}: Could not find parent for student ${studentId}`);
+    console.log(`${context}: ⚠️ No parent found for student ${studentId}`);
     return;
   }
 
@@ -74,18 +125,18 @@ async function sendNotificationToParent(studentData, payload, context, studentId
     };
     try {
       await admin.messaging().send(message);
-      console.log(`${context}: Notification sent.`);
+      console.log(`${context}: ✅ App Notification sent.`);
     } catch (error) {
-      console.error(`${context}: Failed sending notification:`, error);
+      console.error(`${context}: ❌ Failed App Notification:`, error);
     }
   }
 }
 
 // ===================================================================
-// (الجزء الثاني: دوال الإشعارات التلقائية - Triggers)
+// (الجزء الثاني: دوال الإشعارات التلقائية)
 // ===================================================================
 
-// 1. إشعار الغياب
+// 1. إشعار الغياب (محسن للسرعة)
 exports.notifyOnAbsence = onDocumentWritten(
     "teachers/{teacherId}/groups/{groupId}/dailyAttendance/{date}",
     async (event) => {
@@ -99,30 +150,30 @@ exports.notifyOnAbsence = onDocumentWritten(
       const records = attendanceData.records || [];
       const subjectName = await getTeacherSubject(teacherId);
 
-      // eslint-disable-next-line no-restricted-syntax
-      for (const record of records) {
-        if (record.status === "absent") {
-          const studentId = record.studentId;
-          // eslint-disable-next-line no-await-in-loop
-          const sDoc = await admin.firestore().doc(`teachers/${teacherId}/groups/${groupId}/students/${studentId}`).get();
+      // تحسين السرعة: استخدام Promise.all لإرسال الإشعارات بالتوازي
+      const notifications = records
+          .filter((r) => r.status === "absent")
+          .map(async (record) => {
+            const studentId = record.studentId;
+            const sDoc = await admin.firestore().doc(`teachers/${teacherId}/groups/${groupId}/students/${studentId}`).get();
 
-          if (sDoc.exists) {
-            const sData = sDoc.data();
-            const payload = {
-              notification: {
-                title: "تنبيه غياب",
-                body: `تم تسجيل غياب الطالب ${sData.name} اليوم في مادة ${subjectName}.`,
-              },
-              data: {"screen": "attendance", "studentId": studentId},
-            };
-            // eslint-disable-next-line no-await-in-loop
-            await sendNotificationToParent(sData, payload, "notifyOnAbsence", studentId);
-          }
-        }
-      }
+            if (sDoc.exists) {
+              const sData = sDoc.data();
+              const payload = {
+                notification: {
+                  title: "تنبيه غياب",
+                  body: `تم تسجيل غياب الطالب ${sData.name} اليوم في مادة ${subjectName}.`,
+                },
+                data: {"screen": "attendance", "studentId": studentId},
+              };
+              return sendNotificationToParent(sData, payload, "notifyOnAbsence", studentId);
+            }
+          });
+
+      await Promise.all(notifications);
     });
 
-// 2. إشعار الدرجات وعدم التسليم
+// 2. إشعار الدرجات وعدم التسليم (تم التعديل ليكون فوري وسريع)
 exports.notifyOnNewGrades = onDocumentWritten(
     "teachers/{teacherId}/groups/{groupId}/assignments/{assignmentId}",
     async (event) => {
@@ -131,7 +182,6 @@ exports.notifyOnNewGrades = onDocumentWritten(
       const assignmentId = event.params.assignmentId;
 
       const snapAfter = event.data.after;
-      // إذا تم حذف المستند، لا تفعل شيئاً
       if (!snapAfter || !snapAfter.exists) return;
 
       const afterData = snapAfter.data();
@@ -139,112 +189,111 @@ exports.notifyOnNewGrades = onDocumentWritten(
       const scoresAfter = afterData.scores || {};
       const subjectName = await getTeacherSubject(teacherId);
 
-      // حلقة تكرارية لكل الطلاب في قائمة الدرجات
+      // مصفوفة لتخزين عمليات الإرسال وتنفيذها دفعة واحدة
+      const sendPromises = [];
+
       for (const studentId in scoresAfter) {
         if (Object.prototype.hasOwnProperty.call(scoresAfter, studentId)) {
           const scoreData = scoresAfter[studentId];
 
           if (scoreData) {
-            // جلب بيانات الطالب
-            // eslint-disable-next-line no-await-in-loop
-            const sDoc = await admin.firestore().doc(`teachers/${teacherId}/groups/${groupId}/students/${studentId}`).get();
+            // نجهز العملية ونضيفها للقائمة
+            const processStudent = async () => {
+              const sDoc = await admin.firestore().doc(`teachers/${teacherId}/groups/${groupId}/students/${studentId}`).get();
 
-            if (sDoc.exists) {
-              const sData = sDoc.data();
+              if (sDoc.exists) {
+                const sData = sDoc.data();
+                const hasScore = scoreData.score !== "" && scoreData.score != null;
+                const isSubmitted = scoreData.submitted === true || (scoreData.submitted === undefined && hasScore);
 
-              // التحقق من وجود درجة (سواء كانت رقم أو نص)
-              const hasScore = scoreData.score !== "" && scoreData.score != null;
-
-              // التحقق من حالة التسليم:
-              // 1. إذا كان submitted = true (النظام القديم)
-              // 2. أو إذا كان submitted غير موجود أصلاً لكن توجد درجة (النظام الجديد للامتحانات)
-              const isSubmitted = scoreData.submitted === true || (scoreData.submitted === undefined && hasScore);
-
-              // الحالة الأولى: لم يتم التسليم صراحة (غياب عن الواجب)
-              if (scoreData.submitted === false) {
-                const payload = {
-                  notification: {
-                    title: "لم يتم تسليم الواجب",
-                    body: `نود إعلامكم بأن الطالب ${sData.name} لم يقم بتسليم واجب "${assignmentName}" في مادة ${subjectName}.`,
-                  },
-                  data: {"screen": "grades", "assignmentId": assignmentId},
-                };
-                // eslint-disable-next-line no-await-in-loop
-                await sendNotificationToParent(sData, payload, "notifyMissingHomework", studentId);
-
-              // الحالة الثانية: تم رصد درجة (سواء امتحان جديد أو واجب قديم)
-              } else if (isSubmitted && hasScore) {
-                const payload = {
-                  notification: {
-                    title: "تم رصد درجة جديدة",
-                    body: `حصل الطالب ${sData.name} على ${scoreData.score} في "${assignmentName}" لمادة ${subjectName}.`,
-                  },
-                  data: {"screen": "grades", "assignmentId": assignmentId},
-                };
-                // eslint-disable-next-line no-await-in-loop
-                await sendNotificationToParent(sData, payload, "notifyOnNewGrades", studentId);
+                // الحالة الأولى: لم يتم التسليم (الأولوية للسرعة هنا)
+                if (scoreData.submitted === false) {
+                  const payload = {
+                    notification: {
+                      title: "لم يتم تسليم الواجب",
+                      body: `نود إعلامكم بأن الطالب ${sData.name} لم يقم بتسليم واجب "${assignmentName}" في مادة ${subjectName}.`,
+                    },
+                    data: {"screen": "grades", "assignmentId": assignmentId},
+                  };
+                  await sendNotificationToParent(sData, payload, "notifyMissingHomework", studentId);
+                } else if (isSubmitted && hasScore) {
+                  // الحالة الثانية: رصد درجة جديدة
+                  const payload = {
+                    notification: {
+                      title: "تم رصد درجة جديدة",
+                      body: `حصل الطالب ${sData.name} على ${scoreData.score} في "${assignmentName}" لمادة ${subjectName}.`,
+                    },
+                    data: {"screen": "grades", "assignmentId": assignmentId},
+                  };
+                  await sendNotificationToParent(sData, payload, "notifyOnNewGrades", studentId);
+                }
               }
-            }
+            };
+            sendPromises.push(processStudent());
           }
         }
       }
+
+      // تنفيذ كل الإشعارات في نفس اللحظة لعدم التأخير
+      await Promise.all(sendPromises);
     });
 
 // ===================================================================
-// (الجزء الثالث: المهام المجدولة - تتطلب Blaze Plan)
+// (الجزء الثالث: المهام المجدولة)
 // ===================================================================
 
-// 3. تذكير بمواعيد الدروس (قبل ساعتين)
+// 3. تذكير بمواعيد الدروس (قبل الميعاد بـ 30 دقيقة)
 exports.classReminder = onSchedule({
-  schedule: "0 * * * *",
+  schedule: "*/15 * * * *", // يعمل كل 15 دقيقة لضمان دقة التوقيت
   timeZone: "Africa/Cairo",
 }, async (event) => {
   const now = new Date();
-  const targetTime = new Date(now.getTime() + 2 * 60 * 60 * 1000); // +2 hours
-  const currentHour = targetTime.getHours();
-  // تعديل: استخدام getDay() مباشرة (0=الأحد) ليتوافق مع قاعدة البيانات
-  const dayIndex = targetTime.getDay();
+  const cairoTimeStr = now.toLocaleString("en-US", {timeZone: "Africa/Cairo"});
+  const cairoDate = new Date(cairoTimeStr);
 
-  console.log(`Checking classes for Day Index: ${dayIndex}, Around Hour: ${currentHour}`);
+  // نضيف 30 دقيقة على الوقت الحالي
+  const targetDate = new Date(cairoDate.getTime() + 30 * 60000);
+
+  const targetHour = targetDate.getHours();
+  const targetMinute = targetDate.getMinutes();
+  const dayIndex = targetDate.getDay();
+
+  console.log(`Checking classes for Day: ${dayIndex}, Time around: ${targetHour}:${targetMinute}`);
 
   const teachersSnap = await admin.firestore().collection("teachers").get();
 
-  // eslint-disable-next-line no-restricted-syntax
   for (const teacherDoc of teachersSnap.docs) {
-    // eslint-disable-next-line no-await-in-loop
     const groupsSnap = await teacherDoc.ref.collection("groups").get();
 
-    // eslint-disable-next-line no-restricted-syntax
     for (const groupDoc of groupsSnap.docs) {
-      // eslint-disable-next-line no-await-in-loop
       const schedulesSnap = await groupDoc.ref.collection("recurringSchedules").get();
 
-      // eslint-disable-next-line no-restricted-syntax
       for (const schedDoc of schedulesSnap.docs) {
         const sched = schedDoc.data();
         if (sched.days && sched.days.includes(dayIndex)) {
-          const [schedHourStr] = sched.time.split(":");
-          const schedHour = parseInt(schedHourStr, 10);
+          const [hStr, mStr] = sched.time.split(":");
+          const schedHour = parseInt(hStr, 10);
+          const schedMinute = parseInt(mStr, 10);
 
-          if (schedHour === currentHour) {
-            // eslint-disable-next-line no-await-in-loop
+          // سماحية 7 دقائق قبل أو بعد لضمان التقاط الموعد
+          const isTimeMatch = (schedHour === targetHour) && (Math.abs(schedMinute - targetMinute) <= 7);
+
+          if (isTimeMatch) {
             const subjectName = await getTeacherSubject(teacherDoc.id);
-            // eslint-disable-next-line no-await-in-loop
             const studentsSnap = await groupDoc.ref.collection("students").get();
 
-            // eslint-disable-next-line no-restricted-syntax
-            for (const studentDoc of studentsSnap.docs) {
+            const notifications = studentsSnap.docs.map(async (studentDoc) => {
               const studentData = studentDoc.data();
               const payload = {
                 notification: {
-                  title: "تذكير بموعد الدرس",
-                  body: `تذكير: موعد درس ${subjectName} للطالب ${studentData.name} يبدأ بعد ساعتين (الساعة ${formatTime12Hour(sched.time)}).`,
+                  title: "اقتراب موعد الدرس",
+                  body: `تذكير: درس ${subjectName} للطالب ${studentData.name} يبدأ بعد 30 دقيقة (الساعة ${formatTime12Hour(sched.time)}).`,
                 },
                 data: {"screen": "schedule"},
               };
-              // eslint-disable-next-line no-await-in-loop
-              await sendNotificationToParent(studentData, payload, "classReminder", studentDoc.id);
-            }
+              return sendNotificationToParent(studentData, payload, "classReminder", studentDoc.id);
+            });
+            await Promise.all(notifications);
           }
         }
       }
@@ -252,33 +301,43 @@ exports.classReminder = onSchedule({
   }
 });
 
-// 4. تذكير بدفع المصروفات (يوم 6 من كل شهر)
+
+// 4. تذكير بدفع المصروفات (بداية من يوم 5، كل يومين، للشهر السابق)
 exports.paymentReminder = onSchedule({
-  schedule: "0 14 6 * *",
+  schedule: "0 14 * * *", // يعمل يومياً الساعة 2 ظهراً
   timeZone: "Africa/Cairo",
 }, async (event) => {
-  const today = new Date();
-  const currentMonth = today.toISOString().slice(0, 7);
+  const now = new Date();
+  const cairoTimeStr = now.toLocaleString("en-US", {timeZone: "Africa/Cairo"});
+  const cairoDate = new Date(cairoTimeStr);
 
-  console.log(`Running Payment Reminder for month: ${currentMonth}`);
+  const currentDay = cairoDate.getDate();
+
+  // المنطق: ابدأ من يوم 5، وكرر كل يومين (5, 7, 9, 11...)
+  // الشرط: اليوم أكبر من أو يساوي 5، والفرق بينه وبين 5 يقبل القسمة على 2
+  if (currentDay < 5 || (currentDay - 5) % 2 !== 0) {
+    console.log("Not a payment reminder day. Skipping.");
+    return;
+  }
+
+  // تحديد الشهر السابق (لأننا في يوم 5 من الشهر الجديد بنطالب بفلوس الشهر اللي خلص)
+  const prevMonthDate = new Date(cairoDate);
+  prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+  const targetMonth = prevMonthDate.toISOString().slice(0, 7); // Format: YYYY-MM
+
+  console.log(`Running Payment Reminder for PREVIOUS month: ${targetMonth}`);
 
   const teachersSnap = await admin.firestore().collection("teachers").get();
 
-  // eslint-disable-next-line no-restricted-syntax
   for (const teacherDoc of teachersSnap.docs) {
-    // eslint-disable-next-line no-await-in-loop
     const subjectName = await getTeacherSubject(teacherDoc.id);
-    // eslint-disable-next-line no-await-in-loop
     const groupsSnap = await teacherDoc.ref.collection("groups").get();
 
-    // eslint-disable-next-line no-restricted-syntax
     for (const groupDoc of groupsSnap.docs) {
-      // eslint-disable-next-line no-await-in-loop
       const studentsSnap = await groupDoc.ref.collection("students").get();
       if (studentsSnap.empty) continue;
 
-      // eslint-disable-next-line no-await-in-loop
-      const paymentDoc = await groupDoc.ref.collection("payments").doc(currentMonth).get();
+      const paymentDoc = await groupDoc.ref.collection("payments").doc(targetMonth).get();
       let paidStudentIds = [];
 
       if (paymentDoc.exists) {
@@ -286,21 +345,20 @@ exports.paymentReminder = onSchedule({
         paidStudentIds = records.filter((r) => r.paid === true).map((r) => r.studentId);
       }
 
-      // eslint-disable-next-line no-restricted-syntax
-      for (const studentDoc of studentsSnap.docs) {
+      const notifications = studentsSnap.docs.map(async (studentDoc) => {
         if (!paidStudentIds.includes(studentDoc.id)) {
           const studentData = studentDoc.data();
           const payload = {
             notification: {
-              title: "تذكير بدفع المصروفات",
-              body: `تذكير بسداد مصروفات شهر ${currentMonth} لمادة ${subjectName} للطالب ${studentData.name}.`,
+              title: "تذكير هام بالمصروفات",
+              body: `نود تذكيركم بسداد مصروفات شهر ${targetMonth} المتأخرة لمادة ${subjectName} للطالب ${studentData.name}.`,
             },
             data: {"screen": "payments"},
           };
-          // eslint-disable-next-line no-await-in-loop
-          await sendNotificationToParent(studentData, payload, "paymentReminder", studentDoc.id);
+          return sendNotificationToParent(studentData, payload, "paymentReminder", studentDoc.id);
         }
-      }
+      });
+      await Promise.all(notifications);
     }
   }
 });
@@ -309,42 +367,6 @@ exports.paymentReminder = onSchedule({
 // (الجزء الرابع: دوال لوحة التحكم والتطبيق)
 // ===================================================================
 
-/**
- * تنسيق التاريخ.
- * @param {Date} date
- * @return {string}
- */
-function formatDate(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-/**
- * جلب رقم اليوم (0 للأحد)
- * @param {Date} date
- * @return {number}
- */
-function getDayDart(date) {
-  return date.getDay();
-}
-
-/**
- * تنسيق الوقت لـ 12 ساعة
- * @param {string} timeString
- * @return {string}
- */
-function formatTime12Hour(timeString) {
-  if (!timeString) return "";
-  const [h, m] = timeString.split(":");
-  const hour = parseInt(h);
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const formattedHour = ((hour + 11) % 12 + 1);
-  return `${formattedHour}:${m} ${suffix}`;
-}
-
-// دالة جلب البيانات للوحة التحكم
 exports.getDashboardData = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in.");
@@ -420,7 +442,6 @@ exports.getDashboardData = onCall(async (request) => {
       const teacherReport = reportsMap.get(teacherId);
       const groupRef = admin.firestore().collection("teachers").doc(teacherId).collection("groups").doc(groupId);
 
-      // --- الجدول ---
       try {
         // eslint-disable-next-line no-await-in-loop
         const schedulesSnap = await groupRef.collection("recurringSchedules").get();
@@ -462,7 +483,6 @@ exports.getDashboardData = onCall(async (request) => {
         console.error("Error fetching schedule:", e);
       }
 
-      // --- الحضور ---
       try {
         // eslint-disable-next-line no-await-in-loop
         const attSnap = await groupRef.collection("dailyAttendance").get();
@@ -481,7 +501,6 @@ exports.getDashboardData = onCall(async (request) => {
         console.error("Error fetching attendance:", e);
       }
 
-      // --- الدرجات ---
       try {
         // eslint-disable-next-line no-await-in-loop
         const assSnap = await groupRef.collection("assignments").get();
@@ -514,7 +533,6 @@ exports.getDashboardData = onCall(async (request) => {
   }
 });
 
-// دالة التحقق من وجود ولي الأمر
 exports.checkParentExists = onCall(async (request) => {
   const parentPhoneNumber = request.data.phoneNumber;
   if (!parentPhoneNumber) {
@@ -535,7 +553,7 @@ exports.checkParentExists = onCall(async (request) => {
   }
 });
 
-// 5. إشعار عند دفع المصروفات (جديد)
+// 5. إشعار عند دفع المصروفات
 exports.notifyOnPayment = onDocumentWritten(
     "teachers/{teacherId}/groups/{groupId}/payments/{month}",
     async (event) => {
@@ -554,13 +572,11 @@ exports.notifyOnPayment = onDocumentWritten(
       const afterRecords = afterData.records || [];
       const beforeRecords = beforeData.records || [];
 
-      // خريطة لمعرفة حالة الدفع السابقة
       const beforeStatusMap = {};
       beforeRecords.forEach((r) => {
         beforeStatusMap[r.studentId] = r.paid;
       });
 
-      // جلب بيانات المدرس
       let teacherName = "المستر";
       let subjectName = "المادة";
 
@@ -575,7 +591,6 @@ exports.notifyOnPayment = onDocumentWritten(
         console.error("Error fetching teacher info:", e);
       }
 
-      // البحث عن الطلاب
       // eslint-disable-next-line no-restricted-syntax
       for (const record of afterRecords) {
         const isNowPaid = record.amount > 0;
@@ -593,7 +608,6 @@ exports.notifyOnPayment = onDocumentWritten(
             const payload = {
               notification: {
                 title: "تأكيد سداد المصروفات",
-                // تم إضافة ${teacherName} هنا لإصلاح الخطأ
                 body: `تم استلام مبلغ ${amountPaid} جنيه مصاريف شهر ${month} لمادة ${subjectName} مع ${teacherName} للطالب ${sData.name}. شكراً لكم.`,
               },
               data: {"screen": "payments", "month": month},
@@ -606,14 +620,10 @@ exports.notifyOnPayment = onDocumentWritten(
       }
     });
 
-
-// أضف هذا الكود في نهاية ملف index.js
-
 exports.sendCustomMessage = onCall(async (request) => {
   const {teacherId, groupId, studentId, messageBody} = request.data;
 
   try {
-    // جلب بيانات الطالب
     const studentDoc = await admin.firestore().doc(`teachers/${teacherId}/groups/${groupId}/students/${studentId}`).get();
 
     if (!studentDoc.exists) throw new HttpsError("not-found", "الطالب غير موجود");
@@ -621,7 +631,6 @@ exports.sendCustomMessage = onCall(async (request) => {
     const studentData = studentDoc.data();
     const subjectName = await getTeacherSubject(teacherId);
 
-    // تجهيز الإشعار
     const payload = {
       notification: {
         title: `رسالة من مدرس ${subjectName}`,
@@ -630,7 +639,6 @@ exports.sendCustomMessage = onCall(async (request) => {
       data: {screen: "profile", studentId: studentId},
     };
 
-    // الإرسال باستخدام الدالة المساعدة الموجودة في ملفك
     await sendNotificationToParent(studentData, payload, "sendCustomMessage", studentId);
 
     return {success: true};
