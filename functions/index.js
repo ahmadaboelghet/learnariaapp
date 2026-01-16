@@ -63,72 +63,86 @@ function formatTime12Hour(timeString) {
 }
 
 /**
- * إرسال إشعار لولي الأمر (يدعم تطبيق الويب والموبايل).
+ * إرسال إشعار لولي الأمر (نسخة محسنة تدعم تعدد المدرسين).
  * @param {object} studentData - بيانات الطالب
- * @param {object} payload - محتوى الإشعار
- * @param {string} context - سياق الوظيفة
+ * @param {object} payload - محتوى الإشعار (Notification Payload)
+ * @param {string} context - سياق الوظيفة (للتتبع في الكونسول)
  * @param {string} studentId - معرف الطالب
- * @return {Promise<void>}
+ * @return {Promise<void>} - وعد يكتمل عند انتهاء المحاولة
  */
 async function sendNotificationToParent(studentData, payload, context, studentId) {
-  // 1. الأولوية للويب
+  let tokenToSend = null;
+
+  // 1. المحاولة الأولى: البحث عن التوكن داخل بيانات الطالب مباشرة (الأسرع)
   if (studentData.parentFcmToken) {
+    tokenToSend = studentData.parentFcmToken;
+  }
+
+  // 2. المحاولة الثانية (الحل السحري): البحث في سجل الآباء العام برقم التليفون
+  // دي اللي هتحل مشكلة تعدد المدرسين لو التوكن متنسخش لكل الطلاب
+  if (!tokenToSend && studentData.parentPhoneNumber) {
+    try {
+      // تنظيف رقم الهاتف لضمان التطابق (إزالة المسافات)
+      const cleanPhone = studentData.parentPhoneNumber.replace(/\s+/g, "").trim();
+      const parentDoc = await admin.firestore().collection("parents").doc(cleanPhone).get();
+
+      if (parentDoc.exists && parentDoc.data().fcmToken) {
+        tokenToSend = parentDoc.data().fcmToken;
+        console.log(`${context}: 🔄 Found token in global 'parents' collection for ${cleanPhone}`);
+      }
+    } catch (e) {
+      console.error(`${context}: Error fetching global parent token:`, e);
+    }
+  }
+
+  // 3. المحاولة الثالثة: تطبيق الموبايل (users collection)
+  if (!tokenToSend) {
+    const parentUserId = studentData.parentUserId;
+    const parentPhoneNumber = studentData.parentPhoneNumber;
+    let parentUserDoc;
+
+    if (parentUserId) {
+      try {
+        const doc = await admin.firestore().collection("users").doc(parentUserId).get();
+        if (doc.exists) parentUserDoc = doc;
+      } catch (error) {
+        console.error(`${context}: Error fetching parent by ID:`, error);
+      }
+    }
+
+    if (!parentUserDoc && parentPhoneNumber) {
+      try {
+        const q = await admin.firestore().collection("users")
+            .where("phoneNumber", "==", parentPhoneNumber).limit(1).get();
+        if (!q.empty) parentUserDoc = q.docs[0];
+      } catch (error) {
+        console.error(`${context}: Error querying parent by phone:`, error);
+      }
+    }
+
+    if (parentUserDoc && parentUserDoc.data().fcmToken) {
+      tokenToSend = parentUserDoc.data().fcmToken;
+    }
+  }
+
+  // ---------------------------------------------------------
+  // تنفيذ الإرسال النهائي
+  // ---------------------------------------------------------
+  if (tokenToSend) {
     const message = {
       notification: payload.notification,
       data: payload.data,
-      token: studentData.parentFcmToken,
+      token: tokenToSend,
     };
     try {
       await admin.messaging().send(message);
-      console.log(`${context}: ✅ Web Notification sent directly.`);
-      return;
+      console.log(`${context}: ✅ Notification sent successfully.`);
     } catch (error) {
-      console.error(`${context}: ❌ Failed Web Notification:`, error);
+      console.error(`${context}: ❌ Failed to send notification:`, error);
+      // لو التوكن منتهي، ممكن هنا نمسحه من الداتابيز مستقبلاً
     }
-  }
-
-  // 2. تطبيق الموبايل
-  const parentUserId = studentData.parentUserId;
-  const parentPhoneNumber = studentData.parentPhoneNumber;
-  let parentUserDoc;
-
-  if (parentUserId) {
-    try {
-      const doc = await admin.firestore().collection("users").doc(parentUserId).get();
-      if (doc.exists) parentUserDoc = doc;
-    } catch (error) {
-      console.error(`${context}: Error fetching parent by ID:`, error);
-    }
-  }
-
-  if (!parentUserDoc && parentPhoneNumber) {
-    try {
-      const q = await admin.firestore().collection("users")
-          .where("phoneNumber", "==", parentPhoneNumber).limit(1).get();
-      if (!q.empty) parentUserDoc = q.docs[0];
-    } catch (error) {
-      console.error(`${context}: Error querying parent by phone:`, error);
-    }
-  }
-
-  if (!parentUserDoc) {
-    console.log(`${context}: ⚠️ No parent found for student ${studentId}`);
-    return;
-  }
-
-  const fcmToken = parentUserDoc.data().fcmToken;
-  if (fcmToken) {
-    const message = {
-      notification: payload.notification,
-      data: payload.data,
-      token: fcmToken,
-    };
-    try {
-      await admin.messaging().send(message);
-      console.log(`${context}: ✅ App Notification sent.`);
-    } catch (error) {
-      console.error(`${context}: ❌ Failed App Notification:`, error);
-    }
+  } else {
+    console.log(`${context}: ⚠️ No token found for student ${studentId} (Parent: ${studentData.parentPhoneNumber})`);
   }
 }
 
