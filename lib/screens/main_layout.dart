@@ -4,6 +4,8 @@ import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/screens/home.dart';
 import 'package:learnaria/screens/more_screen.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
+import 'package:learnaria/widgets/glass_container.dart';
+
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
 
@@ -52,36 +54,43 @@ class _MainLayoutState extends State<MainLayoutScreen> {
           MoreScreen(), // Using the new MoreScreen
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.primaryBlack,
-        selectedItemColor: AppColors.primaryYello,
-        unselectedItemColor: AppColors.mediumGrey,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: const ImageIcon(
-              AssetImage('assets/images/home_icon.png'),
-              size: 20,
+      bottomNavigationBar: GlassContainer(
+        borderRadius: 0,
+        padding: EdgeInsets.zero,
+        fillOpacity: 0.1,
+        borderOpacity: 0.08,
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedItemColor: AppColors.primaryYello,
+          unselectedItemColor: Theme.of(context).brightness == Brightness.dark ? Colors.white38 : Colors.black38,
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          items: <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: const ImageIcon(
+                AssetImage('assets/images/home_icon.png'),
+                size: 20,
+              ),
+              label: appLocalizations.home,
             ),
-            label: appLocalizations.home,
-          ),
-          BottomNavigationBarItem(
-            icon: const ImageIcon(
-              AssetImage('assets/images/reports_icon.png'),
-              size: 20,
+            BottomNavigationBarItem(
+              icon: const ImageIcon(
+                AssetImage('assets/images/reports_icon.png'),
+                size: 20,
+              ),
+              label: appLocalizations.reports,
             ),
-            label: appLocalizations.reports,
-          ),
-          BottomNavigationBarItem(
-            icon: const ImageIcon(
-              AssetImage('assets/images/menu.png'),
-              size: 20,
+            BottomNavigationBarItem(
+              icon: const ImageIcon(
+                AssetImage('assets/images/menu.png'),
+                size: 20,
+              ),
+              label: appLocalizations.more, // Using the new "More" label
             ),
-            label: appLocalizations.more, // Using the new "More" label
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:learnaria/screens/auth_check.dart'; // <<< استيراد الملف الجديد
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:learnaria/screens/auth_check.dart'; 
+import 'package:learnaria/screens/intro.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -31,11 +33,25 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _animationController.forward();
 
     // المؤقت للانتقال إلى الشاشة التالية بعد 3 ثوانٍ
-    Timer(const Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 3), () async {
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const AuthCheck()),
-        );
+        final prefs = await SharedPreferences.getInstance();
+        final isFirstTime = prefs.getBool('is_first_time') ?? true;
+
+        if (isFirstTime) {
+          await prefs.setBool('is_first_time', false);
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const IntroScreen()),
+            );
+          }
+        } else {
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const AuthCheck()),
+            );
+          }
+        }
       }
     });
   }

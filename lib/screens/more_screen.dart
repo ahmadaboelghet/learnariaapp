@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:learnaria/screens/auth_screen.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:learnaria/screens/login.dart';
 import 'package:learnaria/screens/notifications.dart';
 import 'package:provider/provider.dart';
 import 'package:learnaria/utils/theme_provider.dart';
 import 'package:learnaria/utils/locale_provider.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
+import 'package:learnaria/widgets/glass_container.dart';
 
 class MoreScreen extends StatefulWidget {
   const MoreScreen({super.key});
@@ -56,61 +56,64 @@ class _MoreScreenState extends State<MoreScreen> {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final appLocalizations = AppLocalizations.of(context)!;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: null,
         automaticallyImplyLeading: false,
         title: Text(
           appLocalizations.more,
-          style: AppTextStyles.heading2.copyWith(color: Theme.of(context).textTheme.bodyLarge!.color),
+          style: AppTextStyles.heading2.copyWith(color: isDark ? Colors.white : Colors.black87),
         ),
         centerTitle: false,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildProfileOption(
-              icon: Icons.notifications_none_outlined, 
-              title: appLocalizations.notifications, 
-              onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const NotificationsScreen()));
-              }
-            ),
-            
-            _buildProfileOption(
-              icon: Icons.language_outlined, 
-              title: appLocalizations.language,
-              // --- تم تغيير النص هنا ---
-              trailingText: localeProvider.locale?.languageCode == 'ar' ? 'العربية' : 'English',
-              onTap: () {
-                localeProvider.toggleLocale();
-              }
-            ),
-
-            _buildProfileOption(
-              icon: Icons.dark_mode_outlined,
-              title: appLocalizations.darkMode,
-              isSwitch: true,
-              switchValue: themeProvider.isDarkMode,
-              onSwitchChanged: (value) {
-                themeProvider.toggleTheme(value);
-              },
-            ),
-            const SizedBox(height: 10),
-            const Divider(),
-            const SizedBox(height: 10),
-            _buildProfileOption(
-              icon: Icons.logout,
-              title: appLocalizations.signOut,
-              onTap: _signOut,
-              isLogout: true,
-            ),
-          ],
+      body: LiquidBackground(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildProfileOption(
+                icon: Icons.notifications_none_outlined, 
+                title: appLocalizations.notifications, 
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(builder: (context) => const NotificationsScreen()));
+                }
+              ),
+              
+              _buildProfileOption(
+                icon: Icons.language_outlined, 
+                title: appLocalizations.language,
+                trailingText: localeProvider.locale?.languageCode == 'ar' ? 'العربية' : 'English',
+                onTap: () {
+                  localeProvider.toggleLocale();
+                }
+              ),
+  
+              _buildProfileOption(
+                icon: Icons.dark_mode_outlined,
+                title: appLocalizations.darkMode,
+                isSwitch: true,
+                switchValue: themeProvider.isDarkMode,
+                onSwitchChanged: (value) {
+                  themeProvider.toggleTheme(value);
+                },
+              ),
+              const SizedBox(height: 10),
+              const Divider(color: Colors.white24),
+              const SizedBox(height: 10),
+              _buildProfileOption(
+                icon: Icons.logout,
+                title: appLocalizations.signOut,
+                onTap: _signOut,
+                isLogout: true,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -126,25 +129,16 @@ class _MoreScreenState extends State<MoreScreen> {
     bool isLogout = false,
     String? trailingText,
   }) {
-    final color = isLogout ? Colors.red : Theme.of(context).textTheme.bodyLarge!.color;
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isLogout 
+        ? Colors.red 
+        : (isDark ? Colors.white : Colors.black87);
 
     return GestureDetector(
       onTap: isSwitch ? null : onTap,
-      child: Container(
+      child: GlassContainer(
         margin: const EdgeInsets.symmetric(vertical: 8.0),
-        padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 10.0),
-        decoration: BoxDecoration(
-          color: isLightMode ? Colors.white : Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: isLightMode ? [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.08),
-              spreadRadius: 1,
-              blurRadius: 5,
-            ),
-          ] : null,
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 15.0),
         child: Row(
           children: [
             Icon(icon, color: color),
@@ -159,7 +153,6 @@ class _MoreScreenState extends State<MoreScreen> {
                 activeColor: AppColors.primaryYello,
               )
             else if (trailingText != null)
-              // --- تم إضافة سهم بجانب اللغة ---
               Row(
                 children: [
                   Text(trailingText, style: AppTextStyles.secondaryText),

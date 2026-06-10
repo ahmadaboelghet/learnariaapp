@@ -9,7 +9,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appName => 'Learnaria';
+  String get appName => 'الناظر';
 
   @override
   String get login => 'تسجيل الدخول';
@@ -259,7 +259,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get introTitle3 => 'كل ما تحتاجه في تطبيق واحد';
 
   @override
-  String get introDesc3 => 'ليناريا يجمع كل المعلومات الهامة لمتابعة رحلة أبنائك التعليمية بفاعلية.';
+  String get introDesc3 => 'الناظر يجمع كل المعلومات الهامة لمتابعة رحلة أبنائك التعليمية بفاعلية.';
 
   @override
   String get getStarted => 'ابدأ الآن';
@@ -286,7 +286,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get signupCreateAccount => 'إنشاء حساب';
 
   @override
-  String get signupStartJourney => 'ابدأ رحلتك مع ليناريا!';
+  String get signupStartJourney => 'ابدأ رحلتك مع الناظر!';
 
   @override
   String get agreeToTerms => 'أوافق على الشروط والأحكام';

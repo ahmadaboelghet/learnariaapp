@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:learnaria/screens/auth_screen.dart';
-import 'package:learnaria/screens/login.dart';
-import 'package:learnaria/screens/signup.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
+import 'package:learnaria/screens/auth_check.dart';
+
 
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
@@ -47,7 +46,7 @@ class _IntroScreenState extends State<IntroScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const AuthScreen()),
+                MaterialPageRoute(builder: (context) => const AuthCheck()),
               );
             },
             child: Text(
@@ -92,7 +91,7 @@ class _IntroScreenState extends State<IntroScreen> {
                     ? ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (context) => const AuthScreen()),
+                            MaterialPageRoute(builder: (context) => const AuthCheck()),
                           );
                         },
                         style: primaryButtonStyle().copyWith(

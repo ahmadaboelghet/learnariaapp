@@ -98,7 +98,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'Learnaria'**
+  /// **'الناظر'**
   String get appName;
 
   /// No description provided for @login.
@@ -578,7 +578,7 @@ abstract class AppLocalizations {
   /// No description provided for @introDesc3.
   ///
   /// In en, this message translates to:
-  /// **'Learnaria brings together all the important information to follow your children\'s educational journey.'**
+  /// **'Al-Nazer brings together all the important information to follow your children\'s educational journey.'**
   String get introDesc3;
 
   /// No description provided for @getStarted.
@@ -632,7 +632,7 @@ abstract class AppLocalizations {
   /// No description provided for @signupStartJourney.
   ///
   /// In en, this message translates to:
-  /// **'Start your journey with Learnaria!'**
+  /// **'Start your journey with Al-Nazer!'**
   String get signupStartJourney;
 
   /// No description provided for @agreeToTerms.

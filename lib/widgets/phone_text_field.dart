@@ -49,15 +49,19 @@ class _PhoneTextFieldState extends State<PhoneTextField> {
           children: [
             Container(
               decoration: BoxDecoration(
-                color: AppColors.lightGrey,
-                borderRadius: BorderRadius.circular(10.0),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withOpacity(0.06)
+                    : Colors.black.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(15.0),
                 border: Border.all(
                   color: state.hasError
                       ? Colors.red.shade700
                       : _isFocused
                           ? AppColors.primaryYello
-                          : Colors.transparent,
-                  width: 1.5,
+                          : (Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withOpacity(0.08)
+                              : Colors.black.withOpacity(0.08)),
+                  width: 1.2,
                 ),
               ),
               child: Row(

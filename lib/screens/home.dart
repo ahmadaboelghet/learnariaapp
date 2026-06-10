@@ -7,6 +7,7 @@ import 'package:learnaria/services/firestore_api.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
+import 'package:learnaria/widgets/glass_container.dart';
 
 enum CourseStatus { Upcoming, Ongoing, Finished }
 
@@ -143,20 +144,27 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
-    final textColor = Theme.of(context).textTheme.bodyLarge!.color;
+    final textColor = Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        leadingWidth: 64,
         leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Image.asset('assets/images/logo_bg.png'),
+          padding: const EdgeInsets.all(4.0),
+          child: Image.asset(
+            'assets/images/logo_bg.png',
+            fit: BoxFit.contain,
+          ),
         ),
         title: Text(
-          appLocalizations.appName,
-          style: AppTextStyles.heading2.copyWith(color: textColor),
+          'Home',
+          style: AppTextStyles.heading2.copyWith(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: false,
         titleSpacing: 0,
@@ -167,45 +175,47 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  AppColors.primaryYello,
-                ),
-              ),
-            )
-          : _errorMessage.isNotEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Text(
-                      _errorMessage,
-                      style: AppTextStyles.bodyText.copyWith(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
+      body: LiquidBackground(
+        child: _isLoading
+            ? Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppColors.primaryYello,
                   ),
-                )
-              : _dashboardData != null &&
-                      _dashboardData!.reportsByTeacher.isNotEmpty
-                  ? RefreshIndicator(
-                      onRefresh: _fetchData,
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.all(16.0),
-                        child: _buildDashboardContent(appLocalizations, textColor),
+                ),
+              )
+            : _errorMessage.isNotEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Text(
+                        _errorMessage,
+                        style: AppTextStyles.bodyText.copyWith(color: Colors.red),
+                        textAlign: TextAlign.center,
                       ),
-                    )
-                  : Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Text(
-                          appLocalizations.noStudentDataContactTeacher,
-                          style: AppTextStyles.secondaryText,
-                          textAlign: TextAlign.center,
+                    ),
+                  )
+                : _dashboardData != null &&
+                        _dashboardData!.reportsByTeacher.isNotEmpty
+                    ? RefreshIndicator(
+                        onRefresh: _fetchData,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(16.0),
+                          child: _buildDashboardContent(appLocalizations, textColor),
+                        ),
+                      )
+                    : Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Text(
+                            appLocalizations.noStudentDataContactTeacher,
+                            style: AppTextStyles.secondaryText,
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ),
-                    ),
+      ),
     );
   }
 
@@ -409,23 +419,10 @@ class _HomeScreenState extends State<HomeScreen> {
     required String description,
     required Color color,
   }) {
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-    return Container(
-      padding: EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: isLightMode ? Colors.white : Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: isLightMode
-            ? [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 5,
-                  offset: Offset(0, 3),
-                ),
-              ]
-            : null,
-      ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GlassContainer(
+      fillOpacity: isDark ? 0.08 : 0.45,
+      borderOpacity: 0.12,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -434,18 +431,21 @@ class _HomeScreenState extends State<HomeScreen> {
             style: AppTextStyles.bodyText.copyWith(
               fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: Theme.of(context).textTheme.bodyLarge!.color,
+              color: isDark ? Colors.white : Colors.black87,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             value,
             style: AppTextStyles.heading1.copyWith(color: color, fontSize: 20),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
             description,
-            style: AppTextStyles.secondaryText.copyWith(fontSize: 12),
+            style: AppTextStyles.secondaryText.copyWith(
+              fontSize: 12,
+              color: isDark ? Colors.white54 : Colors.black54,
+            ),
           ),
         ],
       ),
@@ -458,24 +458,11 @@ class _HomeScreenState extends State<HomeScreen> {
     required String status,
     required Color statusColor,
   }) {
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-    return Container(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GlassContainer(
       width: double.infinity,
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: isLightMode ? Colors.white : Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: isLightMode
-            ? [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 5,
-                  offset: const Offset(0, 3),
-                ),
-              ]
-            : null,
-      ),
+      fillOpacity: isDark ? 0.08 : 0.45,
+      borderOpacity: 0.12,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -487,18 +474,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   subject,
                   style: AppTextStyles.bodyText.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.bodyLarge!.color,
+                    color: isDark ? Colors.white : Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(time, style: AppTextStyles.secondaryText),
+                Text(
+                  time,
+                  style: AppTextStyles.secondaryText.copyWith(
+                    color: isDark ? Colors.white54 : Colors.black54,
+                  ),
+                ),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
+              color: statusColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -522,7 +514,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required List<GradeRecord> allGrades,
     required AppLocalizations appLocalizations,
   }) {
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
@@ -530,23 +522,11 @@ class _HomeScreenState extends State<HomeScreen> {
               AssignmentDetailsScreen(subject: subject, grades: allGrades),
         ),
       ),
-      child: Container(
+      child: GlassContainer(
         width: 180,
-        margin: EdgeInsets.only(right: 15),
-        padding: EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: isLightMode ? Colors.white : Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: isLightMode
-              ? [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.08),
-                    spreadRadius: 1,
-                    blurRadius: 10,
-                  ),
-                ]
-              : null,
-        ),
+        margin: const EdgeInsets.only(right: 15),
+        fillOpacity: isDark ? 0.08 : 0.45,
+        borderOpacity: 0.12,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -554,19 +534,22 @@ class _HomeScreenState extends State<HomeScreen> {
               subject,
               style: AppTextStyles.bodyText.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.bodyLarge!.color,
+                color: isDark ? Colors.white : Colors.black87,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
               teacher,
-              style: AppTextStyles.secondaryText.copyWith(fontSize: 12),
+              style: AppTextStyles.secondaryText.copyWith(
+                fontSize: 12,
+                color: isDark ? Colors.white54 : Colors.black54,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            Spacer(),
+            const Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -583,14 +566,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     Text(
                       appLocalizations.latest,
-                      style: AppTextStyles.secondaryText.copyWith(fontSize: 10),
+                      style: AppTextStyles.secondaryText.copyWith(
+                        fontSize: 10,
+                        color: isDark ? Colors.white38 : Colors.black45,
+                      ),
                     ),
                   ],
                 ),
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
-                  color: Colors.grey[400],
+                  color: isDark ? Colors.white38 : Colors.black45,
                 ),
               ],
             ),
@@ -607,7 +593,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required List<AttendanceRecord> allAttendance,
     required AppLocalizations appLocalizations,
   }) {
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
@@ -617,23 +603,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      child: Container(
+      child: GlassContainer(
         width: 180,
-        margin: EdgeInsets.only(right: 15),
-        padding: EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: isLightMode ? Colors.white : Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: isLightMode
-              ? [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.08),
-                    spreadRadius: 1,
-                    blurRadius: 10,
-                  ),
-                ]
-              : null,
-        ),
+        margin: const EdgeInsets.only(right: 15),
+        fillOpacity: isDark ? 0.08 : 0.45,
+        borderOpacity: 0.12,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -641,19 +615,22 @@ class _HomeScreenState extends State<HomeScreen> {
               subject,
               style: AppTextStyles.bodyText.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.bodyLarge!.color,
+                color: isDark ? Colors.white : Colors.black87,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
               teacher,
-              style: AppTextStyles.secondaryText.copyWith(fontSize: 12),
+              style: AppTextStyles.secondaryText.copyWith(
+                fontSize: 12,
+                color: isDark ? Colors.white54 : Colors.black54,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            Spacer(),
+            const Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -670,14 +647,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     Text(
                       appLocalizations.present,
-                      style: AppTextStyles.secondaryText.copyWith(fontSize: 10),
+                      style: AppTextStyles.secondaryText.copyWith(
+                        fontSize: 10,
+                        color: isDark ? Colors.white38 : Colors.black45,
+                      ),
                     ),
                   ],
                 ),
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
-                  color: Colors.grey[400],
+                  color: isDark ? Colors.white38 : Colors.black45,
                 ),
               ],
             ),

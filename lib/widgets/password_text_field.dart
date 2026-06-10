@@ -31,6 +31,7 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
       decoration: AppInputDecoration.build(
         widget.hintText, // Used hintText here
         prefixIcon: Icons.lock_outline,
+        context: context,
         suffixIcon: IconButton(
           icon: Icon(
             _obscureText ? Icons.visibility_off : Icons.visibility,

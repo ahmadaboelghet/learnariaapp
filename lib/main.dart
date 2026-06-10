@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:learnaria/firebase_options.dart';
 import 'package:learnaria/screens/splash.dart';
 import 'package:learnaria/utils/app_styles.dart';
@@ -54,30 +55,46 @@ class MyApp extends StatelessWidget {
             Locale('ar', ''), // Arabic
           ],
 
-          // --- إعدادات المظهر ---
+          // --- إعدادات المظهر الفاخر ---
           themeMode: themeProvider.currentTheme,
           theme: ThemeData(
             brightness: Brightness.light,
-            scaffoldBackgroundColor: Colors.white,
+            scaffoldBackgroundColor: const Color(0xFFF9FAFC),
             primaryColor: AppColors.primaryYello,
-            // ... باقي إعدادات المظهر الفاتح من الكود الأصلي
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.white,
+            fontFamily: GoogleFonts.cairo().fontFamily,
+            textTheme: GoogleFonts.cairoTextTheme(ThemeData.light().textTheme).copyWith(
+              bodyLarge: GoogleFonts.cairo(color: Colors.black87),
+              bodyMedium: GoogleFonts.cairo(color: Colors.black87),
+            ),
+            appBarTheme: AppBarTheme(
+              backgroundColor: Colors.transparent,
               elevation: 0,
-              iconTheme: IconThemeData(color: AppColors.primaryBlack),
-              titleTextStyle: TextStyle(color: AppColors.primaryBlack, fontSize: 20, fontWeight: FontWeight.bold),
+              iconTheme: const IconThemeData(color: Colors.black87),
+              titleTextStyle: GoogleFonts.cairo(
+                color: Colors.black87,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           darkTheme: ThemeData(
             brightness: Brightness.dark,
-            scaffoldBackgroundColor: const Color(0xFF121212),
+            scaffoldBackgroundColor: const Color(0xFF0D0E12),
             primaryColor: AppColors.primaryYello,
-            // ... يمكنك تخصيص باقي إعدادات المظهر الداكن
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF121212),
+            fontFamily: GoogleFonts.cairo().fontFamily,
+            textTheme: GoogleFonts.cairoTextTheme(ThemeData.dark().textTheme).copyWith(
+              bodyLarge: GoogleFonts.cairo(color: Colors.white),
+              bodyMedium: GoogleFonts.cairo(color: Colors.white70),
+            ),
+            appBarTheme: AppBarTheme(
+              backgroundColor: Colors.transparent,
               elevation: 0,
-              iconTheme: IconThemeData(color: Colors.white),
-              titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              iconTheme: const IconThemeData(color: Colors.white),
+              titleTextStyle: GoogleFonts.cairo(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           home: const SplashScreen(),

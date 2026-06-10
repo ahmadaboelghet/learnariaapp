@@ -7,6 +7,7 @@ import 'package:learnaria/screens/notifications.dart';
 import 'package:learnaria/services/firestore_api.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
+import 'package:learnaria/widgets/glass_container.dart';
 
 class ProgressReportScreen extends StatefulWidget {
   const ProgressReportScreen({super.key});
@@ -59,46 +60,48 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     final appLocalizations = AppLocalizations.of(context)!;
     
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: null,
         automaticallyImplyLeading: false,
         title: Text(
           appLocalizations.progressReport,
-          style: AppTextStyles.heading2.copyWith(color: Theme.of(context).textTheme.bodyLarge!.color),
+          style: AppTextStyles.heading2.copyWith(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
         ),
         centerTitle: false,
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYello)))
-          : _errorMessage.isNotEmpty
-              ? Center(child: Padding(padding: const EdgeInsets.all(16.0), child: Text(_errorMessage, textAlign: TextAlign.center, style: TextStyle(color: Colors.red))))
-              : _dashboardData != null && _dashboardData!.reportsByTeacher.isNotEmpty
-                  ? RefreshIndicator(
-                      onRefresh: _fetchReportData,
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildUserInfoSection(),
-                              SizedBox(height: 20),
-                              _buildAttendanceSection(),
-                              SizedBox(height: 20),
-                              _buildFeedbackSection(),
-                              SizedBox(height: 20),
-                              _buildPerformanceChartSection(),
-                              SizedBox(height: 20),
-                            ],
+      body: LiquidBackground(
+        child: _isLoading
+            ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYello)))
+            : _errorMessage.isNotEmpty
+                ? Center(child: Padding(padding: const EdgeInsets.all(16.0), child: Text(_errorMessage, textAlign: TextAlign.center, style: TextStyle(color: Colors.red))))
+                : _dashboardData != null && _dashboardData!.reportsByTeacher.isNotEmpty
+                    ? RefreshIndicator(
+                        onRefresh: _fetchReportData,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildUserInfoSection(),
+                                SizedBox(height: 20),
+                                _buildAttendanceSection(),
+                                SizedBox(height: 20),
+                                _buildFeedbackSection(),
+                                SizedBox(height: 20),
+                                _buildPerformanceChartSection(),
+                                SizedBox(height: 20),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    )
-                  : Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text(appLocalizations.noStudentData, style: AppTextStyles.secondaryText, textAlign: TextAlign.center))),
+                      )
+                    : Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text(appLocalizations.noStudentData, style: AppTextStyles.secondaryText, textAlign: TextAlign.center))),
+      ),
     );
   }
 
@@ -143,41 +146,36 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     final totalDays = allAttendance.length;
     final presentDays = allAttendance.where((record) => record.status.toLowerCase() == 'present').length;
     final missedDays = totalDays - presentDays;
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(appLocalizations.attendance, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
-        SizedBox(height: 10),
-        Container(
+        Text(appLocalizations.attendance, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+        const SizedBox(height: 10),
+        GlassContainer(
           width: double.infinity,
-          padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: isLightMode ? Colors.white : Theme.of(context).cardColor, 
-            borderRadius: BorderRadius.circular(15), 
-            boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))] : null,
-          ),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('$presentDays ${appLocalizations.days}', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
-                  SizedBox(width: 8),
+                  Text('$presentDays ${appLocalizations.days}', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                  const SizedBox(width: 8),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4.0),
-                    child: Text('(${appLocalizations.outOfDays} $totalDays ${appLocalizations.days})', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                    child: Text('(${appLocalizations.outOfDays} $totalDays ${appLocalizations.days})', style: const TextStyle(fontSize: 14, color: Colors.grey)),
                   ),
                 ],
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Row(
                 children: [
-                  Container(width: 8, height: 8, decoration: BoxDecoration(color: AppColors.primaryYello, shape: BoxShape.circle)),
-                  SizedBox(width: 8),
-                  Text('$missedDays ${appLocalizations.daysMissed}', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge!.color)),
+                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.primaryYello, shape: BoxShape.circle)),
+                  const SizedBox(width: 8),
+                  Text('$missedDays ${appLocalizations.daysMissed}', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
                 ],
               ),
             ],
@@ -189,6 +187,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
 
   Widget _buildFeedbackSection() {
     final appLocalizations = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,10 +195,10 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(appLocalizations.feedback, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
+            Text(appLocalizations.feedback, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
           ],
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         if (_dashboardData!.reportsByTeacher.isEmpty)
           Center(child: Text(appLocalizations.noFeedback))
         else
@@ -236,25 +235,20 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
   }
 
   Widget _buildFeedbackCard(String subject, String status, Color statusColor, int percentage) {
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-    return Container(
-      padding: EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: isLightMode ? Colors.white : Theme.of(context).cardColor, 
-        borderRadius: BorderRadius.circular(15), 
-        boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))] : null,
-      ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GlassContainer(
+      padding: const EdgeInsets.all(15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(subject, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
-          SizedBox(height: 5),
+          Text(subject, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+          const SizedBox(height: 5),
           Text(status, style: TextStyle(fontSize: 14, color: statusColor)),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$percentage%', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
+              Text('$percentage%', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
             ],
           ),
         ],
@@ -278,8 +272,6 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
 
   Widget _buildPerformanceChartSection() {
     final appLocalizations = AppLocalizations.of(context)!;
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-    
     final List<BarChartGroupData> barGroups = [];
     final reports = _dashboardData!.reportsByTeacher;
 
@@ -319,20 +311,17 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
       );
     }
     
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(appLocalizations.performanceOverview, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge!.color)),
-        SizedBox(height: 10),
-        Container(
+        Text(appLocalizations.performanceOverview, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+        const SizedBox(height: 10),
+        GlassContainer(
           width: double.infinity,
           height: 220,
           padding: const EdgeInsets.only(top: 16, right: 16),
-          decoration: BoxDecoration(
-            color: isLightMode ? Colors.white : Theme.of(context).cardColor, 
-            borderRadius: BorderRadius.circular(15), 
-            boxShadow: isLightMode ? [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 1, blurRadius: 5, offset: Offset(0, 3))] : null,
-          ),
           child: barGroups.isEmpty
               ? Center(child: Text(appLocalizations.noDataForChart, style: AppTextStyles.secondaryText))
               : BarChart(
