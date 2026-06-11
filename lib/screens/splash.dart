@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:learnaria/screens/auth_check.dart'; 
 import 'package:learnaria/screens/intro.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:learnaria/utils/app_styles.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -77,7 +79,16 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 'assets/images/learnaria_logo.png',
                 width: 220, // يمكنك تعديل الحجم حسب رغبتك
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              Text(
+                'Stay Connected. Stay Guided',
+                style: GoogleFonts.cairo(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.darkGrey,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ],
           ),
         ),
