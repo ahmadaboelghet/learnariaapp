@@ -8,6 +8,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
 import 'package:learnaria/widgets/glass_container.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 enum CourseStatus { Upcoming, Ongoing, Finished }
 
@@ -40,6 +42,21 @@ class _HomeScreenState extends State<HomeScreen> {
           'Could not determine your phone number from your email.',
         );
       }
+
+      // Sync FCM Token to Firestore parents collection for push notification routing
+      try {
+        final fcmToken = await FirebaseMessaging.instance.getToken();
+        if (fcmToken != null) {
+          await FirebaseFirestore.instance
+              .collection('parents')
+              .doc(parentPhone.trim())
+              .set({'fcmToken': fcmToken}, SetOptions(merge: true));
+          debugPrint('FCM Token successfully synced to parents collection.');
+        }
+      } catch (fcmError) {
+        debugPrint('Failed to sync FCM Token: $fcmError');
+      }
+
       final data = await FirestoreApi().fetchDashboardData(
         parentPhoneNumber: parentPhone,
       );

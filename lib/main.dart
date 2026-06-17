@@ -19,7 +19,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Request push notification permissions
+  // Request push notification permissions and extract FCM Token
   try {
     final messaging = FirebaseMessaging.instance;
     await messaging.requestPermission(
@@ -31,8 +31,20 @@ void main() async {
       provisional: false,
       sound: true,
     );
+    // Set foreground notification options to show banners when app is open
+    await messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // Extract and inspect the FCM Token
+    String? token = await messaging.getToken();
+    debugPrint('================= FCM TOKEN =================');
+    debugPrint(token ?? 'FCM Token is null');
+    debugPrint('=============================================');
   } catch (e) {
-    debugPrint('Error requesting notification permission: $e');
+    debugPrint('Error requesting notification permission or getting FCM token: $e');
   }
 
   // --- استخدام MultiProvider لتوفير أكثر من حالة ---
