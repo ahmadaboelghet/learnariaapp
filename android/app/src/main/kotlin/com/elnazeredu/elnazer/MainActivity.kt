@@ -1,4 +1,4 @@
-package com.example.learnaria
+package com.elnazeredu.elnazer
 
 import io.flutter.embedding.android.FlutterActivity
 

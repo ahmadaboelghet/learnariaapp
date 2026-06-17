@@ -7,7 +7,7 @@ import 'package:learnaria/screens/splash.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:learnaria/utils/theme_provider.dart';
-import 'package:learnaria/utils/locale_provider.dart'; // <-- استيراد ملف اللغة
+import 'package:learnaria/utils/locale_provider.dart'; 
 
 // --- حزم الترجمة ---
 import 'package:flutter_localizations/flutter_localizations.dart';

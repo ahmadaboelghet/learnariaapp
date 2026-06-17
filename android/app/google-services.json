@@ -7,12 +7,17 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:573038013067:android:db33a27f5739146a7a828e",
+        "mobilesdk_app_id": "1:573038013067:android:87a89cfeaf46a0377a828e",
         "android_client_info": {
-          "package_name": "com.example.learnaria"
+          "package_name": "com.elnazeredu.elnazer"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "573038013067-rm7da69958h6bhdetihve3n0dt6n0pe0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDbxhrgXcvrUKFcqjCIdkPMmNYigvCuqNk"
@@ -20,7 +25,99 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "573038013067-rm7da69958h6bhdetihve3n0dt6n0pe0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "573038013067-c4n593c76dnig0npme3edjnnscfaqis4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.learnaria"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:573038013067:android:db33a27f5739146a7a828e",
+        "android_client_info": {
+          "package_name": "com.example.learnaria"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "573038013067-t2nfa5u0t1pa6iqgngtbkc8tueqqmqfl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.learnaria",
+            "certificate_hash": "22822d10556b11cdc1b041a5ee7310692d0fe782"
+          }
+        },
+        {
+          "client_id": "573038013067-rm7da69958h6bhdetihve3n0dt6n0pe0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDbxhrgXcvrUKFcqjCIdkPMmNYigvCuqNk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "573038013067-rm7da69958h6bhdetihve3n0dt6n0pe0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "573038013067-c4n593c76dnig0npme3edjnnscfaqis4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.learnaria"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:573038013067:android:e2f73c0dafa300a07a828e",
+        "android_client_info": {
+          "package_name": "com.example.spot_dashboard_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "573038013067-rm7da69958h6bhdetihve3n0dt6n0pe0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDbxhrgXcvrUKFcqjCIdkPMmNYigvCuqNk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "573038013067-rm7da69958h6bhdetihve3n0dt6n0pe0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "573038013067-c4n593c76dnig0npme3edjnnscfaqis4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.learnaria"
+              }
+            }
+          ]
         }
       }
     }
