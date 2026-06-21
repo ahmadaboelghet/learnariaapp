@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
 import 'package:learnaria/screens/auth_check.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
@@ -14,6 +14,17 @@ class IntroScreen extends StatefulWidget {
 class _IntroScreenState extends State<IntroScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _markIntroAsSeen();
+  }
+
+  Future<void> _markIntroAsSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_first_time', false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +62,10 @@ class _IntroScreenState extends State<IntroScreen> {
             },
             child: Text(
               appLocalizations.skip,
-              style: AppTextStyles.secondaryText,
+              style: AppTextStyles.secondaryText.copyWith(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -94,9 +108,15 @@ class _IntroScreenState extends State<IntroScreen> {
                             MaterialPageRoute(builder: (context) => const AuthCheck()),
                           );
                         },
-                        style: primaryButtonStyle().copyWith(
-                          padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 30, vertical: 15)),
-                          minimumSize: MaterialStateProperty.all(const Size(150, 50)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black, // Black background instead of gold/yellow
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                          minimumSize: const Size(150, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15.0),
+                          ),
+                          elevation: 0,
                         ),
                         child: Row(
                           children: [
@@ -162,13 +182,14 @@ class _IntroScreenState extends State<IntroScreen> {
   }
 
   Widget _buildDot(int index) {
+    final isSelected = _currentPage == index;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.only(right: 5),
       height: 8,
-      width: _currentPage == index ? 24 : 8,
+      width: isSelected ? 24 : 8,
       decoration: BoxDecoration(
-        color: _currentPage == index ? AppColors.primaryBlack : AppColors.mediumGrey,
+        color: isSelected ? Colors.black : Colors.grey.shade300,
         borderRadius: BorderRadius.circular(5),
       ),
     );

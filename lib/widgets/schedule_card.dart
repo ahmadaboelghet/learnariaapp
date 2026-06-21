@@ -4,7 +4,7 @@ import 'package:learnaria/models/dashboard_data.dart';
 class ScheduleCard extends StatelessWidget {
   final ScheduleEntry schedule;
 
-  const ScheduleCard({Key? key, required this.schedule}) : super(key: key);
+  const ScheduleCard({super.key, required this.schedule});
 
   @override
   Widget build(BuildContext context) {

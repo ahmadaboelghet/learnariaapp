@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:learnaria/firebase_options.dart';
 import 'package:learnaria/screens/splash.dart';
+import 'package:learnaria/screens/initial_screen_selector.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:learnaria/utils/theme_provider.dart';
 import 'package:learnaria/utils/locale_provider.dart'; 
+import 'package:shared_preferences/shared_preferences.dart';
 
 // --- حزم الترجمة ---
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -47,6 +49,10 @@ void main() async {
     debugPrint('Error requesting notification permission or getting FCM token: $e');
   }
 
+  // --- retrieve isFirstTime from SharedPreferences ---
+  final prefs = await SharedPreferences.getInstance();
+  final isFirstTime = prefs.getBool('is_first_time') ?? true;
+
   // --- استخدام MultiProvider لتوفير أكثر من حالة ---
   runApp(
     MultiProvider(
@@ -54,13 +60,14 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
       ],
-      child: const MyApp(),
+      child: MyApp(isFirstTime: isFirstTime),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  final bool isFirstTime;
+  const MyApp({Key? key, required this.isFirstTime}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +133,7 @@ class MyApp extends StatelessWidget {
               ),
             ),
           ),
-          home: const SplashScreen(),
+          home: InitialScreenSelector(isFirstTime: isFirstTime),
         );
       },
     );

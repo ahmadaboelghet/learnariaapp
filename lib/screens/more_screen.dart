@@ -150,7 +150,7 @@ class _MoreScreenState extends State<MoreScreen> {
               Switch(
                 value: switchValue,
                 onChanged: onSwitchChanged,
-                activeColor: AppColors.primaryYello,
+                activeThumbColor: AppColors.primaryYello,
               )
             else if (trailingText != null)
               Row(

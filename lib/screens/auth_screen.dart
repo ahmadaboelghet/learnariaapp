@@ -5,6 +5,7 @@ import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/widgets/password_text_field.dart';
 import 'package:learnaria/widgets/phone_text_field.dart';
 import 'package:learnaria/widgets/glass_container.dart';
+import 'package:learnaria/widgets/pulse_loader.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -187,6 +188,7 @@ class _LoginFormWidgetState extends State<_LoginFormWidget> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -195,8 +197,9 @@ class _LoginFormWidgetState extends State<_LoginFormWidget> {
     super.dispose();
   }
 
-  void _login() {
+  void _login() async {
     if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
       String phoneNumber = _phoneController.text.trim();
       // --- START: FIX for extra zero ---
       if (phoneNumber.startsWith('0')) {
@@ -204,8 +207,14 @@ class _LoginFormWidgetState extends State<_LoginFormWidget> {
       }
       final String fullPhoneNumber = "+20$phoneNumber";
       // --- END: FIX ---
-      _authService.signInWithPhoneAndPassword(
-          context, fullPhoneNumber, _passwordController.text);
+      try {
+        await _authService.signInWithPhoneAndPassword(
+            context, fullPhoneNumber, _passwordController.text);
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -253,7 +262,7 @@ class _LoginFormWidgetState extends State<_LoginFormWidget> {
               ),
               const SizedBox(height: 30),
               ElevatedButton(
-                onPressed: _login,
+                onPressed: _isLoading ? null : _login,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryYello,
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -261,7 +270,9 @@ class _LoginFormWidgetState extends State<_LoginFormWidget> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(localizations.login, style: AppTextStyles.buttonText),
+                child: _isLoading 
+                    ? const PulseLoader(size: 28) 
+                    : Text(localizations.login, style: AppTextStyles.buttonText),
               ),
             ],
           ),
@@ -284,6 +295,7 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
   final _phoneController = TextEditingController();
   bool _agreedToTerms = false;
   final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -291,7 +303,7 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
     super.dispose();
   }
 
-  void _signUp() {
+  void _signUp() async {
     if (_formKey.currentState!.validate()) {
       if (!_agreedToTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -302,6 +314,7 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
         );
         return;
       }
+      setState(() => _isLoading = true);
       String phoneNumber = _phoneController.text.trim();
       // --- START: FIX for extra zero ---
       if (phoneNumber.startsWith('0')) {
@@ -309,7 +322,13 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
       }
       final String fullPhoneNumber = "+20$phoneNumber";
       // --- END: FIX ---
-      _authService.sendOtpForSignup(context, fullPhoneNumber);
+      try {
+        await _authService.sendOtpForSignup(context, fullPhoneNumber);
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -371,7 +390,7 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
               ),
               const SizedBox(height: 30),
               ElevatedButton(
-                onPressed: _signUp,
+                onPressed: _isLoading ? null : _signUp,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryYello,
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -379,8 +398,9 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child:
-                    Text(localizations.signup, style: AppTextStyles.buttonText),
+                child: _isLoading 
+                    ? const PulseLoader(size: 28) 
+                    : Text(localizations.signup, style: AppTextStyles.buttonText),
               ),
             ],
           ),

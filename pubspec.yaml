@@ -107,7 +107,7 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 flutter_launcher_icons:
-  android: true   # لتحديد أنك تريد إنشاء أيقونات لنظام أندرويد
+  android: "launcher_icon"   # لتحديد أنك تريد إنشاء أيقونات لنظام أندرويد
   ios: true      # يمكنك جعلها false إذا أردت أندرويد فقط
   image_path: "assets/icon/icon.png" # المسار إلى صورة الأيقونة التي وضعتها
 # END: نهاية القسم الجديد

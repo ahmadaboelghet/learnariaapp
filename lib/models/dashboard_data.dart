@@ -12,6 +12,7 @@ class TeacherReport {
   final List<AttendanceRecord> attendance;
   final List<GradeRecord> grades;
   final List<ScheduleEntry> schedule;
+  final List<PaymentRecord> payments;
 
   TeacherReport({
     required this.teacherId,
@@ -20,6 +21,23 @@ class TeacherReport {
     required this.attendance,
     required this.grades,
     required this.schedule,
+    required this.payments,
+  });
+}
+
+class PaymentRecord {
+  final String month;
+  final bool paid;
+  final String amount;
+  final String date;
+  final String receipt;
+
+  PaymentRecord({
+    required this.month,
+    required this.paid,
+    required this.amount,
+    required this.date,
+    required this.receipt,
   });
 }
 

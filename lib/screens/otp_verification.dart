@@ -3,6 +3,7 @@ import 'package:learnaria/l10n/app_localizations.dart';
 import 'package:learnaria/services/auth_service.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/widgets/glass_container.dart';
+import 'package:learnaria/widgets/pulse_loader.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
@@ -22,15 +23,23 @@ class OtpVerificationScreen extends StatefulWidget {
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final _otpController = TextEditingController();
   final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
-  void _verifyOtp() {
+  void _verifyOtp() async {
     if (_otpController.text.length == 6) {
-      _authService.verifyOtpAndNavigate(
-        context,
-        widget.verificationId,
-        _otpController.text,
-        widget.phoneNumber,
-      );
+      setState(() => _isLoading = true);
+      try {
+        await _authService.verifyOtpAndNavigate(
+          context,
+          widget.verificationId,
+          _otpController.text,
+          widget.phoneNumber,
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid 6-digit code')),
@@ -118,11 +127,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       onCompleted: (value) {
                         _verifyOtp();
                       },
+                      length: 6,
                     ),
                     const SizedBox(height: 32),
                     // Submit button
                     ElevatedButton(
-                      onPressed: _verifyOtp,
+                      onPressed: _isLoading ? null : _verifyOtp,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryYello,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -132,13 +142,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         elevation: 4,
                         shadowColor: AppColors.primaryYello.withOpacity(0.4),
                       ),
-                      child: Text(
-                        localizations.verify,
-                        style: AppTextStyles.buttonText.copyWith(
-                          fontSize: 16,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const PulseLoader(size: 28)
+                          : Text(
+                              localizations.verify,
+                              style: AppTextStyles.buttonText.copyWith(
+                                fontSize: 16,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                     ),
                   ],
                 ),
@@ -159,8 +171,7 @@ class _PremiumOtpInput extends StatefulWidget {
 
   const _PremiumOtpInput({
     required this.controller,
-    this.length = 6,
-    this.onCompleted,
+    this.onCompleted, required this.length,
   });
 
   @override

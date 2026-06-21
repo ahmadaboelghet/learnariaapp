@@ -4,6 +4,7 @@ import 'package:learnaria/services/auth_service.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/widgets/password_text_field.dart';
 import 'package:learnaria/widgets/glass_container.dart';
+import 'package:learnaria/widgets/pulse_loader.dart';
 
 class CreateNewPassword extends StatefulWidget {
   final String phoneNumber;
@@ -18,14 +19,22 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
-  void _createPassword() {
+  void _createPassword() async {
     if (_formKey.currentState!.validate()) {
-      _authService.createUserWithPhoneAndPassword(
-        context,
-        widget.phoneNumber,
-        _passwordController.text,
-      );
+      setState(() => _isLoading = true);
+      try {
+        await _authService.createUserWithPhoneAndPassword(
+          context,
+          widget.phoneNumber,
+          _passwordController.text,
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -133,7 +142,7 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
                         ),
                         const SizedBox(height: 32),
                         ElevatedButton(
-                          onPressed: _createPassword,
+                          onPressed: _isLoading ? null : _createPassword,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryYello,
                             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -143,13 +152,15 @@ class _CreateNewPasswordState extends State<CreateNewPassword> {
                             elevation: 4,
                             shadowColor: AppColors.primaryYello.withOpacity(0.4),
                           ),
-                          child: Text(
-                            localizations.continue_,
-                            style: AppTextStyles.buttonText.copyWith(
-                              fontSize: 16,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
+                          child: _isLoading
+                              ? const PulseLoader(size: 28)
+                              : Text(
+                                  localizations.continue_,
+                                  style: AppTextStyles.buttonText.copyWith(
+                                    fontSize: 16,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                         ),
                       ],
                     ),

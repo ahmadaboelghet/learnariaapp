@@ -43,7 +43,7 @@ class GlassContainer extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
 
   const GlassContainer({
-    Key? key,
+    super.key,
     required this.child,
     this.width,
     this.height,
@@ -55,7 +55,7 @@ class GlassContainer extends StatelessWidget {
     double borderOpacity = 0,
     double fillOpacity = 0,
     List<Color>? gradientColors,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -95,9 +95,9 @@ class LiquidBackground extends StatelessWidget {
   final Widget child;
 
   const LiquidBackground({
-    Key? key,
+    super.key,
     required this.child,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
