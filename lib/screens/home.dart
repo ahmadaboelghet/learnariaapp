@@ -50,11 +50,32 @@ class _HomeScreenState extends State<HomeScreen> {
       try {
         final fcmToken = await FirebaseMessaging.instance.getToken();
         if (fcmToken != null) {
-          await FirebaseFirestore.instance
-              .collection('parents')
-              .doc(parentPhone.trim())
-              .set({'fcmToken': fcmToken}, SetOptions(merge: true));
-          debugPrint('FCM Token successfully synced to parents collection.');
+          List<String> getPhoneFormats(String phone) {
+            final clean = phone.replaceAll(RegExp(r'\s+'), '').trim();
+            String withZero = clean;
+            String withPlus = clean;
+            if (clean.startsWith('+20')) {
+              withZero = '0${clean.substring(3)}';
+            } else if (clean.startsWith('0')) {
+              withPlus = '+20${clean.substring(1)}';
+            } else {
+              withPlus = '+20$clean';
+              withZero = '0$clean';
+            }
+            return [withZero, withPlus].toSet().toList();
+          }
+
+          final phoneFormats = getPhoneFormats(parentPhone);
+          for (var phoneDocId in phoneFormats) {
+            await FirebaseFirestore.instance
+                .collection('parents')
+                .doc(phoneDocId)
+                .set({
+                  'fcmToken': fcmToken,
+                  'fcmTokens': FieldValue.arrayUnion([fcmToken]),
+                }, SetOptions(merge: true));
+          }
+          debugPrint('FCM Token successfully synced to parents collection for: $phoneFormats');
         }
       } catch (fcmError) {
         debugPrint('Failed to sync FCM Token: $fcmError');

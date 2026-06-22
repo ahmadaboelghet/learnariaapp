@@ -6,6 +6,8 @@ import 'package:learnaria/widgets/glass_container.dart';
 import 'package:learnaria/widgets/pulse_loader.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:learnaria/widgets/premium_alert.dart';
+
 class OtpVerificationScreen extends StatefulWidget {
   final String verificationId;
   final String phoneNumber;
@@ -41,8 +43,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         }
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid 6-digit code')),
+      PremiumAlert.show(
+        context,
+        message: Localizations.localeOf(context).languageCode == 'ar'
+            ? 'يرجى إدخال رمز التحقق المكون من 6 أرقام.'
+            : 'Please enter a valid 6-digit code.',
+        isError: true,
       );
     }
   }

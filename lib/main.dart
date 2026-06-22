@@ -45,6 +45,16 @@ void main() async {
     debugPrint('================= FCM TOKEN =================');
     debugPrint(token ?? 'FCM Token is null');
     debugPrint('=============================================');
+
+    // Extract and inspect the APNs Token (iOS specific diagnostic)
+    try {
+      String? apnsToken = await messaging.getAPNSToken();
+      debugPrint('================= APNS TOKEN =================');
+      debugPrint(apnsToken ?? 'APNS Token is null (FCM CANNOT deliver to iOS if this is null!)');
+      debugPrint('==============================================');
+    } catch (apnsError) {
+      debugPrint('Error getting APNs token: $apnsError');
+    }
   } catch (e) {
     debugPrint('Error requesting notification permission or getting FCM token: $e');
   }

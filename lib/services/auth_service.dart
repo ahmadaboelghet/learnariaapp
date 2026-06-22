@@ -1,10 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:learnaria/screens/auth_screen.dart';
 import 'package:learnaria/screens/create_new_password.dart';
 import 'package:learnaria/screens/main_layout.dart';
 import 'package:learnaria/screens/otp_verification.dart';
 import 'package:learnaria/screens/welcom.dart';
+import 'package:learnaria/widgets/premium_alert.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -23,23 +26,26 @@ class AuthService {
         (route) => false,
       );
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login Failed: ${e.message}')),
-      );
+      PremiumAlert.showError(context, e);
     }
   }
 
   // دالة لإرسال كود التحقق عند التسجيل
-  Future<void> sendOtpForSignup(BuildContext context, String phoneNumber) async {
+  Future<void> sendOtpForSignup(
+      BuildContext context,
+      String phoneNumber, {
+      required VoidCallback onCodeSent,
+      required void Function(String error) onFailed,
+    }) async {
     await _auth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       verificationCompleted: (PhoneAuthCredential credential) {},
       verificationFailed: (FirebaseAuthException e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Verification Failed: ${e.message}')),
-        );
+        onFailed(e.message ?? 'Verification Failed');
+        PremiumAlert.showError(context, e);
       },
       codeSent: (String verificationId, int? resendToken) {
+        onCodeSent();
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -74,9 +80,7 @@ class AuthService {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid OTP: $e')),
-      );
+      PremiumAlert.showError(context, e);
     }
   }
 
@@ -95,14 +99,49 @@ class AuthService {
         (route) => false,
       );
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Signup Failed: ${e.message}')),
-      );
+      PremiumAlert.showError(context, e);
     }
   }
 
   // تسجيل الخروج
   Future<void> logout(BuildContext context) async {
+    try {
+      final user = _auth.currentUser;
+      final parentPhone = user?.email?.split('@').first;
+      if (parentPhone != null && parentPhone.isNotEmpty) {
+        final fcmToken = await FirebaseMessaging.instance.getToken();
+        if (fcmToken != null) {
+          List<String> getPhoneFormats(String phone) {
+            final clean = phone.replaceAll(RegExp(r'\s+'), '').trim();
+            String withZero = clean;
+            String withPlus = clean;
+            if (clean.startsWith('+20')) {
+              withZero = '0${clean.substring(3)}';
+            } else if (clean.startsWith('0')) {
+              withPlus = '+20${clean.substring(1)}';
+            } else {
+              withPlus = '+20$clean';
+              withZero = '0$clean';
+            }
+            return [withZero, withPlus].toSet().toList();
+          }
+
+          final phoneFormats = getPhoneFormats(parentPhone);
+          for (var phoneDocId in phoneFormats) {
+            await FirebaseFirestore.instance
+                .collection('parents')
+                .doc(phoneDocId)
+                .update({
+              'fcmTokens': FieldValue.arrayRemove([fcmToken])
+            }).catchError((err) => debugPrint('Error removing token on logout: $err'));
+          }
+          debugPrint('FCM Token successfully removed from parents collection on logout for: $phoneFormats');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error removing FCM token during logout: $e');
+    }
+
     await _auth.signOut();
     Navigator.pushAndRemoveUntil(
       context,

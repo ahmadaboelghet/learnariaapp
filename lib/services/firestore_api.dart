@@ -6,12 +6,28 @@ import 'package:intl/intl.dart';
 class FirestoreApi {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  List<String> _getPhoneFormats(String phone) {
+    final clean = phone.replaceAll(RegExp(r'\s+'), '').trim();
+    String withZero = clean;
+    String withPlus = clean;
+    if (clean.startsWith('+20')) {
+      withZero = '0${clean.substring(3)}';
+    } else if (clean.startsWith('0')) {
+      withPlus = '+20${clean.substring(1)}';
+    } else {
+      withPlus = '+20$clean';
+      withZero = '0$clean';
+    }
+    return [withZero, withPlus].toSet().toList();
+  }
+
   Future<DashboardData> fetchDashboardData({required String parentPhoneNumber}) async {
     String studentNameForDashboard = "Student";
     try {
+      final phoneFormats = _getPhoneFormats(parentPhoneNumber);
       final studentsSnapshot = await _firestore
           .collectionGroup('students')
-          .where('parentPhoneNumber', isEqualTo: parentPhoneNumber)
+          .where('parentPhoneNumber', whereIn: phoneFormats)
           .get();
 
       if (studentsSnapshot.docs.isEmpty) {
@@ -212,9 +228,10 @@ class FirestoreApi {
 
   Future<List<NotificationItem>> fetchNotifications({required String parentPhoneNumber}) async {
     try {
+      final phoneFormats = _getPhoneFormats(parentPhoneNumber);
       final studentsSnapshot = await _firestore
           .collectionGroup('students')
-          .where('parentPhoneNumber', isEqualTo: parentPhoneNumber)
+          .where('parentPhoneNumber', whereIn: phoneFormats)
           .get();
 
       List<NotificationItem> allNotifications = [];

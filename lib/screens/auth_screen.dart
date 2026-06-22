@@ -7,6 +7,8 @@ import 'package:learnaria/widgets/phone_text_field.dart';
 import 'package:learnaria/widgets/glass_container.dart';
 import 'package:learnaria/widgets/pulse_loader.dart';
 
+import 'package:learnaria/widgets/premium_alert.dart';
+
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -306,11 +308,10 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
   void _signUp() async {
     if (_formKey.currentState!.validate()) {
       if (!_agreedToTerms) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.mustAgreeToTermsError),
-            backgroundColor: Colors.red,
-          ),
+        PremiumAlert.show(
+          context,
+          message: AppLocalizations.of(context)!.mustAgreeToTermsError,
+          isError: true,
         );
         return;
       }
@@ -323,8 +324,21 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
       final String fullPhoneNumber = "+20$phoneNumber";
       // --- END: FIX ---
       try {
-        await _authService.sendOtpForSignup(context, fullPhoneNumber);
-      } finally {
+        await _authService.sendOtpForSignup(
+          context,
+          fullPhoneNumber,
+          onCodeSent: () {
+            if (mounted) {
+              setState(() => _isLoading = false);
+            }
+          },
+          onFailed: (error) {
+            if (mounted) {
+              setState(() => _isLoading = false);
+            }
+          },
+        );
+      } catch (e) {
         if (mounted) {
           setState(() => _isLoading = false);
         }
