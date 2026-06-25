@@ -334,4 +334,37 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get createPassword => 'إنشاء كلمة مرور';
+
+  @override
+  String get resetPassword => 'إعادة تعيين كلمة المرور';
+
+  @override
+  String get forgotPasswordTitle => 'نسيت كلمة المرور؟';
+
+  @override
+  String get forgotPasswordSubtitle => 'أدخل رقم هاتفك المسجل وسنرسل لك رمز التحقق.';
+
+  @override
+  String get sendCode => 'إرسال الرمز';
+
+  @override
+  String get newPassword => 'كلمة المرور الجديدة';
+
+  @override
+  String get confirmNewPassword => 'تأكيد كلمة المرور الجديدة';
+
+  @override
+  String get resetPasswordSubtitle => 'أنشئ كلمة مرور جديدة قوية لحسابك.';
+
+  @override
+  String get passwordResetSuccess => 'تم إعادة تعيين كلمة المرور بنجاح!';
+
+  @override
+  String get phoneNotRegistered => 'رقم الهاتف هذا غير مسجل.';
+
+  @override
+  String get enterNewPassword => 'يرجى إدخال كلمة مرورك الجديدة.';
+
+  @override
+  String get passwordChanged => 'تم تغيير كلمة المرور بنجاح';
 }

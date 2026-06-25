@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
 import 'package:learnaria/widgets/glass_container.dart';
+import 'package:learnaria/widgets/shimmer_widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -536,13 +537,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: LiquidBackground(
         child: _isLoading
-            ? Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.primaryYello,
-                  ),
-                ),
-              )
+            ? const HomeShimmer()
             : _errorMessage.isNotEmpty
                 ? Center(
                     child: Padding(

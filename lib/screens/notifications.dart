@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
 import 'package:learnaria/widgets/glass_container.dart'; // Contains LiquidBackground
+import 'package:learnaria/widgets/shimmer_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:learnaria/services/firestore_api.dart';
@@ -168,11 +169,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             // Notification History List
             Expanded(
               child: _isLoading
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYello),
-                      ),
-                    )
+                  ? const NotificationsShimmer()
                   : _errorMessage.isNotEmpty
                       ? Center(
                           child: Padding(

@@ -152,5 +152,16 @@
     "forgotPassword": "Forgot Password?",
     "enterPhoneToReset": "Enter your phone number to reset your password.",
     "continue_": "Continue",
-    "createPassword": "Create Password"
+    "createPassword": "Create Password",
+    "resetPassword": "Reset Password",
+    "forgotPasswordTitle": "Forgot Password?",
+    "forgotPasswordSubtitle": "Enter your registered phone number and we'll send you a verification code.",
+    "sendCode": "Send Code",
+    "newPassword": "New Password",
+    "confirmNewPassword": "Confirm New Password",
+    "resetPasswordSubtitle": "Create a strong new password for your account.",
+    "passwordResetSuccess": "Password reset successfully!",
+    "phoneNotRegistered": "This phone number is not registered.",
+    "enterNewPassword": "Please enter your new password.",
+    "passwordChanged": "Password changed successfully"
 }

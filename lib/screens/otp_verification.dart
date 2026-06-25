@@ -8,14 +8,18 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:learnaria/widgets/premium_alert.dart';
 
+enum OtpMode { signup, resetPassword }
+
 class OtpVerificationScreen extends StatefulWidget {
   final String verificationId;
   final String phoneNumber;
+  final OtpMode mode;
 
   const OtpVerificationScreen({
     super.key,
     required this.verificationId,
     required this.phoneNumber,
+    this.mode = OtpMode.signup,
   });
 
   @override
@@ -36,6 +40,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           widget.verificationId,
           _otpController.text,
           widget.phoneNumber,
+          mode: widget.mode,
         );
       } finally {
         if (mounted) {
@@ -120,7 +125,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'We have sent a verification code to your phone number. Enter it below to proceed.',
+                      widget.mode == OtpMode.resetPassword
+                          ? (Localizations.localeOf(context).languageCode == 'ar'
+                              ? 'أدخل رمز التحقق المرسل إلى رقم هاتفك لإعادة تعيين كلمة المرور.'
+                              : 'Enter the verification code sent to your phone to reset your password.')
+                          : 'We have sent a verification code to your phone number. Enter it below to proceed.',
                       textAlign: TextAlign.center,
                       style: AppTextStyles.secondaryText.copyWith(
                         color: isDark ? Colors.white60 : Colors.black54,

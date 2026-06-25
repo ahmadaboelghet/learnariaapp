@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
+import 'package:learnaria/screens/forgot_password_screen.dart';
 import 'package:learnaria/services/auth_service.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/widgets/password_text_field.dart';
@@ -257,12 +258,38 @@ class _LoginFormWidgetState extends State<_LoginFormWidget> {
                 },
               ),
               const SizedBox(height: 20),
-              PasswordTextField(
+                            PasswordTextField(
                 controller: _passwordController,
                 labelText: localizations.password,
                 hintText: localizations.password,
               ),
-              const SizedBox(height: 30),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ForgotPasswordScreen(),
+                      ),
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    localizations.forgotPassword,
+                    style: AppTextStyles.linkText.copyWith(
+                      color: AppColors.primaryYello,
+                      decoration: TextDecoration.underline,
+                      decorationColor: AppColors.primaryYello,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _isLoading ? null : _login,
                 style: ElevatedButton.styleFrom(

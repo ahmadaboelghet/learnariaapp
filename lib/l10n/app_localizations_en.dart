@@ -334,4 +334,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createPassword => 'Create Password';
+
+  @override
+  String get resetPassword => 'Reset Password';
+
+  @override
+  String get forgotPasswordTitle => 'Forgot Password?';
+
+  @override
+  String get forgotPasswordSubtitle => 'Enter your registered phone number and we\'ll send you a verification code.';
+
+  @override
+  String get sendCode => 'Send Code';
+
+  @override
+  String get newPassword => 'New Password';
+
+  @override
+  String get confirmNewPassword => 'Confirm New Password';
+
+  @override
+  String get resetPasswordSubtitle => 'Create a strong new password for your account.';
+
+  @override
+  String get passwordResetSuccess => 'Password reset successfully!';
+
+  @override
+  String get phoneNotRegistered => 'This phone number is not registered.';
+
+  @override
+  String get enterNewPassword => 'Please enter your new password.';
+
+  @override
+  String get passwordChanged => 'Password changed successfully';
 }

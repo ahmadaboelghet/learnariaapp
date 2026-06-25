@@ -6,6 +6,7 @@ import 'package:learnaria/services/firestore_api.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
 import 'package:learnaria/widgets/glass_container.dart';
+import 'package:learnaria/widgets/shimmer_widgets.dart';
 
 class ProgressReportScreen extends StatefulWidget {
   const ProgressReportScreen({super.key});
@@ -131,7 +132,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
       ),
       body: LiquidBackground(
         child: _isLoading
-            ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryYello)))
+            ? const ReportsShimmer()
             : _errorMessage.isNotEmpty
                 ? Center(child: Padding(padding: const EdgeInsets.all(16.0), child: Text(_errorMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red))))
                 : _dashboardData != null && _dashboardData!.reportsByTeacher.isNotEmpty

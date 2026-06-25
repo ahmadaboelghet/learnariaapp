@@ -724,6 +724,39 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create Password'**
   String get createPassword;
+
+  /// No description provided for @resetPassword.
+  String get resetPassword;
+
+  /// No description provided for @forgotPasswordTitle.
+  String get forgotPasswordTitle;
+
+  /// No description provided for @forgotPasswordSubtitle.
+  String get forgotPasswordSubtitle;
+
+  /// No description provided for @sendCode.
+  String get sendCode;
+
+  /// No description provided for @newPassword.
+  String get newPassword;
+
+  /// No description provided for @confirmNewPassword.
+  String get confirmNewPassword;
+
+  /// No description provided for @resetPasswordSubtitle.
+  String get resetPasswordSubtitle;
+
+  /// No description provided for @passwordResetSuccess.
+  String get passwordResetSuccess;
+
+  /// No description provided for @phoneNotRegistered.
+  String get phoneNotRegistered;
+
+  /// No description provided for @enterNewPassword.
+  String get enterNewPassword;
+
+  /// No description provided for @passwordChanged.
+  String get passwordChanged;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
