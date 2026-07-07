@@ -177,6 +177,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
   Widget _buildStudentLevelHeaderCard(String locale, bool isDark, Color textColor) {
     final name = _dashboardData?.studentName ?? 'Student';
     final avgGrade = _overallAverageGrade;
+    final progressColor = _getPerformanceColor(avgGrade.toDouble());
     
     return GlassContainer(
       width: double.infinity,
@@ -203,7 +204,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
             children: [
               Text(
                 '$avgGrade%',
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryYello),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: progressColor),
               ),
               Text(
                 locale == 'ar' ? 'المعدل العام' : 'Overall Grade',
@@ -320,6 +321,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
 
         final subjectScore = (attendancePercent * 0.3) + (homeworkPercent * 0.3) + (examAvg * 0.4);
         final subjectAvg = subjectScore.toInt();
+        final subjectColor = _getPerformanceColor(subjectScore);
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12.0),
@@ -359,10 +361,10 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                       children: [
                         Text(
                           '$subjectAvg%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold, 
                             fontSize: 16, 
-                            color: AppColors.primaryYello
+                            color: subjectColor
                           ),
                         ),
                         Text(
@@ -404,7 +406,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     if (score >= 85.0) {
       return AppColors.greenSuccess;
     } else if (score >= 65.0) {
-      return AppColors.primaryYello;
+      return AppColors.darkGrey;
     } else {
       return AppColors.errorRed;
     }

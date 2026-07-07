@@ -73,7 +73,7 @@ class AssignmentDetailsScreen extends StatelessWidget {
                           // Dynamic badge color for grade
                           final Color gradeColor = score >= 85
                               ? AppColors.greenSuccess
-                              : (score >= 65 ? AppColors.primaryYello : AppColors.errorRed);
+                              : (score >= 65 ? AppColors.darkGrey : AppColors.errorRed);
     
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12.0),

@@ -29,11 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDay = DateTime.now();
   DateTime _selectedPaymentMonth = DateTime.now();
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchData();
-  }
+
 
   Future<void> _fetchData() async {
     if (!mounted) return;
@@ -293,11 +289,54 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  List<DateTime> _generateMonths() {
-    final now = DateTime.now();
-    return List.generate(now.month, (index) => DateTime(now.year, index + 1));
+  late ScrollController _monthScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _monthScrollController = ScrollController();
+    _fetchData().then((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToCurrentMonth(animate: false);
+      });
+    });
   }
 
+  @override
+  void dispose() {
+    _monthScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToCurrentMonth({bool animate = true}) {
+    if (!_monthScrollController.hasClients) return;
+    final months = _generateMonths();
+    int targetIndex = months.indexWhere((m) =>
+        m.month == _selectedPaymentMonth.month &&
+        m.year == _selectedPaymentMonth.year);
+    if (targetIndex != -1) {
+      const double itemWidth = 110.0; // Dynamic width estimate for 'MMM yyyy' layout
+      final double screenWidth = MediaQuery.of(context).size.width;
+      final double offset = (targetIndex * itemWidth) - (screenWidth / 2) + (itemWidth / 2);
+      final double maxScroll = _monthScrollController.position.maxScrollExtent;
+      final double finalOffset = offset.clamp(0.0, maxScroll);
+      if (animate) {
+        _monthScrollController.animateTo(
+          finalOffset,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        _monthScrollController.jumpTo(finalOffset);
+      }
+    }
+  }
+
+  List<DateTime> _generateMonths() {
+    final now = DateTime.now();
+    // Return last 6 months, current month, and next 5 months (total 12 months)
+    return List.generate(12, (index) => DateTime(now.year, now.month - 6 + index));
+  }
 
   List<Map<String, dynamic>> _getGroupPaymentsForMonth(DateTime date) {
     if (_dashboardData == null) return [];
@@ -344,18 +383,20 @@ class _HomeScreenState extends State<HomeScreen> {
       height: 50,
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: ListView.builder(
+        controller: _monthScrollController,
         scrollDirection: Axis.horizontal,
         itemCount: months.length,
         itemBuilder: (context, index) {
           final monthDate = months[index];
           final isSelected = monthDate.month == _selectedPaymentMonth.month && monthDate.year == _selectedPaymentMonth.year;
-          final monthName = DateFormat('MMM', locale).format(monthDate);
+          final monthName = DateFormat('MMM yyyy', locale).format(monthDate);
           
           return GestureDetector(
             onTap: () {
               setState(() {
                 _selectedPaymentMonth = monthDate;
               });
+              _scrollToCurrentMonth();
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -891,7 +932,13 @@ class _HomeScreenState extends State<HomeScreen> {
     required AppLocalizations appLocalizations,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = AppColors.primaryYello;
+    
+    // Dynamic color based on performance
+    final Color primaryColor = percentage >= 85
+        ? AppColors.greenSuccess
+        : (percentage >= 65
+            ? (isDark ? Colors.white60 : Colors.black54)
+            : AppColors.errorRed);
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
@@ -995,7 +1042,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     Icon(
-                      Icons.grade_rounded,
+                      Icons.star_rounded,
                       size: 14,
                       color: primaryColor.withOpacity(0.8),
                     ),
@@ -1017,7 +1064,13 @@ class _HomeScreenState extends State<HomeScreen> {
     required AppLocalizations appLocalizations,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = AppColors.primaryYello;
+
+    // Dynamic color based on performance
+    final Color primaryColor = percentage >= 85
+        ? AppColors.greenSuccess
+        : (percentage >= 65
+            ? (isDark ? Colors.white60 : Colors.black54)
+            : AppColors.errorRed);
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
