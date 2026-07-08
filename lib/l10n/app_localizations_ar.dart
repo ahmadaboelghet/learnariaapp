@@ -367,4 +367,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get passwordChanged => 'تم تغيير كلمة المرور بنجاح';
+
+  @override
+  String get deleteAccount => 'حذف الحساب';
+
+  @override
+  String get confirmDeleteAccount => 'تأكيد حذف الحساب';
+
+  @override
+  String get deleteAccountWarning => 'تحذير: حذف حسابك إجراء نهائي ولا يمكن التراجع عنه. سيتم مسح جميع بياناتك بالكامل. هل تريد الاستمرار بالفعل؟';
 }

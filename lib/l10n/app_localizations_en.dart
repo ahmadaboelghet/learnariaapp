@@ -367,4 +367,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passwordChanged => 'Password changed successfully';
+
+  @override
+  String get deleteAccount => 'Delete Account';
+
+  @override
+  String get confirmDeleteAccount => 'Confirm Delete Account';
+
+  @override
+  String get deleteAccountWarning => 'Warning: Deleting your account is permanent. All your data will be deleted. Are you sure you want to proceed?';
 }

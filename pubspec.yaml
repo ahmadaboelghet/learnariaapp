@@ -51,6 +51,7 @@ dependencies:
   cloud_functions: ^6.0.0
   firebase_messaging: ^16.3.0
   shimmer: ^3.0.0
+  firebase_remote_config: ^6.5.3
 
 
 dev_dependencies:

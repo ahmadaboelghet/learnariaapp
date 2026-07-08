@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>573038013067-fq99f2uujjhtdbq3lla90vu0c8dbhusn.apps.googleusercontent.com</string>
+	<string>573038013067-83nbfmhp24vgo8lcd2mcqea6bhs4egtl.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.573038013067-fq99f2uujjhtdbq3lla90vu0c8dbhusn</string>
+	<string>com.googleusercontent.apps.573038013067-83nbfmhp24vgo8lcd2mcqea6bhs4egtl</string>
 	<key>ANDROID_CLIENT_ID</key>
 	<string>573038013067-bi1618l219i18fifbhqmv4sq0jiqojhc.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
@@ -15,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.elnazeredu.elnazer</string>
+	<string>com.elnazer-edu.elnazer</string>
 	<key>PROJECT_ID</key>
 	<string>learnaria-483e7</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:573038013067:ios:9abc35f7043d84107a828e</string>
+	<string>1:573038013067:ios:ad3a3623c4d3563a7a828e</string>
 </dict>
 </plist>

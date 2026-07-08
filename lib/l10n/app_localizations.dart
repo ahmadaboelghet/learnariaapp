@@ -726,37 +726,88 @@ abstract class AppLocalizations {
   String get createPassword;
 
   /// No description provided for @resetPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
   String get resetPassword;
 
   /// No description provided for @forgotPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot Password?'**
   String get forgotPasswordTitle;
 
   /// No description provided for @forgotPasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your registered phone number and we\'ll send you a verification code.'**
   String get forgotPasswordSubtitle;
 
   /// No description provided for @sendCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Code'**
   String get sendCode;
 
   /// No description provided for @newPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'New Password'**
   String get newPassword;
 
   /// No description provided for @confirmNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm New Password'**
   String get confirmNewPassword;
 
   /// No description provided for @resetPasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a strong new password for your account.'**
   String get resetPasswordSubtitle;
 
   /// No description provided for @passwordResetSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset successfully!'**
   String get passwordResetSuccess;
 
   /// No description provided for @phoneNotRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone number is not registered.'**
   String get phoneNotRegistered;
 
   /// No description provided for @enterNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your new password.'**
   String get enterNewPassword;
 
   /// No description provided for @passwordChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed successfully'**
   String get passwordChanged;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccount;
+
+  /// No description provided for @confirmDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Delete Account'**
+  String get confirmDeleteAccount;
+
+  /// No description provided for @deleteAccountWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: Deleting your account is permanent. All your data will be deleted. Are you sure you want to proceed?'**
+  String get deleteAccountWarning;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

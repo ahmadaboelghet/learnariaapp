@@ -9,6 +9,8 @@ import 'package:learnaria/utils/locale_provider.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
 import 'package:learnaria/widgets/glass_container.dart';
 
+import 'package:firebase_remote_config/firebase_remote_config.dart';
+
 class MoreScreen extends StatefulWidget {
   const MoreScreen({super.key});
 
@@ -17,6 +19,34 @@ class MoreScreen extends StatefulWidget {
 }
 
 class _MoreScreenState extends State<MoreScreen> {
+  bool _showDeleteAccount = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupRemoteConfig();
+  }
+
+  Future<void> _setupRemoteConfig() async {
+    try {
+      final remoteConfig = FirebaseRemoteConfig.instance;
+      await remoteConfig.setDefaults(const {
+        'show_delete_account': true,
+      });
+      await remoteConfig.setConfigSettings(RemoteConfigSettings(
+        fetchTimeout: const Duration(minutes: 1),
+        minimumFetchInterval: const Duration(minutes: 1),
+      ));
+      await remoteConfig.fetchAndActivate();
+      if (mounted) {
+        setState(() {
+          _showDeleteAccount = remoteConfig.getBool('show_delete_account');
+        });
+      }
+    } catch (e) {
+      debugPrint('Error setting up Remote Config: $e');
+    }
+  }
 
   Future<void> _signOut() async {
     if (!mounted) return;
@@ -46,6 +76,43 @@ class _MoreScreenState extends State<MoreScreen> {
           MaterialPageRoute(builder: (context) => const AuthScreen()),
           (route) => false,
         );
+      }
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    if (!mounted) return;
+    final appLocalizations = AppLocalizations.of(context)!;
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(appLocalizations.confirmDeleteAccount),
+        content: Text(appLocalizations.deleteAccountWarning),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(appLocalizations.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(appLocalizations.deleteAccount, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      try {
+        // Only sign out as requested instead of deleting the user account
+        await FirebaseAuth.instance.signOut();
+        if (mounted) {
+          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const AuthScreen()),
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        debugPrint('Error signing out during deletion placeholder: $e');
       }
     }
   }
@@ -106,6 +173,15 @@ class _MoreScreenState extends State<MoreScreen> {
               const SizedBox(height: 10),
               const Divider(color: Colors.white24),
               const SizedBox(height: 10),
+              if (_showDeleteAccount) ...[
+                _buildProfileOption(
+                  icon: Icons.delete_forever_outlined,
+                  title: appLocalizations.deleteAccount,
+                  onTap: _deleteAccount,
+                  isDelete: true,
+                ),
+                const SizedBox(height: 8),
+              ],
               _buildProfileOption(
                 icon: Icons.logout,
                 title: appLocalizations.signOut,
@@ -127,10 +203,17 @@ class _MoreScreenState extends State<MoreScreen> {
     bool switchValue = false,
     ValueChanged<bool>? onSwitchChanged,
     bool isLogout = false,
+    bool isDelete = false,
     String? trailingText,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = isLogout 
+    
+    // Determine colors
+    final Color iconColor = (isLogout || isDelete)
+        ? Colors.red 
+        : (isDark ? Colors.white : Colors.black87);
+        
+    final Color textColor = isLogout 
         ? Colors.red 
         : (isDark ? Colors.white : Colors.black87);
 
@@ -141,10 +224,10 @@ class _MoreScreenState extends State<MoreScreen> {
         padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 15.0),
         child: Row(
           children: [
-            Icon(icon, color: color),
+            Icon(icon, color: iconColor),
             const SizedBox(width: 15),
             Expanded(
-              child: Text(title, style: AppTextStyles.bodyText.copyWith(color: color)),
+              child: Text(title, style: AppTextStyles.bodyText.copyWith(color: textColor)),
             ),
             if (isSwitch)
               Switch(
@@ -160,7 +243,7 @@ class _MoreScreenState extends State<MoreScreen> {
                   const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mediumGrey),
                 ],
               )
-            else if (!isLogout)
+            else if (!isLogout && !isDelete)
               const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mediumGrey),
           ],
         ),

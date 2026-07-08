@@ -162,5 +162,8 @@
     "passwordResetSuccess": "تم إعادة تعيين كلمة المرور بنجاح!",
     "phoneNotRegistered": "رقم الهاتف هذا غير مسجل.",
     "enterNewPassword": "يرجى إدخال كلمة مرورك الجديدة.",
-    "passwordChanged": "تم تغيير كلمة المرور بنجاح"
+    "passwordChanged": "تم تغيير كلمة المرور بنجاح",
+    "deleteAccount": "حذف الحساب",
+    "confirmDeleteAccount": "تأكيد حذف الحساب",
+    "deleteAccountWarning": "تحذير: حذف حسابك إجراء نهائي ولا يمكن التراجع عنه. سيتم مسح جميع بياناتك بالكامل. هل تريد الاستمرار بالفعل؟"
 }
