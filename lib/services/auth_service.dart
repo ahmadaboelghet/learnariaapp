@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:learnaria/screens/auth_screen.dart';
 import 'package:learnaria/screens/create_new_password.dart';
 import 'package:learnaria/screens/main_layout.dart';
@@ -158,7 +159,7 @@ class AuthService {
     );
   }
 
-  // Reset password after OTP verification
+  // Reset password after OTP verification using Cloud Functions
   Future<void> resetUserPassword(
       BuildContext context,
       String phoneNumber,
@@ -166,67 +167,38 @@ class AuthService {
       String verificationId,
       String smsCode) async {
     try {
-      final email = '$phoneNumber@learnaria.app';
-      final phoneCred = PhoneAuthProvider.credential(
-        verificationId: verificationId,
-        smsCode: smsCode,
-      );
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('resetPassword');
+      final response = await callable.call(<String, dynamic>{
+        'phoneNumber': phoneNumber,
+        'newPassword': newPassword,
+      });
 
-      // Sign in with phone credential
-      final userCredential = await _auth.signInWithCredential(phoneCred);
-      final user = userCredential.user!;
-
-      // Check if this user has email/password provider linked
-      final hasEmailProvider = user.providerData
-          .any((info) => info.providerId == 'password');
-
-      if (hasEmailProvider) {
-        // Directly update password on this account
-        await user.updatePassword(newPassword);
-      } else {
-        // Phone user is separate from email/password account.
-        // Delete phone user, then recreate the email account with new password.
-        await user.delete();
-        try {
-          await _auth.createUserWithEmailAndPassword(
-              email: email, password: newPassword);
-        } on FirebaseAuthException catch (createErr) {
-          if (createErr.code == 'email-already-in-use') {
-            // Email account exists with a different password that we can't retrieve.
-            // Inform the user to contact support.
-            if (context.mounted) {
-              PremiumAlert.show(
-                context,
-                message: Localizations.localeOf(context).languageCode == 'ar'
-                    ? 'تعذر إعادة تعيين كلمة المرور. يرجى التواصل مع الدعم.'
-                    : 'Unable to reset password automatically. Please contact support.',
-                isError: true,
-              );
-            }
-            return;
-          }
-          rethrow;
+      if (response.data != null && response.data['status'] == 'success') {
+        if (context.mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const AuthScreen()),
+            (route) => false,
+          );
+          PremiumAlert.show(
+            context,
+            message: Localizations.localeOf(context).languageCode == 'ar'
+                ? 'تم إعادة تعيين كلمة المرور بنجاح! يرجى تسجيل الدخول.'
+                : 'Password reset successfully! Please log in.',
+            isError: false,
+          );
         }
+      } else {
+        throw Exception(response.data?['message'] ?? 'Failed to reset password');
       }
-
-      // Sign out and navigate back to login
-      await _auth.signOut();
+    } on FirebaseFunctionsException catch (e) {
       if (context.mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const AuthScreen()),
-          (route) => false,
-        );
         PremiumAlert.show(
           context,
-          message: Localizations.localeOf(context).languageCode == 'ar'
-              ? 'تم إعادة تعيين كلمة المرور بنجاح! يرجى تسجيل الدخول.'
-              : 'Password reset successfully! Please log in.',
-          isError: false,
+          message: e.message ?? e.toString(),
+          isError: true,
         );
       }
-    } on FirebaseAuthException catch (e) {
-      PremiumAlert.showError(context, e);
     } catch (e) {
       if (context.mounted) {
         PremiumAlert.show(

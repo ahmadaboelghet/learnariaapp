@@ -1,10 +1,18 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:truecaller_sdk/truecaller_sdk.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
 import 'package:learnaria/services/auth_service.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:learnaria/widgets/glass_container.dart';
 import 'package:learnaria/widgets/phone_text_field.dart';
 import 'package:learnaria/widgets/pulse_loader.dart';
+import 'package:learnaria/widgets/premium_alert.dart';
+import 'package:learnaria/screens/reset_password_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -19,9 +27,122 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
+  StreamSubscription<TcSdkCallback>? _truecallerSubscription;
+  String? _codeVerifier;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Platform.isAndroid) {
+      _initTruecaller();
+    } else if (Platform.isIOS) {
+      _checkCachedTruecallerPhone();
+    }
+  }
+
+  void _initTruecaller() async {
+    try {
+      await TcSdk.initializeSDK(sdkOption: TcSdkOptions.OPTION_VERIFY_ONLY_TC_USERS);
+      _truecallerSubscription = TcSdk.streamCallbackData.listen((tcSdkCallback) async {
+        switch (tcSdkCallback.result) {
+          case TcSdkCallbackResult.success:
+            final oAuthData = tcSdkCallback.tcOAuthData!;
+            await _handleTruecallerSuccess(oAuthData);
+            break;
+          case TcSdkCallbackResult.failure:
+            debugPrint("Truecaller forgot password failed, fallback to standard OTP");
+            break;
+          default:
+            break;
+        }
+      });
+    } catch (e) {
+      debugPrint("Truecaller init failed in forgot password: $e");
+    }
+  }
+
+  Future<void> _handleTruecallerSuccess(TcOAuthData oAuthData) async {
+    try {
+      setState(() => _isLoading = true);
+      final tokenUrl = Uri.parse('https://oauth-account-noneu.truecaller.com/v1/token');
+      final response = await http.post(
+        tokenUrl,
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {
+          'grant_type': 'authorization_code',
+          'client_id': '5aljimgbfi-dlojnmxmlyeypfk3da21mc2irnqejpvc',
+          'code': oAuthData.authorizationCode,
+          'code_verifier': _codeVerifier ?? '',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final tokenData = jsonDecode(response.body);
+        final accessToken = tokenData['access_token'];
+
+        final userInfoUrl = Uri.parse('https://oauth-account-noneu.truecaller.com/v1/userinfo');
+        final userInfoResponse = await http.get(
+          userInfoUrl,
+          headers: {'Authorization': 'Bearer $accessToken'},
+        );
+
+        if (userInfoResponse.statusCode == 200) {
+          final userInfo = jsonDecode(userInfoResponse.body);
+          final String? rawPhone = userInfo['phone_number'];
+          if (rawPhone != null && rawPhone.isNotEmpty) {
+            _navigateToResetScreen(rawPhone.trim());
+            return;
+          }
+        }
+      }
+      throw Exception("Failed to retrieve phone number from Truecaller");
+    } catch (e) {
+      debugPrint("Truecaller exchange exception: $e");
+      if (mounted) {
+        setState(() => _isLoading = false);
+        PremiumAlert.show(
+          context,
+          message: Localizations.localeOf(context).languageCode == 'ar'
+              ? 'فشل التحقق عبر Truecaller. يرجى استخدام التحقق العادي.'
+              : 'Truecaller verification failed. Please use normal verification.',
+          isError: true,
+        );
+      }
+    }
+  }
+
+  void _checkCachedTruecallerPhone() async {
+    try {
+      const channel = MethodChannel('com.elnazeredu.elnazer/truecaller');
+      final String? cachedPhone = await channel.invokeMethod<String>('getAndClearCachedPhone');
+      if (cachedPhone != null && cachedPhone.isNotEmpty) {
+        _navigateToResetScreen(cachedPhone.trim());
+      }
+    } catch (e) {
+      debugPrint("Error checking cached Truecaller phone in forgot password: $e");
+    }
+  }
+
+  void _navigateToResetScreen(String phoneNumber) {
+    if (mounted) {
+      setState(() => _isLoading = false);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResetPasswordScreen(
+            phoneNumber: phoneNumber,
+            verificationId: 'truecaller',
+            smsCode: 'truecaller',
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _phoneController.dispose();
+    _truecallerSubscription?.cancel();
     super.dispose();
   }
 
@@ -34,6 +155,42 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         phoneNumber = phoneNumber.substring(1);
       }
       final String fullPhoneNumber = '+20$phoneNumber';
+
+      if (Platform.isAndroid) {
+        try {
+          final bool isUsable = await TcSdk.isOAuthFlowUsable;
+          if (isUsable) {
+            _codeVerifier = await TcSdk.generateRandomCodeVerifier;
+            final String? codeChallenge = await TcSdk.generateCodeChallenge(_codeVerifier!);
+            if (codeChallenge != null) {
+              await TcSdk.setCodeChallenge(codeChallenge);
+              await TcSdk.setOAuthScopes(['profile', 'phone', 'openid']);
+              await TcSdk.setOAuthState("learnaria_auth_state");
+              await TcSdk.getAuthorizationCode;
+              return;
+            }
+          }
+        } catch (e) {
+          debugPrint("Truecaller usable check failed: $e");
+        }
+      } else if (Platform.isIOS) {
+        try {
+          const channel = MethodChannel('com.elnazeredu.elnazer/truecaller');
+          final bool isUsable = await channel.invokeMethod<bool>('isUsable') ?? false;
+          if (isUsable) {
+            final result = await channel.invokeMethod('verifyUser');
+            if (result is Map && result['status'] == 'success') {
+              final String? rawPhone = result['phoneNumber'];
+              if (rawPhone != null && rawPhone.isNotEmpty) {
+                _navigateToResetScreen(rawPhone.trim());
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint("Truecaller iOS verify failed: $e");
+        }
+      }
 
       await _authService.sendOtpForPasswordReset(
         context,

@@ -52,6 +52,8 @@ dependencies:
   firebase_messaging: ^16.3.0
   shimmer: ^3.0.0
   firebase_remote_config: ^6.5.3
+  truecaller_sdk: ^1.2.0
+  app_badge_plus: ^1.2.0
 
 
 dev_dependencies:

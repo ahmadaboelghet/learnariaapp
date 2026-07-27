@@ -18,7 +18,10 @@ class ProgressReportScreen extends StatefulWidget {
 class _ProgressReportScreenState extends State<ProgressReportScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
-  DashboardData? _dashboardData;
+  List<DashboardData> _studentsData = [];
+  int _currentStudentIndex = 0;
+
+  DashboardData? get _dashboardData => _studentsData.isNotEmpty ? _studentsData[_currentStudentIndex] : null;
 
   @override
   void initState() {
@@ -37,10 +40,10 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
         throw Exception('Could not determine your phone number from your email.');
       }
 
-      final data = await FirestoreApi().fetchDashboardData(parentPhoneNumber: parentPhone);
+      final data = await FirestoreApi().fetchMultiDashboardData(parentPhoneNumber: parentPhone);
       if (mounted) {
         setState(() {
-          _dashboardData = data;
+          _studentsData = data;
           _isLoading = false;
         });
       }
@@ -110,6 +113,68 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     return (totalRates / _dashboardData!.reportsByTeacher.length).toInt();
   }
 
+  Widget _buildChildrenTabs(Color textColor) {
+    if (_studentsData.length <= 1) return const SizedBox.shrink();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      height: 48,
+      margin: const EdgeInsets.only(bottom: 15),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _studentsData.length,
+        itemBuilder: (context, index) {
+          final student = _studentsData[index];
+          final isSelected = index == _currentStudentIndex;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _currentStudentIndex = index;
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              margin: const EdgeInsets.only(right: 10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primaryYello
+                    : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04)),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primaryYello
+                      : (isDark ? AppColors.glassBorderDark : AppColors.glassBorderLight),
+                  width: 1.2,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primaryYello.withOpacity(0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        )
+                      ]
+                    : null,
+              ),
+              child: Center(
+                child: Text(
+                  student.studentName,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
@@ -144,6 +209,9 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // 0. Child Tabs
+                              _buildChildrenTabs(textColor),
+                              
                               // 1. Premium Student Level Header Card
                               _buildStudentLevelHeaderCard(locale, isDark, textColor),
                               const SizedBox(height: 20),

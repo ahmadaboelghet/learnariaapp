@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:learnaria/services/firestore_api.dart';
 import 'package:learnaria/models/notification_item.dart';
+import 'package:app_badge_plus/app_badge_plus.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -53,6 +54,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         }
       }
 
+      final unreadCount = fetched.where((n) => !n.isRead).length;
+      try {
+        AppBadgePlus.updateBadge(unreadCount);
+      } catch (badgeErr) {
+        debugPrint('Failed to update launcher badge count: $badgeErr');
+      }
+
       if (mounted) {
         setState(() {
           _notifications = fetched;
@@ -84,6 +92,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
 
       await prefs.setStringList('read_notification_ids', readIds);
+      
+      try {
+        AppBadgePlus.updateBadge(0);
+      } catch (badgeErr) {
+        debugPrint('Failed to update launcher badge count: $badgeErr');
+      }
     } catch (e) {
       debugPrint('Error marking all as read: $e');
     }
@@ -106,6 +120,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
 
       await prefs.setStringList('read_notification_ids', readIds);
+
+      final unreadCount = _notifications.where((n) => !n.isRead).length;
+      try {
+        AppBadgePlus.updateBadge(unreadCount);
+      } catch (badgeErr) {
+        debugPrint('Failed to update launcher badge count: $badgeErr');
+      }
     } catch (e) {
       debugPrint('Error toggling read state: $e');
     }

@@ -30,6 +30,9 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <meta-data
+            android:name="com.truecaller.android.sdk.PartnerKey"
+            android:value="5aljimgbfi-dlojnmxmlyeypfk3da21mc2irnqejpvc" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

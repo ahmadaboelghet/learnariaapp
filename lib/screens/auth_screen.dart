@@ -1,3 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:http/http.dart' as http;
+import 'package:truecaller_sdk/truecaller_sdk.dart';
+import 'package:learnaria/screens/create_new_password.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
 import 'package:learnaria/screens/forgot_password_screen.dart';
@@ -326,9 +333,127 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
+  StreamSubscription<TcSdkCallback>? _truecallerSubscription;
+  String? _codeVerifier;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Platform.isAndroid) {
+      _initTruecaller();
+    } else if (Platform.isIOS) {
+      _checkCachedTruecallerPhone();
+    }
+  }
+
+  void _checkCachedTruecallerPhone() async {
+    try {
+      const channel = MethodChannel('com.elnazeredu.elnazer/truecaller');
+      final String? cachedPhone = await channel.invokeMethod<String>('getAndClearCachedPhone');
+      if (cachedPhone != null && cachedPhone.isNotEmpty) {
+        String normalizedPhone = cachedPhone.trim();
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CreateNewPassword(phoneNumber: normalizedPhone),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error checking cached Truecaller phone: $e");
+    }
+  }
+
+  void _initTruecaller() async {
+    try {
+      await TcSdk.initializeSDK(sdkOption: TcSdkOptions.OPTION_VERIFY_ONLY_TC_USERS);
+      _truecallerSubscription = TcSdk.streamCallbackData.listen((tcSdkCallback) async {
+        switch (tcSdkCallback.result) {
+          case TcSdkCallbackResult.success:
+            final oAuthData = tcSdkCallback.tcOAuthData!;
+            await _handleTruecallerSuccess(oAuthData);
+            break;
+          case TcSdkCallbackResult.failure:
+            debugPrint("Truecaller flow failed, falling back to Firebase OTP");
+            if (mounted) {
+              setState(() => _isLoading = false);
+            }
+            _signUpFirebase();
+            break;
+          default:
+            break;
+        }
+      });
+    } catch (e) {
+      debugPrint("Truecaller initialization failed: $e");
+    }
+  }
+
+  Future<void> _handleTruecallerSuccess(TcOAuthData oAuthData) async {
+    try {
+      final tokenUrl = Uri.parse('https://oauth-account-noneu.truecaller.com/v1/token');
+      final response = await http.post(
+        tokenUrl,
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {
+          'grant_type': 'authorization_code',
+          'client_id': '5aljimgbfi-dlojnmxmlyeypfk3da21mc2irnqejpvc',
+          'code': oAuthData.authorizationCode,
+          'code_verifier': _codeVerifier ?? '',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final tokenData = jsonDecode(response.body);
+        final accessToken = tokenData['access_token'];
+
+        // Get user info
+        final userInfoUrl = Uri.parse('https://oauth-account-noneu.truecaller.com/v1/userinfo');
+        final userInfoResponse = await http.get(
+          userInfoUrl,
+          headers: {'Authorization': 'Bearer $accessToken'},
+        );
+
+        if (userInfoResponse.statusCode == 200) {
+          final userInfo = jsonDecode(userInfoResponse.body);
+          final String? rawPhone = userInfo['phone_number'];
+          
+          if (rawPhone != null && rawPhone.isNotEmpty) {
+            String normalizedPhone = rawPhone.trim();
+            // Proceed to password creation screen directly (verified phone proof)
+            if (mounted) {
+              setState(() => _isLoading = false);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreateNewPassword(phoneNumber: normalizedPhone),
+                ),
+              );
+            }
+          } else {
+            throw Exception("Phone number missing in Truecaller profile");
+          }
+        } else {
+          throw Exception("Failed to fetch Truecaller user info");
+        }
+      } else {
+        throw Exception("Failed to exchange Truecaller authorization code");
+      }
+    } catch (e) {
+      debugPrint("Truecaller auth exception: $e");
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      _signUpFirebase();
+    }
+  }
+
   @override
   void dispose() {
     _phoneController.dispose();
+    _truecallerSubscription?.cancel();
     super.dispose();
   }
 
@@ -343,32 +468,86 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
         return;
       }
       setState(() => _isLoading = true);
-      String phoneNumber = _phoneController.text.trim();
-      // --- START: FIX for extra zero ---
-      if (phoneNumber.startsWith('0')) {
-        phoneNumber = phoneNumber.substring(1);
-      }
-      final String fullPhoneNumber = "+20$phoneNumber";
-      // --- END: FIX ---
-      try {
-        await _authService.sendOtpForSignup(
-          context,
-          fullPhoneNumber,
-          onCodeSent: () {
-            if (mounted) {
-              setState(() => _isLoading = false);
+
+      if (Platform.isAndroid) {
+        try {
+          final bool isUsable = await TcSdk.isOAuthFlowUsable;
+          if (isUsable) {
+            _codeVerifier = await TcSdk.generateRandomCodeVerifier;
+            final String? codeChallenge = await TcSdk.generateCodeChallenge(_codeVerifier!);
+            if (codeChallenge != null) {
+              await TcSdk.setCodeChallenge(codeChallenge);
+              await TcSdk.setOAuthScopes(['profile', 'phone', 'openid']);
+              await TcSdk.setOAuthState("learnaria_auth_state");
+              await TcSdk.getAuthorizationCode;
+              return; // Wait for callback stream response
             }
-          },
-          onFailed: (error) {
-            if (mounted) {
-              setState(() => _isLoading = false);
-            }
-          },
-        );
-      } catch (e) {
-        if (mounted) {
-          setState(() => _isLoading = false);
+          }
+        } catch (e) {
+          debugPrint("Truecaller Android usage check failed: $e");
         }
+      } else if (Platform.isIOS) {
+        try {
+          const channel = MethodChannel('com.elnazeredu.elnazer/truecaller');
+          final bool isUsable = await channel.invokeMethod<bool>('isUsable') ?? false;
+          if (isUsable) {
+            final result = await channel.invokeMethod('verifyUser');
+            if (result is Map) {
+              if (result['status'] == 'success') {
+                final String? rawPhone = result['phoneNumber'];
+                if (rawPhone != null && rawPhone.isNotEmpty) {
+                  String normalizedPhone = rawPhone.trim();
+                  if (mounted) {
+                    setState(() => _isLoading = false);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CreateNewPassword(phoneNumber: normalizedPhone),
+                      ),
+                    );
+                    return; // Bypassed Firebase OTP successfully
+                  }
+                }
+              } else {
+                debugPrint("Truecaller iOS returned non-success status: ${result['status']}");
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint("Truecaller iOS usage check/verification failed: $e");
+        }
+      }
+
+      // Fallback
+      _signUpFirebase();
+    }
+  }
+
+  void _signUpFirebase() async {
+    setState(() => _isLoading = true);
+    String phoneNumber = _phoneController.text.trim();
+    if (phoneNumber.startsWith('0')) {
+      phoneNumber = phoneNumber.substring(1);
+    }
+    final String fullPhoneNumber = "+20$phoneNumber";
+    try {
+      await _authService.sendOtpForSignup(
+        context,
+        fullPhoneNumber,
+        onCodeSent: () {
+          if (mounted) {
+            setState(() => _isLoading = false);
+          }
+        },
+        onFailed: (error) {
+          if (mounted) {
+            setState(() => _isLoading = false);
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }

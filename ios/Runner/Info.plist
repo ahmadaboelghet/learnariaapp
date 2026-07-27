@@ -29,6 +29,7 @@
 			<array>
 				<string>com.googleusercontent.apps.573038013067-83nbfmhp24vgo8lcd2mcqea6bhs4egtl</string>
 				<string>app-1-573038013067-ios-ad3a3623c4d3563a7a828e</string>
+				<string>truecallersdk-IRicNd6dc840a8d594a70b983e92c2f34af92</string>
 			</array>
 		</dict>
 	</array>
@@ -36,27 +37,7 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-		<key>UISceneConfigurations</key>
-		<dict>
-			<key>UIWindowSceneSessionRoleApplication</key>
-			<array>
-				<dict>
-					<key>UISceneClassName</key>
-					<string>UIWindowScene</string>
-					<key>UISceneConfigurationName</key>
-					<string>flutter</string>
-					<key>UISceneDelegateClassName</key>
-					<string>FlutterSceneDelegate</string>
-					<key>UISceneStoryboardFile</key>
-					<string>Main</string>
-				</dict>
-			</array>
-		</dict>
-	</dict>
+
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
@@ -80,5 +61,11 @@
 	</array>
 	<key>UIRequireFullScreen</key>
 	<true/>
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>truesdk</string>
+	</array>
 </dict>
 </plist>

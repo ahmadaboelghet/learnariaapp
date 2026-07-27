@@ -25,6 +25,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "8.1.1"
+  app_badge_plus:
+    dependency: "direct main"
+    description:
+      name: app_badge_plus
+      sha256: "695ba21895bb0f927943ed28f421eead00f948b179ecd8a0ddb8617b3e5a9887"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.3.2"
   archive:
     dependency: transitive
     description:
@@ -922,6 +930,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.5"
+  truecaller_sdk:
+    dependency: "direct main"
+    description:
+      name: truecaller_sdk
+      sha256: b768649da7d0de88dccb673e19d1108ab4cec4ee4c7242c8c3b9501bc306c4b5
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.0"
   typed_data:
     dependency: transitive
     description:

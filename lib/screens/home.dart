@@ -12,6 +12,8 @@ import 'package:learnaria/widgets/glass_container.dart';
 import 'package:learnaria/widgets/shimmer_widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:app_badge_plus/app_badge_plus.dart';
 
 enum CourseStatus { Upcoming, Ongoing, Finished }
 
@@ -23,11 +25,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  DashboardData? _dashboardData;
+  List<DashboardData> _studentsData = [];
+  int _currentStudentIndex = 0;
   bool _isLoading = true;
   String _errorMessage = '';
   DateTime _selectedDay = DateTime.now();
   DateTime _selectedPaymentMonth = DateTime.now();
+  int _unreadNotificationsCount = 0;
+
+  DashboardData? get _dashboardData => _studentsData.isNotEmpty ? _studentsData[_currentStudentIndex] : null;
 
 
 
@@ -78,12 +84,36 @@ class _HomeScreenState extends State<HomeScreen> {
         debugPrint('Failed to sync FCM Token: $fcmError');
       }
 
-      final data = await FirestoreApi().fetchDashboardData(
+      final data = await FirestoreApi().fetchMultiDashboardData(
         parentPhoneNumber: parentPhone,
       );
+
+      // Fetch unread notifications count
+      try {
+        final notifications = await FirestoreApi().fetchNotifications(parentPhoneNumber: parentPhone);
+        final prefs = await SharedPreferences.getInstance();
+        final readIds = prefs.getStringList('read_notification_ids') ?? [];
+        final unread = notifications.where((item) => !readIds.contains(item.id)).length;
+        
+        // Update launcher icon badge count programmatically
+        try {
+          AppBadgePlus.updateBadge(unread);
+        } catch (badgeErr) {
+          debugPrint('Failed to update launcher badge count: $badgeErr');
+        }
+
+        if (mounted) {
+          setState(() {
+            _unreadNotificationsCount = unread;
+          });
+        }
+      } catch (err) {
+        debugPrint('Failed to load notifications unread count: $err');
+      }
+
       if (mounted) {
         setState(() {
-          _dashboardData = data;
+          _studentsData = data;
           _isLoading = false;
         });
       }
@@ -614,6 +644,68 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildChildrenTabs(Color textColor) {
+    if (_studentsData.length <= 1) return const SizedBox.shrink();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      height: 48,
+      margin: const EdgeInsets.only(top: 15, bottom: 5),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _studentsData.length,
+        itemBuilder: (context, index) {
+          final student = _studentsData[index];
+          final isSelected = index == _currentStudentIndex;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _currentStudentIndex = index;
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              margin: const EdgeInsets.only(right: 10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primaryYello
+                    : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04)),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primaryYello
+                      : (isDark ? AppColors.glassBorderDark : AppColors.glassBorderLight),
+                  width: 1.2,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primaryYello.withOpacity(0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        )
+                      ]
+                    : null,
+              ),
+              child: Center(
+                child: Text(
+                  student.studentName,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildDashboardContent(
     AppLocalizations appLocalizations,
     Color? textColor,
@@ -637,6 +729,7 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildUserInfoSection(appLocalizations, textColor),
+        _buildChildrenTabs(textColor ?? Colors.black87),
         const SizedBox(height: 20),
         Text(
           appLocalizations.reports,
@@ -790,6 +883,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ? 'مرحباً، ولي أمر الطالب $studentName'
         : 'Hello, $studentName\'s parent!';
 
+    final parentPhone = FirebaseAuth.instance.currentUser?.email?.split('@').first ?? '';
+
     return Row(
       children: [
         CircleAvatar(
@@ -805,26 +900,54 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 greetingText,
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: textColor,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              Text(
-                appLocalizations.latestReportGreeting,
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
+              if (parentPhone.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.phone_android_rounded,
+                      size: 13,
+                      color: AppColors.primaryYello.withOpacity(0.85),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      parentPhone,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[500],
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
         const SizedBox(width: 12),
-        IconButton(
-          icon: Icon(Icons.notifications_none_rounded, color: textColor, size: 28),
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const NotificationsScreen()),
-            );
-          },
+        Badge(
+          label: Text('$_unreadNotificationsCount'),
+          isLabelVisible: _unreadNotificationsCount > 0,
+          backgroundColor: AppColors.errorRed,
+          textColor: Colors.white,
+          alignment: const Alignment(0.65, -0.65), // Floats nicely above the bell icon
+          child: IconButton(
+            icon: Icon(Icons.notifications_none_rounded, color: textColor, size: 28),
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              );
+              _fetchData(); // Refresh notifications unread count when returning
+            },
+          ),
         ),
       ],
     );
