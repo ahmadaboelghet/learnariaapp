@@ -42,19 +42,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   void _initTruecaller() async {
     try {
-      await TcSdk.initializeSDK(sdkOption: TcSdkOptions.OPTION_VERIFY_ONLY_TC_USERS);
+      debugPrint("Truecaller ForgotPassword: Registering stream listener first...");
       _truecallerSubscription = TcSdk.streamCallbackData.listen((tcSdkCallback) async {
+        debugPrint("Truecaller ForgotPassword Callback: Result = ${tcSdkCallback.result}, Error = ${tcSdkCallback.error}");
         switch (tcSdkCallback.result) {
           case TcSdkCallbackResult.success:
+            debugPrint("Truecaller ForgotPassword Callback: SUCCESS! Authorization Code obtained.");
             final oAuthData = tcSdkCallback.tcOAuthData!;
             await _handleTruecallerSuccess(oAuthData);
             break;
           case TcSdkCallbackResult.failure:
-            debugPrint("Truecaller forgot password failed, fallback to standard OTP");
+            debugPrint("Truecaller ForgotPassword Callback: FAILURE! Error: ${tcSdkCallback.error?.message}");
+            if (mounted) {
+              setState(() => _isLoading = false);
+            }
             break;
           default:
+            debugPrint("Truecaller ForgotPassword Callback: Unknown state: ${tcSdkCallback.result}");
             break;
         }
+      });
+
+      debugPrint("Truecaller ForgotPassword: Initializing SDK (non-blocking)...");
+      TcSdk.initializeSDK(sdkOption: TcSdkOptions.OPTION_VERIFY_ONLY_TC_USERS).then((_) {
+        debugPrint("Truecaller ForgotPassword: SDK initialization future resolved successfully.");
+      }).catchError((e) {
+        debugPrint("Truecaller ForgotPassword: SDK initialization future returned error: $e");
       });
     } catch (e) {
       debugPrint("Truecaller init failed in forgot password: $e");
@@ -126,11 +139,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void _navigateToResetScreen(String phoneNumber) {
     if (mounted) {
       setState(() => _isLoading = false);
+      String normalizedPhone = phoneNumber.trim();
+      if (!normalizedPhone.startsWith('+')) {
+        normalizedPhone = '+$normalizedPhone';
+      }
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ResetPasswordScreen(
-            phoneNumber: phoneNumber,
+            phoneNumber: normalizedPhone,
             verificationId: 'truecaller',
             smsCode: 'truecaller',
           ),
@@ -163,10 +180,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             _codeVerifier = await TcSdk.generateRandomCodeVerifier;
             final String? codeChallenge = await TcSdk.generateCodeChallenge(_codeVerifier!);
             if (codeChallenge != null) {
-              await TcSdk.setCodeChallenge(codeChallenge);
-              await TcSdk.setOAuthScopes(['profile', 'phone', 'openid']);
-              await TcSdk.setOAuthState("learnaria_auth_state");
-              await TcSdk.getAuthorizationCode;
+              TcSdk.setCodeChallenge(codeChallenge);
+              TcSdk.setOAuthScopes(['phone', 'openid']);
+              TcSdk.setOAuthState("learnaria_auth_state");
+              TcSdk.getAuthorizationCode;
               return;
             }
           }

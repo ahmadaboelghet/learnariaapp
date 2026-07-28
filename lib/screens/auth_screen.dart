@@ -368,31 +368,42 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
 
   void _initTruecaller() async {
     try {
-      await TcSdk.initializeSDK(sdkOption: TcSdkOptions.OPTION_VERIFY_ONLY_TC_USERS);
+      debugPrint("Truecaller: Registering stream listener first...");
       _truecallerSubscription = TcSdk.streamCallbackData.listen((tcSdkCallback) async {
+        debugPrint("Truecaller Callback: Result = ${tcSdkCallback.result}, Error = ${tcSdkCallback.error}");
         switch (tcSdkCallback.result) {
           case TcSdkCallbackResult.success:
+            debugPrint("Truecaller Callback: SUCCESS! Authorization Code obtained.");
             final oAuthData = tcSdkCallback.tcOAuthData!;
             await _handleTruecallerSuccess(oAuthData);
             break;
           case TcSdkCallbackResult.failure:
-            debugPrint("Truecaller flow failed, falling back to Firebase OTP");
+            debugPrint("Truecaller Callback: FAILURE! Error: ${tcSdkCallback.error?.message}");
             if (mounted) {
               setState(() => _isLoading = false);
             }
             _signUpFirebase();
             break;
           default:
+            debugPrint("Truecaller Callback: Unknown state: ${tcSdkCallback.result}");
             break;
         }
       });
+
+      debugPrint("Truecaller: Initializing SDK (non-blocking)...");
+      TcSdk.initializeSDK(sdkOption: TcSdkOptions.OPTION_VERIFY_ONLY_TC_USERS).then((_) {
+        debugPrint("Truecaller: SDK initialization future resolved successfully.");
+      }).catchError((e) {
+        debugPrint("Truecaller: SDK initialization future returned error: $e");
+      });
     } catch (e) {
-      debugPrint("Truecaller initialization failed: $e");
+      debugPrint("Truecaller: Initialization failed with exception: $e");
     }
   }
 
   Future<void> _handleTruecallerSuccess(TcOAuthData oAuthData) async {
     try {
+      debugPrint("Truecaller Token Exchange: Exchanging code ${oAuthData.authorizationCode} with verifier ${_codeVerifier}");
       final tokenUrl = Uri.parse('https://oauth-account-noneu.truecaller.com/v1/token');
       final response = await http.post(
         tokenUrl,
@@ -405,16 +416,21 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
         },
       );
 
+      debugPrint("Truecaller Token Response: Status = ${response.statusCode}, Body = ${response.body}");
+
       if (response.statusCode == 200) {
         final tokenData = jsonDecode(response.body);
         final accessToken = tokenData['access_token'];
 
         // Get user info
+        debugPrint("Truecaller UserInfo: Fetching user info with token $accessToken");
         final userInfoUrl = Uri.parse('https://oauth-account-noneu.truecaller.com/v1/userinfo');
         final userInfoResponse = await http.get(
           userInfoUrl,
           headers: {'Authorization': 'Bearer $accessToken'},
         );
+
+        debugPrint("Truecaller UserInfo Response: Status = ${userInfoResponse.statusCode}, Body = ${userInfoResponse.body}");
 
         if (userInfoResponse.statusCode == 200) {
           final userInfo = jsonDecode(userInfoResponse.body);
@@ -422,7 +438,10 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
           
           if (rawPhone != null && rawPhone.isNotEmpty) {
             String normalizedPhone = rawPhone.trim();
-            // Proceed to password creation screen directly (verified phone proof)
+            if (!normalizedPhone.startsWith('+')) {
+              normalizedPhone = '+$normalizedPhone';
+            }
+            debugPrint("Truecaller Flow Success! Phone: $normalizedPhone. Navigating to CreateNewPassword...");
             if (mounted) {
               setState(() => _isLoading = false);
               Navigator.push(
@@ -433,13 +452,13 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
               );
             }
           } else {
-            throw Exception("Phone number missing in Truecaller profile");
+            throw Exception("Phone number missing in Truecaller profile payload");
           }
         } else {
-          throw Exception("Failed to fetch Truecaller user info");
+          throw Exception("Failed to fetch Truecaller user info: Status ${userInfoResponse.statusCode}");
         }
       } else {
-        throw Exception("Failed to exchange Truecaller authorization code");
+        throw Exception("Failed to exchange Truecaller authorization code: Status ${response.statusCode}");
       }
     } catch (e) {
       debugPrint("Truecaller auth exception: $e");
@@ -471,17 +490,25 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
 
       if (Platform.isAndroid) {
         try {
+          debugPrint("Truecaller: Checking Android OAuth Flow usability...");
           final bool isUsable = await TcSdk.isOAuthFlowUsable;
+          debugPrint("Truecaller: isOAuthFlowUsable = $isUsable");
           if (isUsable) {
             _codeVerifier = await TcSdk.generateRandomCodeVerifier;
+            debugPrint("Truecaller: Code Verifier generated: $_codeVerifier");
             final String? codeChallenge = await TcSdk.generateCodeChallenge(_codeVerifier!);
+            debugPrint("Truecaller: Code Challenge generated: $codeChallenge");
             if (codeChallenge != null) {
-              await TcSdk.setCodeChallenge(codeChallenge);
-              await TcSdk.setOAuthScopes(['profile', 'phone', 'openid']);
-              await TcSdk.setOAuthState("learnaria_auth_state");
-              await TcSdk.getAuthorizationCode;
+              TcSdk.setCodeChallenge(codeChallenge);
+              TcSdk.setOAuthScopes(['phone', 'openid']);
+              TcSdk.setOAuthState("learnaria_auth_state");
+              debugPrint("Truecaller: Requesting authorization code...");
+              TcSdk.getAuthorizationCode;
+              debugPrint("Truecaller: getAuthorizationCode invoked.");
               return; // Wait for callback stream response
             }
+          } else {
+            debugPrint("Truecaller: Flow is NOT usable on this Android device (not installed or logged in).");
           }
         } catch (e) {
           debugPrint("Truecaller Android usage check failed: $e");
