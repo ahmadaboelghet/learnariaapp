@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:learnaria/screens/auth_screen.dart';
 import 'package:learnaria/utils/app_styles.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:learnaria/screens/notifications.dart';
 import 'package:provider/provider.dart';
 import 'package:learnaria/utils/theme_provider.dart';
@@ -10,6 +8,7 @@ import 'package:learnaria/l10n/app_localizations.dart';
 import 'package:learnaria/widgets/glass_container.dart';
 
 import 'package:firebase_remote_config/firebase_remote_config.dart';
+import 'package:learnaria/services/auth_service.dart';
 
 class MoreScreen extends StatefulWidget {
   const MoreScreen({super.key});
@@ -70,12 +69,8 @@ class _MoreScreenState extends State<MoreScreen> {
     );
 
     if (shouldSignOut == true) {
-      await FirebaseAuth.instance.signOut();
       if (mounted) {
-        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const AuthScreen()),
-          (route) => false,
-        );
+        await AuthService().logout(context);
       }
     }
   }
@@ -103,13 +98,8 @@ class _MoreScreenState extends State<MoreScreen> {
 
     if (shouldDelete == true) {
       try {
-        // Only sign out as requested instead of deleting the user account
-        await FirebaseAuth.instance.signOut();
         if (mounted) {
-          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const AuthScreen()),
-            (route) => false,
-          );
+          await AuthService().logout(context);
         }
       } catch (e) {
         debugPrint('Error signing out during deletion placeholder: $e');

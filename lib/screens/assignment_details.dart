@@ -161,7 +161,7 @@ class AssignmentDetailsScreen extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      isGraded ? '$score' : (locale == 'ar' ? 'لم ترصد' : 'Not graded'),
+                                      isGraded ? '$score/${assignment.totalMark}' : (locale == 'ar' ? 'لم ترصد' : 'Not graded'),
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,

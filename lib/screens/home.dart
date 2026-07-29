@@ -826,12 +826,15 @@ class _HomeScreenState extends State<HomeScreen> {
               // --- منطق جديد لجلب آخر درجة مرصودة فقط ---
               final gradedAssignments = report.grades.where((g) => g.score != null).toList();
               gradedAssignments.sort((a, b) => b.date.compareTo(a.date));
-              final latestGrade = gradedAssignments.first.score;
-
+              final latestGradeRecord = gradedAssignments.isNotEmpty ? gradedAssignments.first : null;
+              final latestGrade = latestGradeRecord?.score ?? 0;
+              final latestTotal = latestGradeRecord?.totalMark ?? 30;
+              
               return _buildSubjectAssignmentCell(
                 subject: report.subject,
                 teacher: report.teacherName,
-                percentage: latestGrade ?? 0,
+                latestScore: latestGrade,
+                totalMark: latestTotal,
                 allGrades: report.grades,
                 appLocalizations: appLocalizations,
               );
@@ -1050,11 +1053,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSubjectAssignmentCell({
     required String subject,
     required String teacher,
-    required int percentage,
+    required int latestScore,
+    required int totalMark,
     required List<GradeRecord> allGrades,
     required AppLocalizations appLocalizations,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Performance percentage for color and progress ring
+    final int percentage = totalMark > 0 ? ((latestScore / totalMark) * 100).toInt() : 0;
     
     // Dynamic color based on performance
     final Color primaryColor = percentage >= 85
@@ -1142,7 +1149,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$percentage%',
+                      '$latestScore/$totalMark',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

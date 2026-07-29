@@ -154,12 +154,20 @@ class FirestoreApi {
               } else if (scoreValue is String && scoreValue.isNotEmpty) {
                 finalScore = int.tryParse(scoreValue);
               }
+              final totalMarkValue = assignmentData['totalMark'];
+              int finalTotalMark = 30;
+              if (totalMarkValue is num) {
+                finalTotalMark = totalMarkValue.toInt();
+              } else if (totalMarkValue is String && totalMarkValue.isNotEmpty) {
+                finalTotalMark = int.tryParse(totalMarkValue) ?? 30;
+              }
               reportsMap[teacherId]!.grades.add(GradeRecord(
                 studentName: studentName,
                 assignmentName: assignmentData['name'] ?? 'N/A',
                 score: finalScore,
                 date: assignmentData['date'] ?? 'N/A',
                 submitted: studentScoreData['submitted'] as bool? ?? false,
+                totalMark: finalTotalMark,
               ));
             }
           }
@@ -362,12 +370,20 @@ class FirestoreApi {
               } else if (scoreValue is String && scoreValue.isNotEmpty) {
                 finalScore = int.tryParse(scoreValue);
               }
+              final totalMarkValue = assignmentData['totalMark'];
+              int finalTotalMark = 30;
+              if (totalMarkValue is num) {
+                finalTotalMark = totalMarkValue.toInt();
+              } else if (totalMarkValue is String && totalMarkValue.isNotEmpty) {
+                finalTotalMark = int.tryParse(totalMarkValue) ?? 30;
+              }
               reportsMap[teacherId]!.grades.add(GradeRecord(
                 studentName: studentName,
                 assignmentName: assignmentData['name'] ?? 'N/A',
                 score: finalScore,
                 date: assignmentData['date'] ?? 'N/A',
                 submitted: studentScoreData['submitted'] as bool? ?? false,
+                totalMark: finalTotalMark,
               ));
             }
           }

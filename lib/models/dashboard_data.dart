@@ -59,6 +59,7 @@ class GradeRecord {
   final int? score; // Can be null if not graded yet
   final String date;
   final bool submitted; // To track if the assignment was handed in
+  final int totalMark;
 
   GradeRecord({
     required this.studentName,
@@ -66,6 +67,7 @@ class GradeRecord {
     this.score,
     required this.date,
     required this.submitted,
+    this.totalMark = 30, // Default to 30 as configured in the system
   });
 }
 
