@@ -239,6 +239,7 @@ class AuthService {
                 .collection('parents')
                 .doc(phoneDocId)
                 .update({
+              'fcmToken': FieldValue.delete(),
               'fcmTokens': FieldValue.arrayRemove([fcmToken])
             }).catchError((err) => debugPrint('Error removing token on logout: $err'));
           }

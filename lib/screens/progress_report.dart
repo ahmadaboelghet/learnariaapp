@@ -236,7 +236,33 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                           ),
                         ),
                       )
-                    : Center(child: Text(appLocalizations.noStudentData)),
+                    : Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.asset(
+                                'assets/images/logo_bg.png',
+                                height: 70,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(height: 24),
+                              Text(
+                                locale == 'ar'
+                                    ? 'لا توجد بيانات لعرضها حالياً'
+                                    : 'No data to display yet',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark ? Colors.white54 : Colors.black45,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
       ),
     );
   }

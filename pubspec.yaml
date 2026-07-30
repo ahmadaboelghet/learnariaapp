@@ -54,6 +54,7 @@ dependencies:
   firebase_remote_config: ^6.5.3
   truecaller_sdk: ^1.2.0
   app_badge_plus: ^1.2.0
+  share_plus: ^10.1.0
 
 
 dev_dependencies:

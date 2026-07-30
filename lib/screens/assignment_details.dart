@@ -126,26 +126,27 @@ class AssignmentDetailsScreen extends StatelessWidget {
                                               ),
                                             ),
                                             const SizedBox(width: 12),
-                                            // Submission badge
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: assignment.submitted
-                                                    ? AppColors.greenSuccess.withOpacity(0.08)
-                                                    : Colors.orange.withOpacity(0.08),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                assignment.submitted
-                                                    ? (locale == 'ar' ? 'تم التسليم' : 'Submitted')
-                                                    : (locale == 'ar' ? 'لم يسلم' : 'Pending'),
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: assignment.submitted ? AppColors.greenSuccess : Colors.orange,
+                                            // Submission badge (only for homework)
+                                            if (assignment.assignmentName.contains("واجب"))
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: assignment.submitted
+                                                      ? AppColors.greenSuccess.withOpacity(0.08)
+                                                      : Colors.orange.withOpacity(0.08),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  assignment.submitted
+                                                      ? (locale == 'ar' ? 'تم التسليم' : 'Submitted')
+                                                      : (locale == 'ar' ? 'لم يسلم' : 'Pending'),
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: assignment.submitted ? AppColors.greenSuccess : Colors.orange,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
                                           ],
                                         ),
                                       ],
@@ -154,21 +155,22 @@ class AssignmentDetailsScreen extends StatelessWidget {
                                   const SizedBox(width: 10),
                                   
                                   // Grade display
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: isGraded ? gradeColor.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      isGraded ? '$score/${assignment.totalMark}' : (locale == 'ar' ? 'لم ترصد' : 'Not graded'),
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: isGraded ? gradeColor : Colors.grey,
+                                  if (isGraded || !assignment.assignmentName.contains("واجب"))
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: isGraded ? gradeColor.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        isGraded ? '$score/${assignment.totalMark}' : (locale == 'ar' ? 'لم ترصد' : 'Not graded'),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: isGraded ? gradeColor : Colors.grey,
+                                        ),
                                       ),
                                     ),
-                                  ),
                                 ],
                               ),
                             ),

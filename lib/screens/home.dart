@@ -14,6 +14,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 enum CourseStatus { Upcoming, Ongoing, Finished }
 
@@ -33,9 +35,8 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedPaymentMonth = DateTime.now();
   int _unreadNotificationsCount = 0;
 
-  DashboardData? get _dashboardData => _studentsData.isNotEmpty ? _studentsData[_currentStudentIndex] : null;
-
-
+  DashboardData? get _dashboardData =>
+      _studentsData.isNotEmpty ? _studentsData[_currentStudentIndex] : null;
 
   Future<void> _fetchData() async {
     if (!mounted) return;
@@ -78,7 +79,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   'fcmTokens': FieldValue.arrayUnion([fcmToken]),
                 }, SetOptions(merge: true));
           }
-          debugPrint('FCM Token successfully synced to parents collection for: $phoneFormats');
+          debugPrint(
+            'FCM Token successfully synced to parents collection for: $phoneFormats',
+          );
         }
       } catch (fcmError) {
         debugPrint('Failed to sync FCM Token: $fcmError');
@@ -90,11 +93,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Fetch unread notifications count
       try {
-        final notifications = await FirestoreApi().fetchNotifications(parentPhoneNumber: parentPhone);
+        final notifications = await FirestoreApi().fetchNotifications(
+          parentPhoneNumber: parentPhone,
+        );
         final prefs = await SharedPreferences.getInstance();
         final readIds = prefs.getStringList('read_notification_ids') ?? [];
-        final unread = notifications.where((item) => !readIds.contains(item.id)).length;
-        
+        final unread = notifications
+            .where((item) => !readIds.contains(item.id))
+            .length;
+
         // Update launcher icon badge count programmatically
         try {
           AppBadgePlus.updateBadge(unread);
@@ -180,7 +187,9 @@ class _HomeScreenState extends State<HomeScreen> {
   // --- دالة لحساب الواجبات التي لم يتم تسليمها ---
   int get notSubmittedAssignmentsCount {
     if (_dashboardData == null) return 0;
-    final totalAssignments = _dashboardData!.reportsByTeacher.expand((report) => report.grades).length;
+    final totalAssignments = _dashboardData!.reportsByTeacher
+        .expand((report) => report.grades)
+        .length;
     return totalAssignments - submittedAssignmentsCount;
   }
 
@@ -217,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final weekDays = _generateWeekDays();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final locale = Localizations.localeOf(context).languageCode;
-    
+
     return Container(
       height: 90,
       margin: const EdgeInsets.symmetric(vertical: 10),
@@ -230,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final isToday = DateUtils.isSameDay(day, DateTime.now());
           final dayName = DateFormat('E', locale).format(day);
           final dayNum = DateFormat('d').format(day);
-          
+
           return GestureDetector(
             onTap: () {
               setState(() {
@@ -242,23 +251,29 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 60,
               margin: const EdgeInsets.only(right: 10),
               decoration: BoxDecoration(
-                color: isSelected 
-                    ? AppColors.primaryYello 
-                    : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+                color: isSelected
+                    ? AppColors.primaryYello
+                    : (isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.black.withOpacity(0.03)),
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(
-                  color: isSelected 
-                      ? AppColors.primaryYello 
-                      : (isDark ? AppColors.glassBorderDark : AppColors.glassBorderLight),
+                  color: isSelected
+                      ? AppColors.primaryYello
+                      : (isDark
+                            ? AppColors.glassBorderDark
+                            : AppColors.glassBorderLight),
                   width: 1.2,
                 ),
-                boxShadow: isSelected ? [
-                  BoxShadow(
-                    color: AppColors.primaryYello.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  )
-                ] : null,
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primaryYello.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -267,8 +282,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     dayName,
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? Colors.white : (isDark ? Colors.white54 : Colors.black54),
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: isSelected
+                          ? Colors.white
+                          : (isDark ? Colors.white54 : Colors.black54),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -287,10 +306,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 5,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isSelected ? Colors.white : AppColors.primaryYello,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.primaryYello,
                       ),
                     ),
-                  ]
+                  ],
                 ],
               ),
             ),
@@ -308,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final hour = int.parse(timeParts[0]);
       final minute = int.parse(timeParts[1]);
       final tempDate = DateTime(2020, 1, 1, hour, minute);
-      
+
       final formatted = DateFormat('h:mm a').format(tempDate);
       if (parts.length > 1) {
         return '$formatted - ${parts[1]}';
@@ -341,13 +362,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void _scrollToCurrentMonth({bool animate = true}) {
     if (!_monthScrollController.hasClients) return;
     final months = _generateMonths();
-    int targetIndex = months.indexWhere((m) =>
-        m.month == _selectedPaymentMonth.month &&
-        m.year == _selectedPaymentMonth.year);
+    int targetIndex = months.indexWhere(
+      (m) =>
+          m.month == _selectedPaymentMonth.month &&
+          m.year == _selectedPaymentMonth.year,
+    );
     if (targetIndex != -1) {
-      const double itemWidth = 110.0; // Dynamic width estimate for 'MMM yyyy' layout
+      const double itemWidth =
+          110.0; // Dynamic width estimate for 'MMM yyyy' layout
       final double screenWidth = MediaQuery.of(context).size.width;
-      final double offset = (targetIndex * itemWidth) - (screenWidth / 2) + (itemWidth / 2);
+      final double offset =
+          (targetIndex * itemWidth) - (screenWidth / 2) + (itemWidth / 2);
       final double maxScroll = _monthScrollController.position.maxScrollExtent;
       final double finalOffset = offset.clamp(0.0, maxScroll);
       if (animate) {
@@ -365,14 +390,17 @@ class _HomeScreenState extends State<HomeScreen> {
   List<DateTime> _generateMonths() {
     final now = DateTime.now();
     // Return last 6 months, current month, and next 5 months (total 12 months)
-    return List.generate(12, (index) => DateTime(now.year, now.month - 6 + index));
+    return List.generate(
+      12,
+      (index) => DateTime(now.year, now.month - 6 + index),
+    );
   }
 
   List<Map<String, dynamic>> _getGroupPaymentsForMonth(DateTime date) {
     if (_dashboardData == null) return [];
-    
+
     final monthStr = DateFormat('yyyy-MM').format(date);
-    
+
     return _dashboardData!.reportsByTeacher.map((report) {
       final payment = report.payments.firstWhere(
         (p) => p.month == monthStr,
@@ -384,12 +412,12 @@ class _HomeScreenState extends State<HomeScreen> {
           receipt: '-',
         ),
       );
-      
+
       final isPaid = payment.paid;
       final statusTextEn = isPaid ? 'Paid' : 'Unpaid';
       final statusTextAr = isPaid ? 'تم الدفع' : 'لم يتم الدفع';
       final color = isPaid ? AppColors.greenSuccess : AppColors.errorRed;
-      
+
       return {
         'subject': report.subject,
         'teacher': report.teacherName,
@@ -408,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final months = _generateMonths();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final locale = Localizations.localeOf(context).languageCode;
-    
+
     return Container(
       height: 50,
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -418,9 +446,11 @@ class _HomeScreenState extends State<HomeScreen> {
         itemCount: months.length,
         itemBuilder: (context, index) {
           final monthDate = months[index];
-          final isSelected = monthDate.month == _selectedPaymentMonth.month && monthDate.year == _selectedPaymentMonth.year;
+          final isSelected =
+              monthDate.month == _selectedPaymentMonth.month &&
+              monthDate.year == _selectedPaymentMonth.year;
           final monthName = DateFormat('MMM yyyy', locale).format(monthDate);
-          
+
           return GestureDetector(
             onTap: () {
               setState(() {
@@ -434,14 +464,18 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               margin: const EdgeInsets.only(right: 8),
               decoration: BoxDecoration(
-                color: isSelected 
-                    ? AppColors.primaryYello 
-                    : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+                color: isSelected
+                    ? AppColors.primaryYello
+                    : (isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.black.withOpacity(0.03)),
                 borderRadius: BorderRadius.circular(25),
                 border: Border.all(
-                  color: isSelected 
-                      ? AppColors.primaryYello 
-                      : (isDark ? AppColors.glassBorderDark : AppColors.glassBorderLight),
+                  color: isSelected
+                      ? AppColors.primaryYello
+                      : (isDark
+                            ? AppColors.glassBorderDark
+                            : AppColors.glassBorderLight),
                   width: 1.2,
                 ),
               ),
@@ -460,12 +494,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPaymentSection(AppLocalizations appLocalizations, Color textColor) {
+  Widget _buildPaymentSection(
+    AppLocalizations appLocalizations,
+    Color textColor,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final locale = Localizations.localeOf(context).languageCode;
     final paymentList = _getGroupPaymentsForMonth(_selectedPaymentMonth);
-    
-    final sectionTitle = locale == 'ar' ? 'حالة الدفع الشهري' : 'Monthly Payment Status';
+
+    final sectionTitle = locale == 'ar'
+        ? 'حالة الدفع الشهري'
+        : 'Monthly Payment Status';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,7 +524,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20.0),
                 child: Text(
-                  locale == 'ar' ? 'لا توجد تفاصيل دفع' : 'No payment details available',
+                  locale == 'ar'
+                      ? 'لا توجد تفاصيل دفع'
+                      : 'No payment details available',
                   style: AppTextStyles.secondaryText,
                 ),
               ),
@@ -494,16 +535,21 @@ class _HomeScreenState extends State<HomeScreen> {
         else
           ...paymentList.map((paymentInfo) {
             final isPaid = paymentInfo['isPaid'] as bool;
-            
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 10.0),
               child: GlassContainer(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     Icon(
-                      isPaid ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+                      isPaid
+                          ? Icons.check_circle_rounded
+                          : Icons.warning_amber_rounded,
                       color: paymentInfo['color'],
                       size: 24,
                     ),
@@ -531,17 +577,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          if (isPaid && paymentInfo['date'] != '-')
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4.0),
-                              child: Text(
-                                '${locale == 'ar' ? 'تاريخ الدفع' : 'Payment Date'}: ${paymentInfo['date']}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isDark ? Colors.white38 : Colors.black45,
-                                ),
-                              ),
-                            ),
+                          // Payment date removed per request
                         ],
                       ),
                     ),
@@ -551,11 +587,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          isPaid ? paymentInfo['amount'] : (locale == 'ar' ? 'غير مدفوع' : 'Unpaid'),
+                          isPaid
+                              ? paymentInfo['amount']
+                              : (locale == 'ar' ? 'غير مدفوع' : 'Unpaid'),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: isPaid ? AppColors.greenSuccess : AppColors.errorRed,
+                            color: isPaid
+                                ? AppColors.greenSuccess
+                                : AppColors.errorRed,
                           ),
                         ),
                         if (isPaid)
@@ -581,7 +621,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
-    final textColor = Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -591,10 +632,7 @@ class _HomeScreenState extends State<HomeScreen> {
         leadingWidth: 64,
         leading: Padding(
           padding: const EdgeInsets.all(4.0),
-          child: Image.asset(
-            'assets/images/logo_bg.png',
-            fit: BoxFit.contain,
-          ),
+          child: Image.asset('assets/images/logo_bg.png', fit: BoxFit.contain),
         ),
         title: Text(
           appLocalizations.home,
@@ -610,36 +648,27 @@ class _HomeScreenState extends State<HomeScreen> {
         child: _isLoading
             ? const HomeShimmer()
             : _errorMessage.isNotEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Text(
-                        _errorMessage,
-                        style: AppTextStyles.bodyText.copyWith(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  )
-                : _dashboardData != null &&
-                        _dashboardData!.reportsByTeacher.isNotEmpty
-                    ? RefreshIndicator(
-                        onRefresh: _fetchData,
-                        child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.all(16.0),
-                          child: _buildDashboardContent(appLocalizations, textColor),
-                        ),
-                      )
-                    : Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Text(
-                            appLocalizations.noStudentDataContactTeacher,
-                            style: AppTextStyles.secondaryText,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Text(
+                    _errorMessage,
+                    style: AppTextStyles.bodyText.copyWith(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              )
+            : _dashboardData != null &&
+                  _dashboardData!.reportsByTeacher.isNotEmpty
+            ? RefreshIndicator(
+                onRefresh: _fetchData,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16.0),
+                  child: _buildDashboardContent(appLocalizations, textColor),
+                ),
+              )
+            : _buildEmptyState(appLocalizations, isDark),
       ),
     );
   }
@@ -671,12 +700,16 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primaryYello
-                    : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04)),
+                    : (isDark
+                          ? Colors.white.withOpacity(0.06)
+                          : Colors.black.withOpacity(0.04)),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: isSelected
                       ? AppColors.primaryYello
-                      : (isDark ? AppColors.glassBorderDark : AppColors.glassBorderLight),
+                      : (isDark
+                            ? AppColors.glassBorderDark
+                            : AppColors.glassBorderLight),
                   width: 1.2,
                 ),
                 boxShadow: isSelected
@@ -685,7 +718,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: AppColors.primaryYello.withOpacity(0.25),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
-                        )
+                        ),
                       ]
                     : null,
               ),
@@ -695,7 +728,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                    color: isSelected
+                        ? Colors.white
+                        : (isDark ? Colors.white70 : Colors.black87),
                   ),
                 ),
               ),
@@ -741,7 +776,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: _buildSummaryCard(
                 title: appLocalizations.assignments,
-                value: '${appLocalizations.submitted}: $submittedAssignmentsCount',
+                value:
+                    '${appLocalizations.submitted}: $submittedAssignmentsCount',
                 description:
                     '${appLocalizations.notSubmitted}: $notSubmittedAssignmentsCount',
                 color: AppColors.primaryYello,
@@ -759,19 +795,19 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        
+
         // --- Monthly Payment Status Section ---
         _buildPaymentSection(appLocalizations, textColor ?? Colors.black87),
-        
+
         const SizedBox(height: 25),
         Text(
           appLocalizations.todaysCourses,
           style: AppTextStyles.heading2.copyWith(color: textColor),
         ),
-        
+
         // --- Horizontal Week Calendar Selector Strip ---
         _buildCalendarStrip(textColor ?? Colors.black87),
-        
+
         const SizedBox(height: 5),
         if (sortedSchedule.isEmpty)
           Padding(
@@ -816,30 +852,39 @@ class _HomeScreenState extends State<HomeScreen> {
         Container(
           height: 160,
           child: reportsWithGradedAssignments.isEmpty
-          ? Center(child: Text(appLocalizations.noAssignmentsFound, style: AppTextStyles.secondaryText))
-          : ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: reportsWithGradedAssignments.length,
-            itemBuilder: (context, index) {
-              final report = reportsWithGradedAssignments[index];
-              
-              // --- منطق جديد لجلب آخر درجة مرصودة فقط ---
-              final gradedAssignments = report.grades.where((g) => g.score != null).toList();
-              gradedAssignments.sort((a, b) => b.date.compareTo(a.date));
-              final latestGradeRecord = gradedAssignments.isNotEmpty ? gradedAssignments.first : null;
-              final latestGrade = latestGradeRecord?.score ?? 0;
-              final latestTotal = latestGradeRecord?.totalMark ?? 30;
-              
-              return _buildSubjectAssignmentCell(
-                subject: report.subject,
-                teacher: report.teacherName,
-                latestScore: latestGrade,
-                totalMark: latestTotal,
-                allGrades: report.grades,
-                appLocalizations: appLocalizations,
-              );
-            },
-          ),
+              ? Center(
+                  child: Text(
+                    appLocalizations.noAssignmentsFound,
+                    style: AppTextStyles.secondaryText,
+                  ),
+                )
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: reportsWithGradedAssignments.length,
+                  itemBuilder: (context, index) {
+                    final report = reportsWithGradedAssignments[index];
+
+                    // --- منطق جديد لجلب آخر درجة مرصودة فقط ---
+                    final gradedAssignments = report.grades
+                        .where((g) => g.score != null)
+                        .toList();
+                    gradedAssignments.sort((a, b) => b.date.compareTo(a.date));
+                    final latestGradeRecord = gradedAssignments.isNotEmpty
+                        ? gradedAssignments.first
+                        : null;
+                    final latestGrade = latestGradeRecord?.score ?? 0;
+                    final latestTotal = latestGradeRecord?.totalMark ?? 30;
+
+                    return _buildSubjectAssignmentCell(
+                      subject: report.subject,
+                      teacher: report.teacherName,
+                      latestScore: latestGrade,
+                      totalMark: latestTotal,
+                      allGrades: report.grades,
+                      appLocalizations: appLocalizations,
+                    );
+                  },
+                ),
         ),
         // =======================     نهاية الجزء الذي تم تعديله    =======================
         SizedBox(height: 20),
@@ -881,12 +926,14 @@ class _HomeScreenState extends State<HomeScreen> {
     Color? textColor,
   ) {
     final locale = Localizations.localeOf(context).languageCode;
-    final studentName = _dashboardData?.studentName ?? (locale == 'ar' ? 'الطالب' : 'Student');
+    final studentName =
+        _dashboardData?.studentName ?? (locale == 'ar' ? 'الطالب' : 'Student');
     final greetingText = locale == 'ar'
         ? 'مرحباً، ولي أمر الطالب $studentName'
         : 'Hello, $studentName\'s parent!';
 
-    final parentPhone = FirebaseAuth.instance.currentUser?.email?.split('@').first ?? '';
+    final parentPhone =
+        FirebaseAuth.instance.currentUser?.email?.split('@').first ?? '';
 
     return Row(
       children: [
@@ -941,12 +988,21 @@ class _HomeScreenState extends State<HomeScreen> {
           isLabelVisible: _unreadNotificationsCount > 0,
           backgroundColor: AppColors.errorRed,
           textColor: Colors.white,
-          alignment: const Alignment(0.65, -0.65), // Floats nicely above the bell icon
+          alignment: const Alignment(
+            0.65,
+            -0.65,
+          ), // Floats nicely above the bell icon
           child: IconButton(
-            icon: Icon(Icons.notifications_none_rounded, color: textColor, size: 28),
+            icon: Icon(
+              Icons.notifications_none_rounded,
+              color: textColor,
+              size: 28,
+            ),
             onPressed: () async {
               await Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
               );
               _fetchData(); // Refresh notifications unread count when returning
             },
@@ -1050,6 +1106,173 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildEmptyState(AppLocalizations appLocalizations, bool isDark) {
+    final locale = Localizations.localeOf(context).languageCode;
+    final isAr = locale == 'ar';
+
+    final subtitleText = isAr
+        ? 'لم يتم ربط أي طالب برقم هاتفك بعد. يرجى التواصل مع المعلم لإضافتك.'
+        : 'No students are linked to your phone number yet. Please contact the teacher to add you.';
+
+    final promoTitle = isAr
+        ? 'هل معلم ابنك لا يستخدم الناظر؟'
+        : "Is your student's teacher not using Elnazer?";
+    final promoDesc = isAr
+        ? 'تطبيق الناظر يعمل بالربط المباشر مع لوحة تحكم المعلم (لوحة تحكم الناظر). شارك الرابط مع معلم ابنك الآن ليدير مجموعاته ومواعيده وتتمكن من متابعة درجات وغياب ابنك لحظة بلحظة!'
+        : 'Elnazer app works by linking directly with the teacher\'s dashboard (Elnazer Dashboard). Share the link with your teacher now to manage groups, schedules, and let you track grades and attendance instantly!';
+
+    final shareButtonText = isAr
+        ? 'مشاركة الرابط مع المعلم'
+        : 'Share Link with Teacher';
+    final shareMessage = isAr
+        ? 'يا مستر، لوحة تحكم الناظر هتوفر عليك وقت ومجهود كبير في إدارة المجموعات، الحضور، الغياب، والدرجات، وهتخليني أتابع مستوى ابني أول بأول! ده رابط لوحة التحكم: https://elnazer-edu.com/'
+        : 'Hello Teacher, Elnazer Dashboard will save you a lot of time and effort in managing groups, attendance, and grades, and lets me track progress instantly! Here is the dashboard link: https://elnazer-edu.com/';
+
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // 1. Welcome Card
+          GlassContainer(
+            borderRadius: 24,
+            padding: const EdgeInsets.all(20.0),
+            fillOpacity: isDark ? 0.08 : 0.45,
+            borderOpacity: 0.12,
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/logo_bg.png',
+                      height: 45,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      isAr
+                          ? 'مرحباً بك في تطبيق الناظر'
+                          : 'Welcome to Elnazer App',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  subtitleText,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? Colors.white60 : Colors.black54,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // 2. Promo Card with Image & Action
+          GlassContainer(
+            borderRadius: 28,
+            padding: const EdgeInsets.all(24.0),
+            fillOpacity: isDark ? 0.1 : 0.5,
+            borderOpacity: 0.15,
+            child: Column(
+              children: [
+                // Image container
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: AppColors.primaryYello.withOpacity(0.3),
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Image.asset(
+                      'assets/images/dashboard.jpeg',
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  promoTitle,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryYello,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  promoDesc,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    height: 1.6,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 22),
+
+                // Share Link Button
+                Builder(
+                  builder: (btnContext) => ElevatedButton.icon(
+                  onPressed: () {
+                    final box = btnContext.findRenderObject() as RenderBox?;
+                    Share.share(
+                      shareMessage,
+                      sharePositionOrigin: box != null
+                          ? box.localToGlobal(Offset.zero) & box.size
+                          : Rect.fromLTWH(0, 0, MediaQuery.of(context).size.width, 80),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.share_rounded,
+                    size: 18,
+                    color: Colors.black87,
+                  ),
+                  label: Text(
+                    shareButtonText,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryYello,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 3,
+                    shadowColor: AppColors.primaryYello.withOpacity(0.3),
+                  ),
+                )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSubjectAssignmentCell({
     required String subject,
     required String teacher,
@@ -1059,16 +1282,18 @@ class _HomeScreenState extends State<HomeScreen> {
     required AppLocalizations appLocalizations,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     // Performance percentage for color and progress ring
-    final int percentage = totalMark > 0 ? ((latestScore / totalMark) * 100).toInt() : 0;
-    
+    final int percentage = totalMark > 0
+        ? ((latestScore / totalMark) * 100).toInt()
+        : 0;
+
     // Dynamic color based on performance
     final Color primaryColor = percentage >= 85
         ? AppColors.greenSuccess
         : (percentage >= 65
-            ? (isDark ? Colors.white60 : Colors.black54)
-            : AppColors.errorRed);
+              ? (isDark ? Colors.white60 : Colors.black54)
+              : AppColors.errorRed);
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
@@ -1096,7 +1321,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    subject.isNotEmpty ? subject.substring(0, 1).toUpperCase() : 'S',
+                    subject.isNotEmpty
+                        ? subject.substring(0, 1).toUpperCase()
+                        : 'S',
                     style: TextStyle(
                       color: primaryColor,
                       fontWeight: FontWeight.bold,
@@ -1167,7 +1394,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: CircularProgressIndicator(
                         value: percentage / 100,
                         strokeWidth: 3.5,
-                        backgroundColor: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04),
+                        backgroundColor: isDark
+                            ? Colors.white.withOpacity(0.08)
+                            : Colors.black.withOpacity(0.04),
                         valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                       ),
                     ),
@@ -1199,8 +1428,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final Color primaryColor = percentage >= 85
         ? AppColors.greenSuccess
         : (percentage >= 65
-            ? (isDark ? Colors.white60 : Colors.black54)
-            : AppColors.errorRed);
+              ? (isDark ? Colors.white60 : Colors.black54)
+              : AppColors.errorRed);
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
@@ -1230,7 +1459,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    subject.isNotEmpty ? subject.substring(0, 1).toUpperCase() : 'S',
+                    subject.isNotEmpty
+                        ? subject.substring(0, 1).toUpperCase()
+                        : 'S',
                     style: TextStyle(
                       color: primaryColor,
                       fontWeight: FontWeight.bold,
@@ -1301,7 +1532,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: CircularProgressIndicator(
                         value: percentage / 100,
                         strokeWidth: 3.5,
-                        backgroundColor: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04),
+                        backgroundColor: isDark
+                            ? Colors.white.withOpacity(0.08)
+                            : Colors.black.withOpacity(0.04),
                         valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                       ),
                     ),
