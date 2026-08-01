@@ -29,14 +29,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   StreamSubscription<TcSdkCallback>? _truecallerSubscription;
   String? _codeVerifier;
+  bool _isTruecallerFlowActive = false;
 
   @override
   void initState() {
     super.initState();
     if (Platform.isAndroid) {
       _initTruecaller();
-    } else if (Platform.isIOS) {
-      _checkCachedTruecallerPhone();
     }
   }
 
@@ -45,6 +44,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       debugPrint("Truecaller ForgotPassword: Registering stream listener first...");
       _truecallerSubscription = TcSdk.streamCallbackData.listen((tcSdkCallback) async {
         debugPrint("Truecaller ForgotPassword Callback: Result = ${tcSdkCallback.result}, Error = ${tcSdkCallback.error}");
+        if (!_isTruecallerFlowActive) {
+          debugPrint("Truecaller ForgotPassword Callback ignored: flow not user-initiated.");
+          return;
+        }
         switch (tcSdkCallback.result) {
           case TcSdkCallbackResult.success:
             debugPrint("Truecaller ForgotPassword Callback: SUCCESS! Authorization Code obtained.");
@@ -183,6 +186,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               TcSdk.setCodeChallenge(codeChallenge);
               TcSdk.setOAuthScopes(['phone', 'openid']);
               TcSdk.setOAuthState("learnaria_auth_state");
+              debugPrint("Truecaller: Requesting authorization code...");
+              _isTruecallerFlowActive = true;
               TcSdk.getAuthorizationCode;
               return;
             }

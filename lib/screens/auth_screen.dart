@@ -335,14 +335,13 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
 
   StreamSubscription<TcSdkCallback>? _truecallerSubscription;
   String? _codeVerifier;
+  bool _isTruecallerFlowActive = false;
 
   @override
   void initState() {
     super.initState();
     if (Platform.isAndroid) {
       _initTruecaller();
-    } else if (Platform.isIOS) {
-      _checkCachedTruecallerPhone();
     }
   }
 
@@ -371,6 +370,10 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
       debugPrint("Truecaller: Registering stream listener first...");
       _truecallerSubscription = TcSdk.streamCallbackData.listen((tcSdkCallback) async {
         debugPrint("Truecaller Callback: Result = ${tcSdkCallback.result}, Error = ${tcSdkCallback.error}");
+        if (!_isTruecallerFlowActive) {
+          debugPrint("Truecaller Callback ignored: flow not user-initiated.");
+          return;
+        }
         switch (tcSdkCallback.result) {
           case TcSdkCallbackResult.success:
             debugPrint("Truecaller Callback: SUCCESS! Authorization Code obtained.");
@@ -503,6 +506,7 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
               TcSdk.setOAuthScopes(['phone', 'openid']);
               TcSdk.setOAuthState("learnaria_auth_state");
               debugPrint("Truecaller: Requesting authorization code...");
+              _isTruecallerFlowActive = true;
               TcSdk.getAuthorizationCode;
               debugPrint("Truecaller: getAuthorizationCode invoked.");
               return; // Wait for callback stream response
