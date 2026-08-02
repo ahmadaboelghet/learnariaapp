@@ -36,7 +36,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   late String _currentVerificationId;
   Timer? _timer;
-  int _secondsRemaining = 60; // 1 minute (60 seconds)
+  int _secondsRemaining = 30; // 30 seconds
   bool _timerExpired = false;
 
   @override
@@ -48,7 +48,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   void _startTimer() {
     _timer?.cancel();
-    _secondsRemaining = 60;
+    _secondsRemaining = 30;
     _timerExpired = false;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
@@ -139,6 +139,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black87;
 
+    String formattedDisplayPhone = widget.phoneNumber;
+    if (formattedDisplayPhone.startsWith('+20')) {
+      formattedDisplayPhone = '0' + formattedDisplayPhone.substring(3);
+    } else if (formattedDisplayPhone.startsWith('+2')) {
+      formattedDisplayPhone = '0' + formattedDisplayPhone.substring(2);
+    } else if (formattedDisplayPhone.startsWith('20')) {
+      formattedDisplayPhone = '0' + formattedDisplayPhone.substring(2);
+    }
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
@@ -200,7 +209,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     const SizedBox(height: 24),
                     // Title/Instruction
                     Text(
-                      localizations.enterOtpSentTo(widget.phoneNumber),
+                      localizations.enterOtpSentTo(formattedDisplayPhone),
                       textAlign: TextAlign.center,
                       style: AppTextStyles.heading2.copyWith(
                         color: textColor,
@@ -210,11 +219,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     const SizedBox(height: 12),
                     Text(
                       widget.mode == OtpMode.resetPassword
-                          ? (Localizations.localeOf(context).languageCode ==
-                                    'ar'
-                                ? 'أدخل رمز التحقق المرسل إلى رقم هاتفك لإعادة تعيين كلمة المرور.'
-                                : 'Enter the verification code sent to your phone to reset your password.')
-                          : 'We have sent a verification code to your phone number. Enter it below to proceed.',
+                          ? (Localizations.localeOf(context).languageCode == 'ar'
+                              ? 'أدخل رمز التحقق المرسل إلى رقم هاتفك لإعادة تعيين كلمة المرور.'
+                              : 'Enter the verification code sent to your phone to reset your password.')
+                          : (Localizations.localeOf(context).languageCode == 'ar'
+                              ? 'لقد أرسلنا رمز التحقق إلى رقم هاتفك. أدخله أدناه للمتابعة.'
+                              : 'We have sent a verification code to your phone number. Enter it below to proceed.'),
                       textAlign: TextAlign.center,
                       style: AppTextStyles.secondaryText.copyWith(
                         color: isDark ? Colors.white60 : Colors.black54,
@@ -317,52 +327,43 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     setState(() => _isLoading = true);
 
     try {
-      String clean = parentPhone.replaceAll(RegExp(r'[^\d]'), '').trim();
-      if (clean.startsWith('20')) {
-        clean = clean.substring(2);
-      }
-      if (clean.startsWith('0')) {
-        clean = clean.substring(1);
-      }
-      final phoneFormats = ["0$clean", "+20$clean"];
-
-      final studentDocs = await FirebaseFirestore.instance
-          .collectionGroup('students')
-          .where('parentPhoneNumber', whereIn: phoneFormats)
-          .limit(1)
-          .get();
-
-      if (studentDocs.docs.isNotEmpty) {
-        final pathSegments = studentDocs.docs.first.reference.path.split('/');
-        final tId = pathSegments[1];
-        if (tId.startsWith('+') ||
-            tId.startsWith('0') ||
-            RegExp(r'^\d+$').hasMatch(tId)) {
-          teacherPhone = tId;
-          final tDoc = await FirebaseFirestore.instance
-              .collection('teachers')
-              .doc(tId)
-              .get();
-          if (tDoc.exists && tDoc.data()?['name'] != null) {
-            teacherName = tDoc.data()?['name'];
-          }
-        }
+      debugPrint("OTP Verification Support Lookup: parentPhone = $parentPhone");
+      final contactInfo = await _authService.getTeacherContact(parentPhone);
+      debugPrint("OTP Verification Support Lookup Result: $contactInfo");
+      if (contactInfo != null) {
+        teacherPhone = contactInfo['teacherPhone'] ?? teacherPhone;
+        teacherName = contactInfo['teacherName'] ?? teacherName;
       }
     } catch (e) {
-      debugPrint("Error looking up teacher phone: $e");
+      debugPrint("Error looking up teacher phone via Cloud Function: $e");
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
 
-    final message = locale == 'ar'
-        ? 'مرحباً يا أستاذ $teacherName، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $parentPhone. هل يمكنك تفعيل الحساب لي من لوحة التحكم؟'
-        : 'Hello Mr. $teacherName, I faced an issue receiving the OTP code to activate my parent account for phone number $parentPhone. Could you please activate my account from the dashboard?';
+    String formattedParentPhone = parentPhone;
+    if (formattedParentPhone.startsWith('+20')) {
+      formattedParentPhone = '0' + formattedParentPhone.substring(3);
+    } else if (formattedParentPhone.startsWith('+2')) {
+      formattedParentPhone = '0' + formattedParentPhone.substring(2);
+    } else if (formattedParentPhone.startsWith('20')) {
+      formattedParentPhone = '0' + formattedParentPhone.substring(2);
+    }
 
-    final cleanTeacherPhone = teacherPhone
+    final message = locale == 'ar'
+        ? 'مرحباً يا مستر $teacherName، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $formattedParentPhone. هل يمكنك تفعيل الحساب لي من لوحة التحكم؟'
+        : 'Hello Mr. $teacherName, I faced an issue receiving the OTP code to activate my parent account for phone number $formattedParentPhone. Could you please activate my account from the dashboard?';
+
+    String cleanTeacherPhone = teacherPhone
         .replaceAll(RegExp(r'[^\d]'), '')
         .trim();
+    if (cleanTeacherPhone.startsWith('0')) {
+      cleanTeacherPhone = '20' + cleanTeacherPhone.substring(1);
+    } else if (!cleanTeacherPhone.startsWith('20') &&
+        cleanTeacherPhone.isNotEmpty) {
+      cleanTeacherPhone = '20' + cleanTeacherPhone;
+    }
     final url = Uri.parse(
       "https://wa.me/$cleanTeacherPhone?text=${Uri.encodeComponent(message)}",
     );

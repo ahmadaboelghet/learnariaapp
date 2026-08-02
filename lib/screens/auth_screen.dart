@@ -109,7 +109,9 @@ class _AuthScreenState extends State<AuthScreen>
                   duration: const Duration(milliseconds: 600),
                   opacity: _showContent && !_isKeyboardVisible ? 1.0 : 0.0,
                   child: Text(
-                    "Let's Get Started",
+                    Localizations.localeOf(context).languageCode == 'ar'
+                        ? 'لنبدأ الآن'
+                        : "Let's Get Started",
                     style: AppTextStyles.heading1.copyWith(
                       color: isDark ? Colors.white : Colors.black87,
                       fontSize: 22,
@@ -490,39 +492,15 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
     String teacherName = locale == 'ar' ? 'المعلم' : 'the Teacher';
 
     try {
-      String clean = enteredPhone.replaceAll(RegExp(r'[^\d]'), '').trim();
-      if (clean.startsWith('20')) {
-        clean = clean.substring(2);
-      }
-      if (clean.startsWith('0')) {
-        clean = clean.substring(1);
-      }
-      final phoneFormats = ["0$clean", "+20$clean"];
-
-      final studentDocs = await FirebaseFirestore.instance
-          .collectionGroup('students')
-          .where('parentPhoneNumber', whereIn: phoneFormats)
-          .limit(1)
-          .get();
-
-      if (studentDocs.docs.isNotEmpty) {
-        final pathSegments = studentDocs.docs.first.reference.path.split('/');
-        final tId = pathSegments[1];
-        if (tId.startsWith('+') ||
-            tId.startsWith('0') ||
-            RegExp(r'^\d+$').hasMatch(tId)) {
-          teacherPhone = tId;
-          final tDoc = await FirebaseFirestore.instance
-              .collection('teachers')
-              .doc(tId)
-              .get();
-          if (tDoc.exists && tDoc.data()?['name'] != null) {
-            teacherName = tDoc.data()?['name'];
-          }
-        }
+      debugPrint("AuthScreen Support Lookup: enteredPhone = $enteredPhone");
+      final contactInfo = await _authService.getTeacherContact(enteredPhone);
+      debugPrint("AuthScreen Support Lookup Result: $contactInfo");
+      if (contactInfo != null) {
+        teacherPhone = contactInfo['teacherPhone'] ?? teacherPhone;
+        teacherName = contactInfo['teacherName'] ?? teacherName;
       }
     } catch (e) {
-      debugPrint("Error looking up teacher phone: $e");
+      debugPrint("Error looking up teacher phone via Cloud Function: $e");
     }
 
     if (mounted) {
@@ -570,13 +548,28 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(dialogCtx);
-                final whatsappMsg = locale == 'ar'
-                    ? 'مرحباً يا أستاذ، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $enteredPhone. هل يمكنك تفعيل الحساب لي من لوحة التحكم؟'
-                    : 'Hello, I faced an issue receiving the OTP code to activate my parent account for phone number $enteredPhone. Could you please activate my account from the dashboard?';
+                String formattedParentPhone = enteredPhone;
+                if (formattedParentPhone.startsWith('+20')) {
+                  formattedParentPhone = '0' + formattedParentPhone.substring(3);
+                } else if (formattedParentPhone.startsWith('+2')) {
+                  formattedParentPhone = '0' + formattedParentPhone.substring(2);
+                } else if (formattedParentPhone.startsWith('20')) {
+                  formattedParentPhone = '0' + formattedParentPhone.substring(2);
+                }
 
-                final cleanTeacherPhone = teacherPhone
+                final whatsappMsg = locale == 'ar'
+                    ? 'مرحباً يا مستر $teacherName، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $formattedParentPhone.  ارجو تفعيل الحساب لي من لوحة التحكم؟'
+                    : 'Hello Mr. $teacherName, I faced an issue receiving the OTP code to activate my parent account for phone number $formattedParentPhone. Could you please activate my account from the dashboard?';
+
+                String cleanTeacherPhone = teacherPhone
                     .replaceAll(RegExp(r'[^\d]'), '')
                     .trim();
+                if (cleanTeacherPhone.startsWith('0')) {
+                  cleanTeacherPhone = '20' + cleanTeacherPhone.substring(1);
+                } else if (!cleanTeacherPhone.startsWith('20') &&
+                    cleanTeacherPhone.isNotEmpty) {
+                  cleanTeacherPhone = '20' + cleanTeacherPhone;
+                }
                 final uri = Uri.parse(
                   "https://wa.me/$cleanTeacherPhone?text=${Uri.encodeComponent(whatsappMsg)}",
                 );

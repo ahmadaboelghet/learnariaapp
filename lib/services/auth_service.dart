@@ -310,4 +310,24 @@ class AuthService {
       (route) => false,
     );
   }
+
+  // جلب معلومات تواصل المدرس الخاص بولي الأمر بشكل آمن ومصرح به
+  Future<Map<String, dynamic>?> getTeacherContact(String phoneNumber) async {
+    try {
+      final HttpsCallable callable = FirebaseFunctions.instance
+          .httpsCallable('getTeacherContactForParent');
+      final results = await callable.call(<String, dynamic>{
+        'phone': phoneNumber,
+      });
+      if (results.data != null && results.data['found'] == true) {
+        return {
+          'teacherPhone': results.data['teacherPhone'] as String,
+          'teacherName': results.data['teacherName'] as String,
+        };
+      }
+    } catch (e) {
+      debugPrint("Error calling getTeacherContactForParent: $e");
+    }
+    return null;
+  }
 }

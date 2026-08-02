@@ -13,6 +13,7 @@ import 'package:learnaria/widgets/phone_text_field.dart';
 import 'package:learnaria/widgets/pulse_loader.dart';
 import 'package:learnaria/widgets/premium_alert.dart';
 import 'package:learnaria/screens/reset_password_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -106,7 +107,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           final userInfo = jsonDecode(userInfoResponse.body);
           final String? rawPhone = userInfo['phone_number'];
           if (rawPhone != null && rawPhone.isNotEmpty) {
-            _navigateToResetScreen(rawPhone.trim());
+            await _checkTruecallerNumberAndProceed(
+              enteredPhone: _phoneController.text.trim(),
+              truecallerPhone: rawPhone.trim(),
+            );
             return;
           }
         }
@@ -132,10 +136,267 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       const channel = MethodChannel('com.elnazeredu.elnazer/truecaller');
       final String? cachedPhone = await channel.invokeMethod<String>('getAndClearCachedPhone');
       if (cachedPhone != null && cachedPhone.isNotEmpty) {
-        _navigateToResetScreen(cachedPhone.trim());
+        await _checkTruecallerNumberAndProceed(
+          enteredPhone: _phoneController.text.trim(),
+          truecallerPhone: cachedPhone.trim(),
+        );
       }
     } catch (e) {
       debugPrint("Error checking cached Truecaller phone in forgot password: $e");
+    }
+  }
+
+  String _normalizePhoneNumberForCompare(String phone) {
+    String clean = phone.replaceAll(RegExp(r'[^\d]'), '').trim();
+    if (clean.startsWith('20')) {
+      clean = clean.substring(2);
+    }
+    if (clean.startsWith('0')) {
+      clean = clean.substring(1);
+    }
+    return clean;
+  }
+
+  Future<void> _checkTruecallerNumberAndProceed({
+    required String enteredPhone,
+    required String truecallerPhone,
+  }) async {
+    final normEntered = _normalizePhoneNumberForCompare(enteredPhone);
+    final normTc = _normalizePhoneNumberForCompare(truecallerPhone);
+
+    if (normEntered == normTc) {
+      _navigateToResetScreen(truecallerPhone);
+    } else {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        final locale = Localizations.localeOf(context).languageCode;
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogCtx) => AlertDialog(
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1E1E1E)
+                : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(
+              locale == 'ar'
+                  ? 'تأكيد رقم الهاتف ⚠️'
+                  : 'Confirm Phone Number ⚠️',
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              locale == 'ar'
+                  ? 'الرقم الذي ادخلته ($enteredPhone) يختلف عن رقم Truecaller الموثق ($truecallerPhone).\n\nهل ترغب في الاستمرار برقم Truecaller أم التحقق من رقمك المكتوب عبر رسالة نصية (SMS)؟'
+                  : 'The number you entered ($enteredPhone) is different from the verified Truecaller number ($truecallerPhone).\n\nDo you want to proceed with the Truecaller number or verify your entered number via SMS?',
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white70
+                    : Colors.black54,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogCtx);
+                  _sendOtpFirebase();
+                },
+                child: Text(
+                  locale == 'ar' ? 'التحقق عبر SMS' : 'Verify via SMS',
+                  style: const TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(dialogCtx);
+                  setState(() => _isLoading = true);
+                  
+                  final bool tcExists = await _authService.checkParentAccountExists(truecallerPhone);
+                  if (mounted) {
+                    if (tcExists) {
+                      _phoneController.text = truecallerPhone
+                          .replaceAll('+20', '0')
+                          .replaceAll('+2', '');
+                      _navigateToResetScreen(truecallerPhone);
+                    } else {
+                      setState(() => _isLoading = false);
+                      PremiumAlert.show(
+                        context,
+                        message: locale == 'ar'
+                            ? 'رقم Truecaller هذا ($truecallerPhone) غير مسجل لدينا. يرجى إنشاء حساب أولاً.'
+                            : 'This Truecaller number ($truecallerPhone) is not registered. Please create an account.',
+                        isError: true,
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryYello,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  locale == 'ar' ? 'رقم Truecaller' : 'Truecaller Number',
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  void _sendOtpFirebase() async {
+    setState(() => _isLoading = true);
+    String phoneNumber = _phoneController.text.trim();
+    if (phoneNumber.startsWith('0')) {
+      phoneNumber = phoneNumber.substring(1);
+    }
+    final String fullPhoneNumber = '+20$phoneNumber';
+
+    try {
+      await _authService.sendOtpForPasswordReset(
+        context,
+        fullPhoneNumber,
+        onCodeSent: () {
+          if (mounted) setState(() => _isLoading = false);
+        },
+        onFailed: (error) {
+          if (mounted) {
+            setState(() => _isLoading = false);
+            _showSupportDialog(fullPhoneNumber);
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showSupportDialog(fullPhoneNumber);
+      }
+    }
+  }
+
+  Future<void> _showSupportDialog(String enteredPhone) async {
+    final locale = Localizations.localeOf(context).languageCode;
+    String teacherPhone = "+201283361553"; // Fallback support number
+    String teacherName = locale == 'ar' ? 'المعلم' : 'the Teacher';
+
+    try {
+      final contactInfo = await _authService.getTeacherContact(enteredPhone);
+      if (contactInfo != null) {
+        teacherPhone = contactInfo['teacherPhone'] ?? teacherPhone;
+        teacherName = contactInfo['teacherName'] ?? teacherName;
+      }
+    } catch (e) {
+      debugPrint("Error looking up teacher phone via Cloud Function: $e");
+    }
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogCtx) => AlertDialog(
+          backgroundColor: Theme.of(context).brightness == Brightness.dark 
+              ? const Color(0xFF1E1E1E) 
+              : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            locale == 'ar' ? 'مشكلة في إرسال الرمز ⚠️' : 'Failed to Send Code ⚠️',
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            locale == 'ar'
+                ? 'تعذر إرسال رمز التحقق (OTP) إلى الرقم $enteredPhone.\n\nبعض شبكات المحمول تحظر رسائل Firebase التلقائية. هل ترغب في التواصل مع $teacherName عبر الواتساب لتفعيل حسابك مباشرة؟'
+                : 'Could not send the verification code (OTP) to $enteredPhone.\n\nSome mobile networks block Firebase SMS. Do you want to contact $teacherName via WhatsApp to activate your account directly?',
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text(
+                locale == 'ar' ? 'إلغاء' : 'Cancel',
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(dialogCtx);
+                
+                String formattedParentPhone = enteredPhone;
+                if (formattedParentPhone.startsWith('+20')) {
+                  formattedParentPhone = '0' + formattedParentPhone.substring(3);
+                } else if (formattedParentPhone.startsWith('+2')) {
+                  formattedParentPhone = '0' + formattedParentPhone.substring(2);
+                } else if (formattedParentPhone.startsWith('20')) {
+                  formattedParentPhone = '0' + formattedParentPhone.substring(2);
+                }
+
+                final whatsappMsg = locale == 'ar'
+                    ? 'مرحباً يا مستر $teacherName، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $formattedParentPhone. هل يمكنك تفعيل الحساب لي من لوحة التحكم؟'
+                    : 'Hello Mr. $teacherName, I faced an issue receiving the OTP code to activate my parent account for phone number $formattedParentPhone. Could you please activate my account from the dashboard?';
+                
+                String cleanTeacherPhone = teacherPhone.replaceAll(RegExp(r'[^\d]'), '').trim();
+                if (cleanTeacherPhone.startsWith('0')) {
+                  cleanTeacherPhone = '20' + cleanTeacherPhone.substring(1);
+                } else if (!cleanTeacherPhone.startsWith('20') && cleanTeacherPhone.isNotEmpty) {
+                  cleanTeacherPhone = '20' + cleanTeacherPhone;
+                }
+                final uri = Uri.parse("https://wa.me/$cleanTeacherPhone?text=${Uri.encodeComponent(whatsappMsg)}");
+                
+                try {
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    if (mounted) {
+                      PremiumAlert.show(
+                        context,
+                        message: locale == 'ar'
+                            ? 'تعذر فتح الواتساب. رقم تواصل المعلم: $teacherPhone'
+                            : 'Could not launch WhatsApp. Teacher contact: $teacherPhone',
+                        isError: true,
+                      );
+                    }
+                  }
+                } catch (e) {
+                  debugPrint("Error launching WhatsApp: $e");
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryYello,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(
+                locale == 'ar' ? 'تواصل واتساب' : 'Contact WhatsApp',
+                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -176,6 +437,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
       final String fullPhoneNumber = '+20$phoneNumber';
 
+      // 1. التحقق من وجود الحساب أولاً
+      final bool alreadyExists = await _authService.checkParentAccountExists(fullPhoneNumber);
+      if (!alreadyExists) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          PremiumAlert.show(
+            context,
+            message: Localizations.localeOf(context).languageCode == 'ar'
+                ? 'رقم الهاتف هذا غير مسجل لدينا. من فضلك قم بإنشاء حساب.'
+                : 'This phone number is not registered. Please create an account.',
+            isError: true,
+          );
+        }
+        return;
+      }
+
+      // 2. التحقق من التروكولر
       if (Platform.isAndroid) {
         try {
           final bool isUsable = await TcSdk.isOAuthFlowUsable;
@@ -186,7 +464,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               TcSdk.setCodeChallenge(codeChallenge);
               TcSdk.setOAuthScopes(['phone', 'openid']);
               TcSdk.setOAuthState("learnaria_auth_state");
-              debugPrint("Truecaller: Requesting authorization code...");
               _isTruecallerFlowActive = true;
               TcSdk.getAuthorizationCode;
               return;
@@ -204,8 +481,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             if (result is Map && result['status'] == 'success') {
               final String? rawPhone = result['phoneNumber'];
               if (rawPhone != null && rawPhone.isNotEmpty) {
-                _navigateToResetScreen(rawPhone.trim());
-                return;
+                String normalizedPhone = rawPhone.trim();
+                if (mounted) {
+                  await _checkTruecallerNumberAndProceed(
+                    enteredPhone: _phoneController.text.trim(),
+                    truecallerPhone: normalizedPhone,
+                  );
+                  return;
+                }
               }
             }
           }
@@ -214,16 +497,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         }
       }
 
-      await _authService.sendOtpForPasswordReset(
-        context,
-        fullPhoneNumber,
-        onCodeSent: () {
-          if (mounted) setState(() => _isLoading = false);
-        },
-        onFailed: (error) {
-          if (mounted) setState(() => _isLoading = false);
-        },
-      );
+      // 3. التحقق عبر الـ SMS في حال تعذر التروكولر
+      _sendOtpFirebase();
     }
   }
 
