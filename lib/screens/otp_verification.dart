@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
 import 'package:learnaria/services/auth_service.dart';
@@ -7,6 +8,8 @@ import 'package:learnaria/widgets/pulse_loader.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:learnaria/widgets/premium_alert.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 enum OtpMode { signup, resetPassword }
 
@@ -31,13 +34,85 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
+  late String _currentVerificationId;
+  Timer? _timer;
+  int _secondsRemaining = 60; // 1 minute (60 seconds)
+  bool _timerExpired = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentVerificationId = widget.verificationId;
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _secondsRemaining = 60;
+    _timerExpired = false;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          if (_secondsRemaining > 0) {
+            _secondsRemaining--;
+          } else {
+            _timerExpired = true;
+            _timer?.cancel();
+          }
+        });
+      }
+    });
+  }
+
+  void _resendCode() async {
+    setState(() => _isLoading = true);
+    await _authService.resendOtp(
+      widget.phoneNumber,
+      onCodeSent: (newVerificationId) {
+        if (mounted) {
+          setState(() {
+            _currentVerificationId = newVerificationId;
+            _isLoading = false;
+          });
+          _startTimer();
+          PremiumAlert.show(
+            context,
+            message: Localizations.localeOf(context).languageCode == 'ar'
+                ? 'تم إعادة إرسال رمز التحقق بنجاح!'
+                : 'Verification code resent successfully!',
+            isError: false,
+          );
+        }
+      },
+      onFailed: (error) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          PremiumAlert.show(
+            context,
+            message: Localizations.localeOf(context).languageCode == 'ar'
+                ? 'فشل إعادة إرسال الرمز. يرجى المحاولة مرة أخرى لاحقاً.'
+                : 'Failed to resend code. Please try again later.',
+            isError: true,
+          );
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _otpController.dispose();
+    super.dispose();
+  }
+
   void _verifyOtp() async {
     if (_otpController.text.length == 6) {
       setState(() => _isLoading = true);
       try {
         await _authService.verifyOtpAndNavigate(
           context,
-          widget.verificationId,
+          _currentVerificationId,
           _otpController.text,
           widget.phoneNumber,
           mode: widget.mode,
@@ -76,7 +151,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         ),
         title: Text(
           localizations.otpVerification,
-          style: AppTextStyles.heading2.copyWith(color: textColor, fontWeight: FontWeight.bold),
+          style: AppTextStyles.heading2.copyWith(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: false, // <-- Aligns the header title to the side
       ),
@@ -84,12 +162,18 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 16.0,
+              ),
               child: GlassContainer(
                 borderRadius: 24,
                 fillOpacity: isDark ? 0.08 : 0.45,
                 borderOpacity: 0.12,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0), // Reduced horizontal padding to prevent overflow
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 24.0,
+                ), // Reduced horizontal padding to prevent overflow
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -126,9 +210,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     const SizedBox(height: 12),
                     Text(
                       widget.mode == OtpMode.resetPassword
-                          ? (Localizations.localeOf(context).languageCode == 'ar'
-                              ? 'أدخل رمز التحقق المرسل إلى رقم هاتفك لإعادة تعيين كلمة المرور.'
-                              : 'Enter the verification code sent to your phone to reset your password.')
+                          ? (Localizations.localeOf(context).languageCode ==
+                                    'ar'
+                                ? 'أدخل رمز التحقق المرسل إلى رقم هاتفك لإعادة تعيين كلمة المرور.'
+                                : 'Enter the verification code sent to your phone to reset your password.')
                           : 'We have sent a verification code to your phone number. Enter it below to proceed.',
                       textAlign: TextAlign.center,
                       style: AppTextStyles.secondaryText.copyWith(
@@ -167,6 +252,50 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               ),
                             ),
                     ),
+                    const SizedBox(height: 20),
+                    // Resend OTP Button (Always visible, disabled during countdown)
+                    TextButton(
+                      onPressed: _secondsRemaining > 0 || _isLoading
+                          ? null
+                          : () {
+                              _otpController.clear();
+                              _resendCode();
+                            },
+                      child: Text(
+                        Localizations.localeOf(context).languageCode == 'ar'
+                            ? 'إعادة إرسال الرمز${_secondsRemaining > 0 ? " ($_secondsRemaining)" : ""}'
+                            : 'Resend Code${_secondsRemaining > 0 ? " ($_secondsRemaining)" : ""}',
+                        style: TextStyle(
+                          color: _secondsRemaining > 0
+                              ? Colors.grey
+                              : Colors.orange,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    // Support button (Visible only when timer runs out/expired)
+                    if (_timerExpired) ...[
+                      const SizedBox(height: 10),
+                      TextButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () => _contactTeacherSupport(
+                                context,
+                                widget.phoneNumber,
+                              ),
+                        child: Text(
+                          Localizations.localeOf(context).languageCode == 'ar'
+                              ? 'لم يصلك الرمز؟ تواصل مع المدرس للتفعيل 💬'
+                              : 'Did not receive code? Contact teacher for activation 💬',
+                          style: const TextStyle(
+                            color: AppColors.primaryYello,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -175,6 +304,86 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _contactTeacherSupport(
+    BuildContext context,
+    String parentPhone,
+  ) async {
+    final locale = Localizations.localeOf(context).languageCode;
+    String teacherPhone = "+201283361553"; // Default support number
+    String teacherName = locale == 'ar' ? 'المعلم' : 'the Teacher';
+
+    setState(() => _isLoading = true);
+
+    try {
+      String clean = parentPhone.replaceAll(RegExp(r'[^\d]'), '').trim();
+      if (clean.startsWith('20')) {
+        clean = clean.substring(2);
+      }
+      if (clean.startsWith('0')) {
+        clean = clean.substring(1);
+      }
+      final phoneFormats = ["0$clean", "+20$clean"];
+
+      final studentDocs = await FirebaseFirestore.instance
+          .collectionGroup('students')
+          .where('parentPhoneNumber', whereIn: phoneFormats)
+          .limit(1)
+          .get();
+
+      if (studentDocs.docs.isNotEmpty) {
+        final pathSegments = studentDocs.docs.first.reference.path.split('/');
+        final tId = pathSegments[1];
+        if (tId.startsWith('+') ||
+            tId.startsWith('0') ||
+            RegExp(r'^\d+$').hasMatch(tId)) {
+          teacherPhone = tId;
+          final tDoc = await FirebaseFirestore.instance
+              .collection('teachers')
+              .doc(tId)
+              .get();
+          if (tDoc.exists && tDoc.data()?['name'] != null) {
+            teacherName = tDoc.data()?['name'];
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error looking up teacher phone: $e");
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+
+    final message = locale == 'ar'
+        ? 'مرحباً يا أستاذ $teacherName، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $parentPhone. هل يمكنك تفعيل الحساب لي من لوحة التحكم؟'
+        : 'Hello Mr. $teacherName, I faced an issue receiving the OTP code to activate my parent account for phone number $parentPhone. Could you please activate my account from the dashboard?';
+
+    final cleanTeacherPhone = teacherPhone
+        .replaceAll(RegExp(r'[^\d]'), '')
+        .trim();
+    final url = Uri.parse(
+      "https://wa.me/$cleanTeacherPhone?text=${Uri.encodeComponent(message)}",
+    );
+
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          PremiumAlert.show(
+            context,
+            message: locale == 'ar'
+                ? 'تعذر فتح الواتساب. رقم تواصل المعلم: $teacherPhone'
+                : 'Could not open WhatsApp. Support number: $teacherPhone',
+            isError: true,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error launching WhatsApp: $e");
+    }
   }
 }
 
@@ -186,7 +395,8 @@ class _PremiumOtpInput extends StatefulWidget {
 
   const _PremiumOtpInput({
     required this.controller,
-    this.onCompleted, required this.length,
+    this.onCompleted,
+    required this.length,
   });
 
   @override
@@ -233,7 +443,8 @@ class _PremiumOtpInputState extends State<_PremiumOtpInput> {
               ),
               onChanged: (value) {
                 setState(() {});
-                if (value.length == widget.length && widget.onCompleted != null) {
+                if (value.length == widget.length &&
+                    widget.onCompleted != null) {
                   widget.onCompleted!(value);
                 }
               },
@@ -253,14 +464,18 @@ class _PremiumOtpInputState extends State<_PremiumOtpInput> {
                 height: 48, // Adjusted height to match the ratio
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: isDark 
-                      ? (isFocused ? const Color(0xFF1E2028) : const Color(0xFF16171D))
+                  color: isDark
+                      ? (isFocused
+                            ? const Color(0xFF1E2028)
+                            : const Color(0xFF16171D))
                       : (isFocused ? Colors.white : const Color(0xFFF0F2F5)),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isFocused
                         ? AppColors.primaryYello
-                        : (isDark ? const Color(0xFF262930) : const Color(0xFFE5E8EB)),
+                        : (isDark
+                              ? const Color(0xFF262930)
+                              : const Color(0xFFE5E8EB)),
                     width: isFocused ? 2.0 : 1.2,
                   ),
                   boxShadow: isFocused

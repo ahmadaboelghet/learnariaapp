@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 import 'package:truecaller_sdk/truecaller_sdk.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:learnaria/screens/create_new_password.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
@@ -482,6 +484,141 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
     }
   }
 
+  Future<void> _showSupportDialog(String enteredPhone) async {
+    final locale = Localizations.localeOf(context).languageCode;
+    String teacherPhone = "+201283361553"; // Fallback support number
+    String teacherName = locale == 'ar' ? 'المعلم' : 'the Teacher';
+
+    try {
+      String clean = enteredPhone.replaceAll(RegExp(r'[^\d]'), '').trim();
+      if (clean.startsWith('20')) {
+        clean = clean.substring(2);
+      }
+      if (clean.startsWith('0')) {
+        clean = clean.substring(1);
+      }
+      final phoneFormats = ["0$clean", "+20$clean"];
+
+      final studentDocs = await FirebaseFirestore.instance
+          .collectionGroup('students')
+          .where('parentPhoneNumber', whereIn: phoneFormats)
+          .limit(1)
+          .get();
+
+      if (studentDocs.docs.isNotEmpty) {
+        final pathSegments = studentDocs.docs.first.reference.path.split('/');
+        final tId = pathSegments[1];
+        if (tId.startsWith('+') ||
+            tId.startsWith('0') ||
+            RegExp(r'^\d+$').hasMatch(tId)) {
+          teacherPhone = tId;
+          final tDoc = await FirebaseFirestore.instance
+              .collection('teachers')
+              .doc(tId)
+              .get();
+          if (tDoc.exists && tDoc.data()?['name'] != null) {
+            teacherName = tDoc.data()?['name'];
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error looking up teacher phone: $e");
+    }
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogCtx) => AlertDialog(
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E1E1E)
+              : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            locale == 'ar'
+                ? 'مشكلة في إرسال الرمز ⚠️'
+                : 'Failed to Send Code ⚠️',
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            locale == 'ar'
+                ? 'تعذر إرسال رمز التحقق (OTP) إلى الرقم $enteredPhone.\n\ هل ترغب في التواصل مع $teacherName عبر الواتساب لتفعيل حسابك مباشرة؟'
+                : 'Could not send the verification code (OTP) to $enteredPhone.\n\ Do you want to contact $teacherName via WhatsApp to activate your account directly?',
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white70
+                  : Colors.black54,
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text(
+                locale == 'ar' ? 'إلغاء' : 'Cancel',
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(dialogCtx);
+                final whatsappMsg = locale == 'ar'
+                    ? 'مرحباً يا أستاذ، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $enteredPhone. هل يمكنك تفعيل الحساب لي من لوحة التحكم؟'
+                    : 'Hello, I faced an issue receiving the OTP code to activate my parent account for phone number $enteredPhone. Could you please activate my account from the dashboard?';
+
+                final cleanTeacherPhone = teacherPhone
+                    .replaceAll(RegExp(r'[^\d]'), '')
+                    .trim();
+                final uri = Uri.parse(
+                  "https://wa.me/$cleanTeacherPhone?text=${Uri.encodeComponent(whatsappMsg)}",
+                );
+
+                try {
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    if (mounted) {
+                      PremiumAlert.show(
+                        context,
+                        message: locale == 'ar'
+                            ? 'تعذر فتح الواتساب. رقم تواصل المعلم: $teacherPhone'
+                            : 'Could not launch WhatsApp. Teacher contact: $teacherPhone',
+                        isError: true,
+                      );
+                    }
+                  }
+                } catch (e) {
+                  debugPrint("Error launching WhatsApp: $e");
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryYello,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                locale == 'ar' ? 'تواصل واتساب' : 'Contact WhatsApp',
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -774,12 +911,14 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
         onFailed: (error) {
           if (mounted) {
             setState(() => _isLoading = false);
+            _showSupportDialog(fullPhoneNumber);
           }
         },
       );
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
+        _showSupportDialog(fullPhoneNumber);
       }
     }
   }

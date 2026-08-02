@@ -44,7 +44,6 @@ class AuthService {
       verificationCompleted: (PhoneAuthCredential credential) {},
       verificationFailed: (FirebaseAuthException e) {
         onFailed(e.message ?? 'Verification Failed');
-        PremiumAlert.showError(context, e);
       },
       codeSent: (String verificationId, int? resendToken) {
         onCodeSent();
@@ -57,6 +56,25 @@ class AuthService {
             ),
           ),
         );
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {},
+    );
+  }
+
+  // دالة لإعادة إرسال رمز التحقق
+  Future<void> resendOtp(
+      String phoneNumber, {
+      required void Function(String verificationId) onCodeSent,
+      required void Function(String error) onFailed,
+    }) async {
+    await _auth.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      verificationCompleted: (PhoneAuthCredential credential) {},
+      verificationFailed: (FirebaseAuthException e) {
+        onFailed(e.message ?? 'Verification Failed');
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        onCodeSent(verificationId);
       },
       codeAutoRetrievalTimeout: (String verificationId) {},
     );
@@ -104,8 +122,16 @@ class AuthService {
           ),
         );
       }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = e.message ?? 'Verification Failed';
+      if (e.code == 'invalid-verification-code' || e.code == 'invalid-credential') {
+        errorMessage = Localizations.localeOf(context).languageCode == 'ar'
+            ? 'الرمز المدخل غير صحيح. يرجى التأكد من الرمز والمحاولة مرة أخرى.'
+            : 'The entered verification code is incorrect. Please check the code and try again.';
+      }
+      PremiumAlert.show(context, message: errorMessage, isError: true);
     } catch (e) {
-      PremiumAlert.showError(context, e);
+      PremiumAlert.show(context, message: e.toString(), isError: true);
     }
   }
 
