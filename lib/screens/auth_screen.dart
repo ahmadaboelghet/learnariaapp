@@ -381,6 +381,15 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
         setState(() => _isLoading = false);
         final locale = Localizations.localeOf(context).languageCode;
 
+        String formattedTcPhone = truecallerPhone;
+        if (formattedTcPhone.startsWith('+20')) {
+          formattedTcPhone = '0' + formattedTcPhone.substring(3);
+        } else if (formattedTcPhone.startsWith('+2')) {
+          formattedTcPhone = '0' + formattedTcPhone.substring(2);
+        } else if (formattedTcPhone.startsWith('20')) {
+          formattedTcPhone = '0' + formattedTcPhone.substring(2);
+        }
+
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -404,8 +413,8 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
             ),
             content: Text(
               locale == 'ar'
-                  ? 'الرقم الذي ادخلته ($enteredPhone) يختلف عن رقم Truecaller الموثق ($truecallerPhone).\n\nهل ترغب في الاستمرار برقم Truecaller أم التحقق من رقمك المكتوب عبر رسالة نصية (SMS)؟'
-                  : 'The number you entered ($enteredPhone) is different from the verified Truecaller number ($truecallerPhone).\n\nDo you want to proceed with the Truecaller number or verify your entered number via SMS?',
+                  ? 'الرقم الذي ادخلته ($enteredPhone) يختلف عن رقم Truecaller الموثق ($formattedTcPhone).\n\nهل ترغب في الاستمرار برقم Truecaller أم التحقق من رقمك المكتوب عبر رسالة نصية (SMS)؟'
+                  : 'The number you entered ($enteredPhone) is different from the verified Truecaller number ($formattedTcPhone).\n\nDo you want to proceed with the Truecaller number or verify your entered number via SMS?',
               style: TextStyle(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? Colors.white70
