@@ -808,6 +808,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Warning: Deleting your account is permanent. All your data will be deleted. Are you sure you want to proceed?'**
   String get deleteAccountWarning;
+
+  /// No description provided for @phoneAlreadyRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone number is already registered. Please log in.'**
+  String get phoneAlreadyRegistered;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

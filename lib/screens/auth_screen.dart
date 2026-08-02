@@ -35,7 +35,7 @@ class _AuthScreenState extends State<AuthScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
+
     // Start animation sequence
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
@@ -83,11 +83,11 @@ class _AuthScreenState extends State<AuthScreen>
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 1000),
                   curve: Curves.fastOutSlowIn,
-                  height: _isLogoCentered 
-                      ? 180 
+                  height: _isLogoCentered
+                      ? 180
                       : (_isKeyboardVisible ? 65 : 130),
-                  width: _isLogoCentered 
-                      ? 180 
+                  width: _isLogoCentered
+                      ? 180
                       : (_isKeyboardVisible ? 65 : 130),
                   margin: EdgeInsets.only(
                     top: _isLogoCentered ? 0 : (_isKeyboardVisible ? 10 : 20),
@@ -145,12 +145,17 @@ class _AuthScreenState extends State<AuthScreen>
                                       TabBar(
                                         controller: _tabController,
                                         labelStyle: AppTextStyles.bodyText
-                                            .copyWith(fontWeight: FontWeight.bold),
-                                        unselectedLabelStyle: AppTextStyles.bodyText,
+                                            .copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                        unselectedLabelStyle:
+                                            AppTextStyles.bodyText,
                                         indicatorColor: AppColors.primaryYello,
                                         indicatorSize: TabBarIndicatorSize.tab,
                                         labelColor: AppColors.primaryYello,
-                                        unselectedLabelColor: isDark ? Colors.white60 : Colors.black54,
+                                        unselectedLabelColor: isDark
+                                            ? Colors.white60
+                                            : Colors.black54,
                                         tabs: [
                                           Tab(text: localizations.login),
                                           Tab(text: localizations.signup),
@@ -219,7 +224,10 @@ class _LoginFormWidgetState extends State<_LoginFormWidget> {
       // --- END: FIX ---
       try {
         await _authService.signInWithPhoneAndPassword(
-            context, fullPhoneNumber, _passwordController.text);
+          context,
+          fullPhoneNumber,
+          _passwordController.text,
+        );
       } finally {
         if (mounted) {
           setState(() => _isLoading = false);
@@ -265,7 +273,7 @@ class _LoginFormWidgetState extends State<_LoginFormWidget> {
                 },
               ),
               const SizedBox(height: 20),
-                            PasswordTextField(
+              PasswordTextField(
                 controller: _passwordController,
                 labelText: localizations.password,
                 hintText: localizations.password,
@@ -283,7 +291,10 @@ class _LoginFormWidgetState extends State<_LoginFormWidget> {
                   },
                   style: TextButton.styleFrom(
                     minimumSize: Size.zero,
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 4,
+                    ),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: Text(
@@ -306,9 +317,12 @@ class _LoginFormWidgetState extends State<_LoginFormWidget> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: _isLoading 
-                    ? const PulseLoader(size: 28) 
-                    : Text(localizations.login, style: AppTextStyles.buttonText),
+                child: _isLoading
+                    ? const PulseLoader(size: 28)
+                    : Text(
+                        localizations.login,
+                        style: AppTextStyles.buttonText,
+                      ),
               ),
             ],
           ),
@@ -337,6 +351,137 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
   String? _codeVerifier;
   bool _isTruecallerFlowActive = false;
 
+  String _normalizePhoneNumberForCompare(String phone) {
+    String clean = phone.replaceAll(RegExp(r'[^\d]'), '').trim();
+    if (clean.startsWith('20')) {
+      clean = clean.substring(2);
+    }
+    if (clean.startsWith('0')) {
+      clean = clean.substring(1);
+    }
+    return clean;
+  }
+
+  Future<void> _checkTruecallerNumberAndProceed({
+    required String enteredPhone,
+    required String truecallerPhone,
+  }) async {
+    final normEntered = _normalizePhoneNumberForCompare(enteredPhone);
+    final normTc = _normalizePhoneNumberForCompare(truecallerPhone);
+
+    if (normEntered == normTc) {
+      await _proceedWithPhone(truecallerPhone);
+    } else {
+      // Mismatch
+      if (mounted) {
+        setState(() => _isLoading = false);
+        final locale = Localizations.localeOf(context).languageCode;
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogCtx) => AlertDialog(
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1E1E1E)
+                : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(
+              locale == 'ar'
+                  ? 'تأكيد رقم الهاتف ⚠️'
+                  : 'Confirm Phone Number ⚠️',
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              locale == 'ar'
+                  ? 'الرقم الذي ادخلته ($enteredPhone) يختلف عن رقم Truecaller الموثق ($truecallerPhone).\n\nهل ترغب في الاستمرار برقم Truecaller أم التحقق من رقمك المكتوب عبر رسالة نصية (SMS)؟'
+                  : 'The number you entered ($enteredPhone) is different from the verified Truecaller number ($truecallerPhone).\n\nDo you want to proceed with the Truecaller number or verify your entered number via SMS?',
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white70
+                    : Colors.black54,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogCtx);
+                  // Verify entered number via SMS
+                  _signUpFirebase();
+                },
+                child: Text(
+                  locale == 'ar' ? 'التحقق عبر SMS' : 'Verify via SMS',
+                  style: const TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(dialogCtx);
+                  setState(() => _isLoading = true);
+                  // Update text field so user sees it
+                  _phoneController.text = truecallerPhone
+                      .replaceAll('+20', '0')
+                      .replaceAll('+2', '');
+                  await _proceedWithPhone(truecallerPhone);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryYello,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  locale == 'ar' ? 'رقم Truecaller' : 'Truecaller Number',
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _proceedWithPhone(String phone) async {
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
+    final bool alreadyExists = await _authService.checkParentAccountExists(
+      phone,
+    );
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (alreadyExists) {
+        PremiumAlert.show(
+          context,
+          message: AppLocalizations.of(context)!.phoneAlreadyRegistered,
+          isError: true,
+        );
+        return;
+      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CreateNewPassword(phoneNumber: phone),
+        ),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -348,14 +493,17 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
   void _checkCachedTruecallerPhone() async {
     try {
       const channel = MethodChannel('com.elnazeredu.elnazer/truecaller');
-      final String? cachedPhone = await channel.invokeMethod<String>('getAndClearCachedPhone');
+      final String? cachedPhone = await channel.invokeMethod<String>(
+        'getAndClearCachedPhone',
+      );
       if (cachedPhone != null && cachedPhone.isNotEmpty) {
         String normalizedPhone = cachedPhone.trim();
         if (mounted) {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => CreateNewPassword(phoneNumber: normalizedPhone),
+              builder: (context) =>
+                  CreateNewPassword(phoneNumber: normalizedPhone),
             ),
           );
         }
@@ -368,37 +516,53 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
   void _initTruecaller() async {
     try {
       debugPrint("Truecaller: Registering stream listener first...");
-      _truecallerSubscription = TcSdk.streamCallbackData.listen((tcSdkCallback) async {
-        debugPrint("Truecaller Callback: Result = ${tcSdkCallback.result}, Error = ${tcSdkCallback.error}");
+      _truecallerSubscription = TcSdk.streamCallbackData.listen((
+        tcSdkCallback,
+      ) async {
+        debugPrint(
+          "Truecaller Callback: Result = ${tcSdkCallback.result}, Error = ${tcSdkCallback.error}",
+        );
         if (!_isTruecallerFlowActive) {
           debugPrint("Truecaller Callback ignored: flow not user-initiated.");
           return;
         }
         switch (tcSdkCallback.result) {
           case TcSdkCallbackResult.success:
-            debugPrint("Truecaller Callback: SUCCESS! Authorization Code obtained.");
+            debugPrint(
+              "Truecaller Callback: SUCCESS! Authorization Code obtained.",
+            );
             final oAuthData = tcSdkCallback.tcOAuthData!;
             await _handleTruecallerSuccess(oAuthData);
             break;
           case TcSdkCallbackResult.failure:
-            debugPrint("Truecaller Callback: FAILURE! Error: ${tcSdkCallback.error?.message}");
+            debugPrint(
+              "Truecaller Callback: FAILURE! Error: ${tcSdkCallback.error?.message}",
+            );
             if (mounted) {
               setState(() => _isLoading = false);
             }
             _signUpFirebase();
             break;
           default:
-            debugPrint("Truecaller Callback: Unknown state: ${tcSdkCallback.result}");
+            debugPrint(
+              "Truecaller Callback: Unknown state: ${tcSdkCallback.result}",
+            );
             break;
         }
       });
 
       debugPrint("Truecaller: Initializing SDK (non-blocking)...");
-      TcSdk.initializeSDK(sdkOption: TcSdkOptions.OPTION_VERIFY_ONLY_TC_USERS).then((_) {
-        debugPrint("Truecaller: SDK initialization future resolved successfully.");
-      }).catchError((e) {
-        debugPrint("Truecaller: SDK initialization future returned error: $e");
-      });
+      TcSdk.initializeSDK(sdkOption: TcSdkOptions.OPTION_VERIFY_ONLY_TC_USERS)
+          .then((_) {
+            debugPrint(
+              "Truecaller: SDK initialization future resolved successfully.",
+            );
+          })
+          .catchError((e) {
+            debugPrint(
+              "Truecaller: SDK initialization future returned error: $e",
+            );
+          });
     } catch (e) {
       debugPrint("Truecaller: Initialization failed with exception: $e");
     }
@@ -406,8 +570,12 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
 
   Future<void> _handleTruecallerSuccess(TcOAuthData oAuthData) async {
     try {
-      debugPrint("Truecaller Token Exchange: Exchanging code ${oAuthData.authorizationCode} with verifier ${_codeVerifier}");
-      final tokenUrl = Uri.parse('https://oauth-account-noneu.truecaller.com/v1/token');
+      debugPrint(
+        "Truecaller Token Exchange: Exchanging code ${oAuthData.authorizationCode} with verifier ${_codeVerifier}",
+      );
+      final tokenUrl = Uri.parse(
+        'https://oauth-account-noneu.truecaller.com/v1/token',
+      );
       final response = await http.post(
         tokenUrl,
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -419,49 +587,62 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
         },
       );
 
-      debugPrint("Truecaller Token Response: Status = ${response.statusCode}, Body = ${response.body}");
+      debugPrint(
+        "Truecaller Token Response: Status = ${response.statusCode}, Body = ${response.body}",
+      );
 
       if (response.statusCode == 200) {
         final tokenData = jsonDecode(response.body);
         final accessToken = tokenData['access_token'];
 
         // Get user info
-        debugPrint("Truecaller UserInfo: Fetching user info with token $accessToken");
-        final userInfoUrl = Uri.parse('https://oauth-account-noneu.truecaller.com/v1/userinfo');
+        debugPrint(
+          "Truecaller UserInfo: Fetching user info with token $accessToken",
+        );
+        final userInfoUrl = Uri.parse(
+          'https://oauth-account-noneu.truecaller.com/v1/userinfo',
+        );
         final userInfoResponse = await http.get(
           userInfoUrl,
           headers: {'Authorization': 'Bearer $accessToken'},
         );
 
-        debugPrint("Truecaller UserInfo Response: Status = ${userInfoResponse.statusCode}, Body = ${userInfoResponse.body}");
+        debugPrint(
+          "Truecaller UserInfo Response: Status = ${userInfoResponse.statusCode}, Body = ${userInfoResponse.body}",
+        );
 
         if (userInfoResponse.statusCode == 200) {
           final userInfo = jsonDecode(userInfoResponse.body);
           final String? rawPhone = userInfo['phone_number'];
-          
+
           if (rawPhone != null && rawPhone.isNotEmpty) {
             String normalizedPhone = rawPhone.trim();
             if (!normalizedPhone.startsWith('+')) {
               normalizedPhone = '+$normalizedPhone';
             }
-            debugPrint("Truecaller Flow Success! Phone: $normalizedPhone. Navigating to CreateNewPassword...");
+            debugPrint(
+              "Truecaller Flow Success! Phone: $normalizedPhone. Navigating to CreateNewPassword...",
+            );
             if (mounted) {
-              setState(() => _isLoading = false);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CreateNewPassword(phoneNumber: normalizedPhone),
-                ),
+              await _checkTruecallerNumberAndProceed(
+                enteredPhone: _phoneController.text.trim(),
+                truecallerPhone: normalizedPhone,
               );
             }
           } else {
-            throw Exception("Phone number missing in Truecaller profile payload");
+            throw Exception(
+              "Phone number missing in Truecaller profile payload",
+            );
           }
         } else {
-          throw Exception("Failed to fetch Truecaller user info: Status ${userInfoResponse.statusCode}");
+          throw Exception(
+            "Failed to fetch Truecaller user info: Status ${userInfoResponse.statusCode}",
+          );
         }
       } else {
-        throw Exception("Failed to exchange Truecaller authorization code: Status ${response.statusCode}");
+        throw Exception(
+          "Failed to exchange Truecaller authorization code: Status ${response.statusCode}",
+        );
       }
     } catch (e) {
       debugPrint("Truecaller auth exception: $e");
@@ -491,6 +672,22 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
       }
       setState(() => _isLoading = true);
 
+      String phoneNumber = _phoneController.text.trim();
+      final bool alreadyExists = await _authService.checkParentAccountExists(
+        phoneNumber,
+      );
+      if (alreadyExists) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          PremiumAlert.show(
+            context,
+            message: AppLocalizations.of(context)!.phoneAlreadyRegistered,
+            isError: true,
+          );
+        }
+        return;
+      }
+
       if (Platform.isAndroid) {
         try {
           debugPrint("Truecaller: Checking Android OAuth Flow usability...");
@@ -499,7 +696,9 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
           if (isUsable) {
             _codeVerifier = await TcSdk.generateRandomCodeVerifier;
             debugPrint("Truecaller: Code Verifier generated: $_codeVerifier");
-            final String? codeChallenge = await TcSdk.generateCodeChallenge(_codeVerifier!);
+            final String? codeChallenge = await TcSdk.generateCodeChallenge(
+              _codeVerifier!,
+            );
             debugPrint("Truecaller: Code Challenge generated: $codeChallenge");
             if (codeChallenge != null) {
               TcSdk.setCodeChallenge(codeChallenge);
@@ -512,7 +711,9 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
               return; // Wait for callback stream response
             }
           } else {
-            debugPrint("Truecaller: Flow is NOT usable on this Android device (not installed or logged in).");
+            debugPrint(
+              "Truecaller: Flow is NOT usable on this Android device (not installed or logged in).",
+            );
           }
         } catch (e) {
           debugPrint("Truecaller Android usage check failed: $e");
@@ -520,7 +721,8 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
       } else if (Platform.isIOS) {
         try {
           const channel = MethodChannel('com.elnazeredu.elnazer/truecaller');
-          final bool isUsable = await channel.invokeMethod<bool>('isUsable') ?? false;
+          final bool isUsable =
+              await channel.invokeMethod<bool>('isUsable') ?? false;
           if (isUsable) {
             final result = await channel.invokeMethod('verifyUser');
             if (result is Map) {
@@ -529,18 +731,17 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
                 if (rawPhone != null && rawPhone.isNotEmpty) {
                   String normalizedPhone = rawPhone.trim();
                   if (mounted) {
-                    setState(() => _isLoading = false);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CreateNewPassword(phoneNumber: normalizedPhone),
-                      ),
+                    await _checkTruecallerNumberAndProceed(
+                      enteredPhone: _phoneController.text.trim(),
+                      truecallerPhone: normalizedPhone,
                     );
                     return; // Bypassed Firebase OTP successfully
                   }
                 }
               } else {
-                debugPrint("Truecaller iOS returned non-success status: ${result['status']}");
+                debugPrint(
+                  "Truecaller iOS returned non-success status: ${result['status']}",
+                );
               }
             }
           }
@@ -649,9 +850,12 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: _isLoading 
-                    ? const PulseLoader(size: 28) 
-                    : Text(localizations.signup, style: AppTextStyles.buttonText),
+                child: _isLoading
+                    ? const PulseLoader(size: 28)
+                    : Text(
+                        localizations.signup,
+                        style: AppTextStyles.buttonText,
+                      ),
               ),
             ],
           ),

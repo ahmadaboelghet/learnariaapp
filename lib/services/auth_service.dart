@@ -128,6 +128,33 @@ class AuthService {
     }
   }
 
+  // دالة للتحقق مما إذا كان حساب ولي الأمر مسجلاً بالفعل
+  Future<bool> checkParentAccountExists(String phoneNumber) async {
+    String clean = phoneNumber.replaceAll(RegExp(r'[^\d]'), '').trim();
+    if (clean.startsWith('20')) {
+      clean = clean.substring(2);
+    }
+    if (clean.startsWith('0')) {
+      clean = clean.substring(1);
+    }
+    final String phoneWithPlus = "+20$clean";
+
+    // محاولة استدعاء الدالة السحابية أولاً لأنها الأدق ولا تتأثر بـ email enumeration protection
+    try {
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('checkAuthUserExists');
+      final response = await callable.call(<String, dynamic>{
+        'phone': phoneWithPlus,
+      });
+      if (response.data != null && response.data['exists'] != null) {
+        return response.data['exists'] as bool;
+      }
+    } catch (e) {
+      debugPrint("Cloud function checkAuthUserExists failed: $e");
+    }
+
+    return false;
+  }
+
   // Send OTP for password reset
   Future<void> sendOtpForPasswordReset(
       BuildContext context,

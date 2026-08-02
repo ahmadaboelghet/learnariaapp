@@ -376,4 +376,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteAccountWarning => 'Warning: Deleting your account is permanent. All your data will be deleted. Are you sure you want to proceed?';
+
+  @override
+  String get phoneAlreadyRegistered => 'This phone number is already registered. Please log in.';
 }

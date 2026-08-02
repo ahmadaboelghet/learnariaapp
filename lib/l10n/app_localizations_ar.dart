@@ -376,4 +376,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deleteAccountWarning => 'تحذير: حذف حسابك إجراء نهائي ولا يمكن التراجع عنه. سيتم مسح جميع بياناتك بالكامل. هل تريد الاستمرار بالفعل؟';
+
+  @override
+  String get phoneAlreadyRegistered => 'رقم الهاتف هذا مسجل بالفعل. يرجى تسجيل الدخول.';
 }
