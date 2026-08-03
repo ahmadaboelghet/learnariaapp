@@ -323,6 +323,7 @@ class AuthService {
         return {
           'teacherPhone': results.data['teacherPhone'] as String,
           'teacherName': results.data['teacherName'] as String,
+          'groupName': (results.data['groupName'] as String?) ?? 'المجموعة',
         };
       }
     } catch (e) {

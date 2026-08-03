@@ -8,7 +8,6 @@ import 'package:learnaria/widgets/pulse_loader.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:learnaria/widgets/premium_alert.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 enum OtpMode { signup, resetPassword }
@@ -219,12 +218,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     const SizedBox(height: 12),
                     Text(
                       widget.mode == OtpMode.resetPassword
-                          ? (Localizations.localeOf(context).languageCode == 'ar'
-                              ? 'أدخل رمز التحقق المرسل إلى رقم هاتفك لإعادة تعيين كلمة المرور.'
-                              : 'Enter the verification code sent to your phone to reset your password.')
-                          : (Localizations.localeOf(context).languageCode == 'ar'
-                              ? 'لقد أرسلنا رمز التحقق إلى رقم هاتفك. أدخله أدناه للمتابعة.'
-                              : 'We have sent a verification code to your phone number. Enter it below to proceed.'),
+                          ? (Localizations.localeOf(context).languageCode ==
+                                    'ar'
+                                ? 'أدخل رمز التحقق المرسل إلى رقم هاتفك لإعادة تعيين كلمة المرور.'
+                                : 'Enter the verification code sent to your phone to reset your password.')
+                          : (Localizations.localeOf(context).languageCode ==
+                                    'ar'
+                                ? 'لقد أرسلنا رمز التحقق إلى رقم هاتفك. أدخله أدناه للمتابعة.'
+                                : 'We have sent a verification code to your phone number. Enter it below to proceed.'),
                       textAlign: TextAlign.center,
                       style: AppTextStyles.secondaryText.copyWith(
                         color: isDark ? Colors.white60 : Colors.black54,
@@ -321,8 +322,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     String parentPhone,
   ) async {
     final locale = Localizations.localeOf(context).languageCode;
-    String teacherPhone = "+201283361553"; // Default support number
-    String teacherName = locale == 'ar' ? 'المعلم' : 'the Teacher';
+    String teacherPhone = "+201009856266"; // Default support number
+    String teacherName = ''; // Default support name
+    String groupName = locale == 'ar' ? 'المجموعةالعامة' : 'General Group'; // Default group name  
 
     setState(() => _isLoading = true);
 
@@ -333,6 +335,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (contactInfo != null) {
         teacherPhone = contactInfo['teacherPhone'] ?? teacherPhone;
         teacherName = contactInfo['teacherName'] ?? teacherName;
+        groupName = contactInfo['groupName'] ?? groupName;
       }
     } catch (e) {
       debugPrint("Error looking up teacher phone via Cloud Function: $e");
@@ -352,8 +355,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     }
 
     final message = locale == 'ar'
-        ? 'مرحباً يا مستر $teacherName، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $formattedParentPhone. هل يمكنك تفعيل الحساب لي من لوحة التحكم؟'
-        : 'Hello Mr. $teacherName, I faced an issue receiving the OTP code to activate my parent account for phone number $formattedParentPhone. Could you please activate my account from the dashboard?';
+        ? 'مرحباً يا مستر $teacherName، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $formattedParentPhone ومجموعته هي ($groupName). هل يمكنك تفعيل الحساب لي من لوحة التحكم؟'
+        : 'Hello Mr. $teacherName, I faced an issue receiving the OTP code to activate my parent account for phone number $formattedParentPhone in group ($groupName). Could you please activate my account from the dashboard?';
 
     String cleanTeacherPhone = teacherPhone
         .replaceAll(RegExp(r'[^\d]'), '')
@@ -433,6 +436,7 @@ class _PremiumOtpInputState extends State<_PremiumOtpInput> {
             child: TextField(
               controller: widget.controller,
               focusNode: _focusNode,
+              autofillHints: const [AutofillHints.oneTimeCode],
               keyboardType: TextInputType.number,
               maxLength: widget.length,
               showCursor: false,

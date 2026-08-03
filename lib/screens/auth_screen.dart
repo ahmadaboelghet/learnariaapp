@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 import 'package:truecaller_sdk/truecaller_sdk.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:learnaria/screens/create_new_password.dart';
 import 'package:flutter/services.dart';
@@ -497,8 +496,18 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
 
   Future<void> _showSupportDialog(String enteredPhone) async {
     final locale = Localizations.localeOf(context).languageCode;
-    String teacherPhone = "+201283361553"; // Fallback support number
-    String teacherName = locale == 'ar' ? 'المعلم' : 'the Teacher';
+    String teacherPhone = "+201009856266"; // Fallback support number
+    String teacherName = '';
+    String groupName = locale == 'ar' ? 'المجموعةالعامة' : 'General Group';
+
+    String formattedDisplayPhone = enteredPhone;
+    if (formattedDisplayPhone.startsWith('+20')) {
+      formattedDisplayPhone = '0' + formattedDisplayPhone.substring(3);
+    } else if (formattedDisplayPhone.startsWith('+2')) {
+      formattedDisplayPhone = '0' + formattedDisplayPhone.substring(2);
+    } else if (formattedDisplayPhone.startsWith('20')) {
+      formattedDisplayPhone = '0' + formattedDisplayPhone.substring(2);
+    }
 
     try {
       debugPrint("AuthScreen Support Lookup: enteredPhone = $enteredPhone");
@@ -507,6 +516,7 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
       if (contactInfo != null) {
         teacherPhone = contactInfo['teacherPhone'] ?? teacherPhone;
         teacherName = contactInfo['teacherName'] ?? teacherName;
+        groupName = contactInfo['groupName'] ?? groupName;
       }
     } catch (e) {
       debugPrint("Error looking up teacher phone via Cloud Function: $e");
@@ -536,8 +546,8 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
           ),
           content: Text(
             locale == 'ar'
-                ? 'تعذر إرسال رمز التحقق (OTP) إلى الرقم $enteredPhone.\n\ هل ترغب في التواصل مع $teacherName عبر الواتساب لتفعيل حسابك مباشرة؟'
-                : 'Could not send the verification code (OTP) to $enteredPhone.\n\ Do you want to contact $teacherName via WhatsApp to activate your account directly?',
+                ? 'تعذر إرسال رمز التحقق (OTP) إلى الرقم $formattedDisplayPhone.\n\  هل ترغب في التواصل مع المستر $teacherName عبر الواتساب لتفعيل حسابك مباشرة؟'
+                : 'Could not send the verification code (OTP) to $formattedDisplayPhone.\n\ Do you want to contact Mr. $teacherName via WhatsApp to activate your account directly?',
             style: TextStyle(
               color: Theme.of(context).brightness == Brightness.dark
                   ? Colors.white70
@@ -559,16 +569,19 @@ class __SignupFormWidgetState extends State<_SignupFormWidget> {
                 Navigator.pop(dialogCtx);
                 String formattedParentPhone = enteredPhone;
                 if (formattedParentPhone.startsWith('+20')) {
-                  formattedParentPhone = '0' + formattedParentPhone.substring(3);
+                  formattedParentPhone =
+                      '0' + formattedParentPhone.substring(3);
                 } else if (formattedParentPhone.startsWith('+2')) {
-                  formattedParentPhone = '0' + formattedParentPhone.substring(2);
+                  formattedParentPhone =
+                      '0' + formattedParentPhone.substring(2);
                 } else if (formattedParentPhone.startsWith('20')) {
-                  formattedParentPhone = '0' + formattedParentPhone.substring(2);
+                  formattedParentPhone =
+                      '0' + formattedParentPhone.substring(2);
                 }
 
                 final whatsappMsg = locale == 'ar'
-                    ? 'مرحباً يا مستر $teacherName، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $formattedParentPhone.  ارجو تفعيل الحساب لي من لوحة التحكم؟'
-                    : 'Hello Mr. $teacherName, I faced an issue receiving the OTP code to activate my parent account for phone number $formattedParentPhone. Could you please activate my account from the dashboard?';
+                    ? 'مرحباً يا مستر $teacherName، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $formattedParentPhone ومجموعته هي ($groupName). هل يمكنك تفعيل الحساب لي من لوحة التحكم؟'
+                    : 'Hello Mr. $teacherName, I faced an issue receiving the OTP code to activate my parent account for phone number $formattedParentPhone in group ($groupName). Could you please activate my account from the dashboard?';
 
                 String cleanTeacherPhone = teacherPhone
                     .replaceAll(RegExp(r'[^\d]'), '')

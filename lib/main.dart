@@ -3,12 +3,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:learnaria/firebase_options.dart';
-import 'package:learnaria/screens/splash.dart';
 import 'package:learnaria/screens/initial_screen_selector.dart';
 import 'package:learnaria/utils/app_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:learnaria/utils/theme_provider.dart';
-import 'package:learnaria/utils/locale_provider.dart'; 
+import 'package:learnaria/utils/locale_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // --- حزم الترجمة ---
@@ -17,9 +16,7 @@ import 'package:learnaria/l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Request push notification permissions and extract FCM Token
   try {
@@ -50,13 +47,18 @@ void main() async {
     try {
       String? apnsToken = await messaging.getAPNSToken();
       debugPrint('================= APNS TOKEN =================');
-      debugPrint(apnsToken ?? 'APNS Token is null (FCM CANNOT deliver to iOS if this is null!)');
+      debugPrint(
+        apnsToken ??
+            'APNS Token is null (FCM CANNOT deliver to iOS if this is null!)',
+      );
       debugPrint('==============================================');
     } catch (apnsError) {
       debugPrint('Error getting APNs token: $apnsError');
     }
   } catch (e) {
-    debugPrint('Error requesting notification permission or getting FCM token: $e');
+    debugPrint(
+      'Error requesting notification permission or getting FCM token: $e',
+    );
   }
 
   // --- retrieve isFirstTime from SharedPreferences ---
@@ -108,10 +110,11 @@ class MyApp extends StatelessWidget {
             scaffoldBackgroundColor: const Color(0xFFF9FAFC),
             primaryColor: AppColors.primaryYello,
             fontFamily: GoogleFonts.cairo().fontFamily,
-            textTheme: GoogleFonts.cairoTextTheme(ThemeData.light().textTheme).copyWith(
-              bodyLarge: GoogleFonts.cairo(color: Colors.black87),
-              bodyMedium: GoogleFonts.cairo(color: Colors.black87),
-            ),
+            textTheme: GoogleFonts.cairoTextTheme(ThemeData.light().textTheme)
+                .copyWith(
+                  bodyLarge: GoogleFonts.cairo(color: Colors.black87),
+                  bodyMedium: GoogleFonts.cairo(color: Colors.black87),
+                ),
             appBarTheme: AppBarTheme(
               backgroundColor: Colors.transparent,
               elevation: 0,
@@ -128,10 +131,11 @@ class MyApp extends StatelessWidget {
             scaffoldBackgroundColor: const Color(0xFF0D0E12),
             primaryColor: AppColors.primaryYello,
             fontFamily: GoogleFonts.cairo().fontFamily,
-            textTheme: GoogleFonts.cairoTextTheme(ThemeData.dark().textTheme).copyWith(
-              bodyLarge: GoogleFonts.cairo(color: Colors.white),
-              bodyMedium: GoogleFonts.cairo(color: Colors.white70),
-            ),
+            textTheme: GoogleFonts.cairoTextTheme(ThemeData.dark().textTheme)
+                .copyWith(
+                  bodyLarge: GoogleFonts.cairo(color: Colors.white),
+                  bodyMedium: GoogleFonts.cairo(color: Colors.white70),
+                ),
             appBarTheme: AppBarTheme(
               backgroundColor: Colors.transparent,
               elevation: 0,

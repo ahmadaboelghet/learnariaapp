@@ -42,37 +42,59 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   void _initTruecaller() async {
     try {
-      debugPrint("Truecaller ForgotPassword: Registering stream listener first...");
-      _truecallerSubscription = TcSdk.streamCallbackData.listen((tcSdkCallback) async {
-        debugPrint("Truecaller ForgotPassword Callback: Result = ${tcSdkCallback.result}, Error = ${tcSdkCallback.error}");
+      debugPrint(
+        "Truecaller ForgotPassword: Registering stream listener first...",
+      );
+      _truecallerSubscription = TcSdk.streamCallbackData.listen((
+        tcSdkCallback,
+      ) async {
+        debugPrint(
+          "Truecaller ForgotPassword Callback: Result = ${tcSdkCallback.result}, Error = ${tcSdkCallback.error}",
+        );
         if (!_isTruecallerFlowActive) {
-          debugPrint("Truecaller ForgotPassword Callback ignored: flow not user-initiated.");
+          debugPrint(
+            "Truecaller ForgotPassword Callback ignored: flow not user-initiated.",
+          );
           return;
         }
         switch (tcSdkCallback.result) {
           case TcSdkCallbackResult.success:
-            debugPrint("Truecaller ForgotPassword Callback: SUCCESS! Authorization Code obtained.");
+            debugPrint(
+              "Truecaller ForgotPassword Callback: SUCCESS! Authorization Code obtained.",
+            );
             final oAuthData = tcSdkCallback.tcOAuthData!;
             await _handleTruecallerSuccess(oAuthData);
             break;
           case TcSdkCallbackResult.failure:
-            debugPrint("Truecaller ForgotPassword Callback: FAILURE! Error: ${tcSdkCallback.error?.message}");
+            debugPrint(
+              "Truecaller ForgotPassword Callback: FAILURE! Error: ${tcSdkCallback.error?.message}",
+            );
             if (mounted) {
               setState(() => _isLoading = false);
             }
             break;
           default:
-            debugPrint("Truecaller ForgotPassword Callback: Unknown state: ${tcSdkCallback.result}");
+            debugPrint(
+              "Truecaller ForgotPassword Callback: Unknown state: ${tcSdkCallback.result}",
+            );
             break;
         }
       });
 
-      debugPrint("Truecaller ForgotPassword: Initializing SDK (non-blocking)...");
-      TcSdk.initializeSDK(sdkOption: TcSdkOptions.OPTION_VERIFY_ONLY_TC_USERS).then((_) {
-        debugPrint("Truecaller ForgotPassword: SDK initialization future resolved successfully.");
-      }).catchError((e) {
-        debugPrint("Truecaller ForgotPassword: SDK initialization future returned error: $e");
-      });
+      debugPrint(
+        "Truecaller ForgotPassword: Initializing SDK (non-blocking)...",
+      );
+      TcSdk.initializeSDK(sdkOption: TcSdkOptions.OPTION_VERIFY_ONLY_TC_USERS)
+          .then((_) {
+            debugPrint(
+              "Truecaller ForgotPassword: SDK initialization future resolved successfully.",
+            );
+          })
+          .catchError((e) {
+            debugPrint(
+              "Truecaller ForgotPassword: SDK initialization future returned error: $e",
+            );
+          });
     } catch (e) {
       debugPrint("Truecaller init failed in forgot password: $e");
     }
@@ -81,7 +103,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _handleTruecallerSuccess(TcOAuthData oAuthData) async {
     try {
       setState(() => _isLoading = true);
-      final tokenUrl = Uri.parse('https://oauth-account-noneu.truecaller.com/v1/token');
+      final tokenUrl = Uri.parse(
+        'https://oauth-account-noneu.truecaller.com/v1/token',
+      );
       final response = await http.post(
         tokenUrl,
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -97,7 +121,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         final tokenData = jsonDecode(response.body);
         final accessToken = tokenData['access_token'];
 
-        final userInfoUrl = Uri.parse('https://oauth-account-noneu.truecaller.com/v1/userinfo');
+        final userInfoUrl = Uri.parse(
+          'https://oauth-account-noneu.truecaller.com/v1/userinfo',
+        );
         final userInfoResponse = await http.get(
           userInfoUrl,
           headers: {'Authorization': 'Bearer $accessToken'},
@@ -134,7 +160,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void _checkCachedTruecallerPhone() async {
     try {
       const channel = MethodChannel('com.elnazeredu.elnazer/truecaller');
-      final String? cachedPhone = await channel.invokeMethod<String>('getAndClearCachedPhone');
+      final String? cachedPhone = await channel.invokeMethod<String>(
+        'getAndClearCachedPhone',
+      );
       if (cachedPhone != null && cachedPhone.isNotEmpty) {
         await _checkTruecallerNumberAndProceed(
           enteredPhone: _phoneController.text.trim(),
@@ -142,7 +170,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         );
       }
     } catch (e) {
-      debugPrint("Error checking cached Truecaller phone in forgot password: $e");
+      debugPrint(
+        "Error checking cached Truecaller phone in forgot password: $e",
+      );
     }
   }
 
@@ -231,8 +261,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 onPressed: () async {
                   Navigator.pop(dialogCtx);
                   setState(() => _isLoading = true);
-                  
-                  final bool tcExists = await _authService.checkParentAccountExists(truecallerPhone);
+
+                  final bool tcExists = await _authService
+                      .checkParentAccountExists(truecallerPhone);
                   if (mounted) {
                     if (tcExists) {
                       _phoneController.text = truecallerPhone
@@ -304,14 +335,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Future<void> _showSupportDialog(String enteredPhone) async {
     final locale = Localizations.localeOf(context).languageCode;
-    String teacherPhone = "+201283361553"; // Fallback support number
-    String teacherName = locale == 'ar' ? 'المعلم' : 'the Teacher';
+    String teacherPhone = "+201009856266"; // Fallback support number
+    String teacherName = "";
+    String groupName = locale == 'ar' ? 'المجموعةالعامة' : 'General Group';
+
+    String formattedDisplayPhone = enteredPhone;
+    if (formattedDisplayPhone.startsWith('+20')) {
+      formattedDisplayPhone = '0' + formattedDisplayPhone.substring(3);
+    } else if (formattedDisplayPhone.startsWith('+2')) {
+      formattedDisplayPhone = '0' + formattedDisplayPhone.substring(2);
+    } else if (formattedDisplayPhone.startsWith('20')) {
+      formattedDisplayPhone = '0' + formattedDisplayPhone.substring(2);
+    }
 
     try {
       final contactInfo = await _authService.getTeacherContact(enteredPhone);
       if (contactInfo != null) {
         teacherPhone = contactInfo['teacherPhone'] ?? teacherPhone;
         teacherName = contactInfo['teacherName'] ?? teacherName;
+        groupName = contactInfo['groupName'] ?? groupName;
       }
     } catch (e) {
       debugPrint("Error looking up teacher phone via Cloud Function: $e");
@@ -322,23 +364,31 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         context: context,
         barrierDismissible: false,
         builder: (dialogCtx) => AlertDialog(
-          backgroundColor: Theme.of(context).brightness == Brightness.dark 
-              ? const Color(0xFF1E1E1E) 
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E1E1E)
               : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(
-            locale == 'ar' ? 'مشكلة في إرسال الرمز ⚠️' : 'Failed to Send Code ⚠️',
+            locale == 'ar'
+                ? 'مشكلة في إرسال الرمز ⚠️'
+                : 'Failed to Send Code ⚠️',
             style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black87,
               fontWeight: FontWeight.bold,
             ),
           ),
           content: Text(
             locale == 'ar'
-                ? 'تعذر إرسال رمز التحقق (OTP) إلى الرقم $enteredPhone.\n\nبعض شبكات المحمول تحظر رسائل Firebase التلقائية. هل ترغب في التواصل مع $teacherName عبر الواتساب لتفعيل حسابك مباشرة؟'
-                : 'Could not send the verification code (OTP) to $enteredPhone.\n\nSome mobile networks block Firebase SMS. Do you want to contact $teacherName via WhatsApp to activate your account directly?',
+                ? 'تعذر إرسال رمز التحقق (OTP) إلى الرقم $formattedDisplayPhone.\n\n . هل ترغب في التواصل مع الستر $teacherName عبر الواتساب لتفعيل حسابك مباشرة؟'
+                : 'Could not send the verification code (OTP) to $formattedDisplayPhone.\n. Do you want to contact Mr. $teacherName via WhatsApp to activate your account directly?',
             style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white70
+                  : Colors.black54,
               fontSize: 14,
               height: 1.5,
             ),
@@ -354,28 +404,36 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(dialogCtx);
-                
+
                 String formattedParentPhone = enteredPhone;
                 if (formattedParentPhone.startsWith('+20')) {
-                  formattedParentPhone = '0' + formattedParentPhone.substring(3);
+                  formattedParentPhone =
+                      '0' + formattedParentPhone.substring(3);
                 } else if (formattedParentPhone.startsWith('+2')) {
-                  formattedParentPhone = '0' + formattedParentPhone.substring(2);
+                  formattedParentPhone =
+                      '0' + formattedParentPhone.substring(2);
                 } else if (formattedParentPhone.startsWith('20')) {
-                  formattedParentPhone = '0' + formattedParentPhone.substring(2);
+                  formattedParentPhone =
+                      '0' + formattedParentPhone.substring(2);
                 }
 
                 final whatsappMsg = locale == 'ar'
-                    ? 'مرحباً يا مستر $teacherName، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $formattedParentPhone. هل يمكنك تفعيل الحساب لي من لوحة التحكم؟'
-                    : 'Hello Mr. $teacherName, I faced an issue receiving the OTP code to activate my parent account for phone number $formattedParentPhone. Could you please activate my account from the dashboard?';
-                
-                String cleanTeacherPhone = teacherPhone.replaceAll(RegExp(r'[^\d]'), '').trim();
+                    ? 'مرحباً يا مستر $teacherName، واجهت مشكلة في استلام رمز التحقق (OTP) لتفعيل حساب ولي الأمر الخاص بالرقم $formattedParentPhone ومجموعته هي ($groupName). هل يمكنك تفعيل الحساب لي من لوحة التحكم؟'
+                    : 'Hello Mr. $teacherName, I faced an issue receiving the OTP code to activate my parent account for phone number $formattedParentPhone in group ($groupName). Could you please activate my account from the dashboard?';
+
+                String cleanTeacherPhone = teacherPhone
+                    .replaceAll(RegExp(r'[^\d]'), '')
+                    .trim();
                 if (cleanTeacherPhone.startsWith('0')) {
                   cleanTeacherPhone = '20' + cleanTeacherPhone.substring(1);
-                } else if (!cleanTeacherPhone.startsWith('20') && cleanTeacherPhone.isNotEmpty) {
+                } else if (!cleanTeacherPhone.startsWith('20') &&
+                    cleanTeacherPhone.isNotEmpty) {
                   cleanTeacherPhone = '20' + cleanTeacherPhone;
                 }
-                final uri = Uri.parse("https://wa.me/$cleanTeacherPhone?text=${Uri.encodeComponent(whatsappMsg)}");
-                
+                final uri = Uri.parse(
+                  "https://wa.me/$cleanTeacherPhone?text=${Uri.encodeComponent(whatsappMsg)}",
+                );
+
                 try {
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -396,11 +454,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryYello,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: Text(
                 locale == 'ar' ? 'تواصل واتساب' : 'Contact WhatsApp',
-                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -447,7 +510,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       final String fullPhoneNumber = '+20$phoneNumber';
 
       // 1. التحقق من وجود الحساب أولاً
-      final bool alreadyExists = await _authService.checkParentAccountExists(fullPhoneNumber);
+      final bool alreadyExists = await _authService.checkParentAccountExists(
+        fullPhoneNumber,
+      );
       if (!alreadyExists) {
         if (mounted) {
           setState(() => _isLoading = false);
@@ -468,7 +533,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           final bool isUsable = await TcSdk.isOAuthFlowUsable;
           if (isUsable) {
             _codeVerifier = await TcSdk.generateRandomCodeVerifier;
-            final String? codeChallenge = await TcSdk.generateCodeChallenge(_codeVerifier!);
+            final String? codeChallenge = await TcSdk.generateCodeChallenge(
+              _codeVerifier!,
+            );
             if (codeChallenge != null) {
               TcSdk.setCodeChallenge(codeChallenge);
               TcSdk.setOAuthScopes(['phone', 'openid']);
@@ -484,7 +551,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       } else if (Platform.isIOS) {
         try {
           const channel = MethodChannel('com.elnazeredu.elnazer/truecaller');
-          final bool isUsable = await channel.invokeMethod<bool>('isUsable') ?? false;
+          final bool isUsable =
+              await channel.invokeMethod<bool>('isUsable') ?? false;
           if (isUsable) {
             final result = await channel.invokeMethod('verifyUser');
             if (result is Map && result['status'] == 'success') {
@@ -540,7 +608,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 16.0,
+              ),
               child: GlassContainer(
                 borderRadius: 24,
                 fillOpacity: isDark ? 0.08 : 0.45,
@@ -599,7 +670,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             }
                             final regex = RegExp(r'^01[0125][0-9]{8}$');
                             if (!regex.hasMatch(value)) {
-                              return Localizations.localeOf(context).languageCode == 'ar'
+                              return Localizations.localeOf(
+                                        context,
+                                      ).languageCode ==
+                                      'ar'
                                   ? 'ادخل رقم هاتف مصري صحيح'
                                   : 'Enter a valid Egyptian phone number';
                             }
@@ -616,7 +690,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 4,
-                            shadowColor: AppColors.primaryYello.withOpacity(0.4),
+                            shadowColor: AppColors.primaryYello.withOpacity(
+                              0.4,
+                            ),
                           ),
                           child: _isLoading
                               ? const PulseLoader(size: 28)
