@@ -287,16 +287,27 @@ class AuthService {
           }
 
           final phoneFormats = getPhoneFormats(parentPhone);
-          for (var phoneDocId in phoneFormats) {
-            await FirebaseFirestore.instance
-                .collection('parents')
-                .doc(phoneDocId)
-                .update({
-              'fcmToken': FieldValue.delete(),
-              'fcmTokens': FieldValue.arrayRemove([fcmToken])
-            }).catchError((err) => debugPrint('Error removing token on logout: $err'));
+          try {
+            final HttpsCallable callable = FirebaseFunctions.instance
+                .httpsCallable('removeParentTokenOnLogout');
+            await callable.call(<String, dynamic>{
+              'phoneFormats': phoneFormats,
+              'fcmToken': fcmToken,
+            });
+            debugPrint('FCM Token successfully removed via cloud function on logout for: $phoneFormats');
+          } catch (funcErr) {
+            debugPrint('Error calling removeParentTokenOnLogout: $funcErr');
+            // Fallback for older versions or if cloud function fails
+            for (var phoneDocId in phoneFormats) {
+              await FirebaseFirestore.instance
+                  .collection('parents')
+                  .doc(phoneDocId)
+                  .update({
+                'fcmToken': FieldValue.delete(),
+                'fcmTokens': FieldValue.arrayRemove([fcmToken])
+              }).catchError((err) => debugPrint('Error removing token on logout fallback: $err'));
+            }
           }
-          debugPrint('FCM Token successfully removed from parents collection on logout for: $phoneFormats');
         }
       }
     } catch (e) {
