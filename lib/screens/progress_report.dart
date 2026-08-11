@@ -60,29 +60,47 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
 
 
   // --- Calculate Overall Metrics ---
+  double _calculateSubjectScore(TeacherReport report) {
+    // 1. Attendance (Base 30%)
+    final totalAttendance = report.attendance.length;
+    final presentAttendance = report.attendance.where((a) => a.status.toLowerCase() == 'present').length;
+    final hasAttendance = totalAttendance > 0;
+    final attendanceRate = hasAttendance ? (presentAttendance / totalAttendance * 100) : 0.0;
+
+    // 2. Homework (Base 30%)
+    final totalHW = report.grades.length;
+    final submittedHW = report.grades.where((g) => g.submitted).length;
+    final hasHomework = totalHW > 0;
+    final homeworkRate = hasHomework ? (submittedHW / totalHW * 100) : 0.0;
+
+    // 3. Exams (Base 40%)
+    final graded = report.grades.where((g) => g.score != null).toList();
+    final hasExams = graded.isNotEmpty;
+    final examAverage = hasExams
+        ? (graded.map((g) => g.score!).reduce((a, b) => a + b) / graded.length)
+        : 0.0;
+
+    double totalWeight = 0.0;
+    if (hasAttendance) totalWeight += 0.3;
+    if (hasHomework) totalWeight += 0.3;
+    if (hasExams) totalWeight += 0.4;
+
+    if (totalWeight == 0.0) return 0.0;
+
+    double score = 0.0;
+    if (hasAttendance) score += attendanceRate * (0.3 / totalWeight);
+    if (hasHomework) score += homeworkRate * (0.3 / totalWeight);
+    if (hasExams) score += examAverage * (0.4 / totalWeight);
+
+    return score;
+  }
+
   int get _overallAverageGrade {
     if (_dashboardData == null || _dashboardData!.reportsByTeacher.isEmpty) return 0;
     
     double totalSubjectScores = 0.0;
     for (var report in _dashboardData!.reportsByTeacher) {
-      // 1. Attendance (30%)
-      final totalAttendance = report.attendance.length;
-      final presentAttendance = report.attendance.where((a) => a.status.toLowerCase() == 'present').length;
-      final attendanceRate = totalAttendance > 0 ? (presentAttendance / totalAttendance * 100) : 0.0;
-
-      // 2. Homework (30%)
-      final totalHW = report.grades.length;
-      final submittedHW = report.grades.where((g) => g.submitted).length;
-      final homeworkRate = totalHW > 0 ? (submittedHW / totalHW * 100) : 0.0;
-
-      // 3. Exams (40%)
-      final graded = report.grades.where((g) => g.score != null).toList();
-      final examAverage = graded.isNotEmpty
-          ? (graded.map((g) => g.score!).reduce((a, b) => a + b) / graded.length)
-          : 0.0;
-
-      final subjectScore = (attendanceRate * 0.3) + (homeworkRate * 0.3) + (examAverage * 0.4);
-      totalSubjectScores += subjectScore;
+      totalSubjectScores += _calculateSubjectScore(report);
     }
     return (totalSubjectScores / _dashboardData!.reportsByTeacher.length).toInt();
   }
@@ -397,23 +415,12 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     
     return Column(
       children: reports.map((report) {
-        // 1. Attendance (30%)
+        // Attendance percent for display
         final totalAttendance = report.attendance.length;
         final presentAttendance = report.attendance.where((a) => a.status.toLowerCase() == 'present').length;
         final attendancePercent = totalAttendance > 0 ? (presentAttendance / totalAttendance * 100).toInt() : 0;
 
-        // 2. Homework (30%)
-        final totalHW = report.grades.length;
-        final submittedHW = report.grades.where((g) => g.submitted).length;
-        final homeworkPercent = totalHW > 0 ? (submittedHW / totalHW * 100).toInt() : 0;
-
-        // 3. Exams (40%)
-        final graded = report.grades.where((g) => g.score != null).toList();
-        final examAvg = graded.isNotEmpty
-            ? (graded.map((g) => g.score!).reduce((a, b) => a + b) / graded.length).toInt()
-            : 0;
-
-        final subjectScore = (attendancePercent * 0.3) + (homeworkPercent * 0.3) + (examAvg * 0.4);
+        final subjectScore = _calculateSubjectScore(report);
         final subjectAvg = subjectScore.toInt();
         final subjectColor = _getPerformanceColor(subjectScore);
 
@@ -514,23 +521,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     for (int i = 0; i < reports.length; i++) {
       final report = reports[i];
       
-      // 1. Attendance (30%)
-      final totalAttendance = report.attendance.length;
-      final presentAttendance = report.attendance.where((a) => a.status.toLowerCase() == 'present').length;
-      final attendanceRate = totalAttendance > 0 ? (presentAttendance / totalAttendance * 100) : 0.0;
-
-      // 2. Homework (30%)
-      final totalHW = report.grades.length;
-      final submittedHW = report.grades.where((g) => g.submitted).length;
-      final homeworkRate = totalHW > 0 ? (submittedHW / totalHW * 100) : 0.0;
-
-      // 3. Exams (40%)
-      final gradedAssignments = report.grades.where((g) => g.score != null).toList();
-      final examAverage = gradedAssignments.isNotEmpty
-          ? (gradedAssignments.map((g) => g.score!).reduce((a, b) => a + b) / gradedAssignments.length)
-          : 0.0;
-
-      final averageScore = (attendanceRate * 0.3) + (homeworkRate * 0.3) + (examAverage * 0.4);
+      final averageScore = _calculateSubjectScore(report);
       
       barGroups.add(
         BarChartGroupData(

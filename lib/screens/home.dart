@@ -32,7 +32,15 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
   DateTime _selectedDay = DateTime.now();
-  DateTime _selectedPaymentMonth = DateTime.now();
+  DateTime _selectedPaymentMonth = _getInitialPaymentMonth();
+
+  static DateTime _getInitialPaymentMonth() {
+    final now = DateTime.now();
+    if (now.month == 6 || now.month == 7) {
+      return DateTime(now.year, 8);
+    }
+    return DateTime(now.year, now.month);
+  }
   int _unreadNotificationsCount = 0;
 
   DashboardData? get _dashboardData =>
@@ -389,11 +397,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<DateTime> _generateMonths() {
     final now = DateTime.now();
-    // Return last 6 months, current month, and next 5 months (total 12 months)
-    return List.generate(
-      12,
-      (index) => DateTime(now.year, now.month - 6 + index),
+    // Return candidate surrounding months, excluding summer vacation months (June: 6, July: 7)
+    final allMonths = List.generate(
+      14,
+      (index) => DateTime(now.year, now.month - 7 + index),
     );
+    return allMonths.where((m) => m.month != 6 && m.month != 7).toList();
   }
 
   List<Map<String, dynamic>> _getGroupPaymentsForMonth(DateTime date) {
