@@ -77,7 +77,7 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     final graded = report.grades.where((g) => g.score != null).toList();
     final hasExams = graded.isNotEmpty;
     final examAverage = hasExams
-        ? (graded.map((g) => g.score!).reduce((a, b) => a + b) / graded.length)
+        ? (graded.map((g) => g.totalMark > 0 ? (g.score! / g.totalMark) * 100 : 0.0).reduce((a, b) => a + b) / graded.length)
         : 0.0;
 
     double totalWeight = 0.0;
@@ -297,30 +297,48 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                locale == 'ar' ? 'التقرير الأكاديمي الشامل' : 'Academic progress report',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  locale == 'ar' ? 'التقرير الأكاديمي الشامل' : 'Academic progress report',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
-              Text(
-                '$avgGrade%',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: progressColor),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '$avgGrade%',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: progressColor),
+                  ),
+                  Text(
+                    locale == 'ar' ? 'المعدل العام' : 'Overall Grade',
+                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                ],
               ),
-              Text(
-                locale == 'ar' ? 'المعدل العام' : 'Overall Grade',
-                style: const TextStyle(fontSize: 10, color: Colors.grey),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => _showCalculationBottomSheet(context, locale, isDark, textColor),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryYello.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.info_outline_rounded, color: AppColors.primaryYello, size: 20),
+                ),
               ),
             ],
           ),
@@ -415,83 +433,155 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     
     return Column(
       children: reports.map((report) {
-        // Attendance percent for display
+        // Attendance
         final totalAttendance = report.attendance.length;
         final presentAttendance = report.attendance.where((a) => a.status.toLowerCase() == 'present').length;
         final attendancePercent = totalAttendance > 0 ? (presentAttendance / totalAttendance * 100).toInt() : 0;
+        final hasAttendance = totalAttendance > 0;
+
+        // Homework
+        final totalHW = report.grades.length;
+        final submittedHW = report.grades.where((g) => g.submitted).length;
+        final homeworkPercent = totalHW > 0 ? (submittedHW / totalHW * 100).toInt() : 0;
+        final hasHomework = totalHW > 0;
+
+        // Exams
+        final graded = report.grades.where((g) => g.score != null).toList();
+        final examAvg = graded.isNotEmpty
+            ? (graded.map((g) => g.totalMark > 0 ? (g.score! / g.totalMark) * 100 : 0.0).reduce((a, b) => a + b) / graded.length).toInt()
+            : 0;
+        final hasExams = graded.isNotEmpty;
 
         final subjectScore = _calculateSubjectScore(report);
         final subjectAvg = subjectScore.toInt();
         final subjectColor = _getPerformanceColor(subjectScore);
 
+        // Simple insight logic
+        String insightText = locale == 'ar' ? 'أداء ممتاز، استمر!' : 'Excellent performance, keep it up!';
+        Color insightColor = AppColors.greenSuccess;
+        IconData insightIcon = Icons.stars_rounded;
+
+        if (subjectAvg < 65) {
+          insightColor = AppColors.errorRed;
+          insightIcon = Icons.warning_amber_rounded;
+          // Find the lowest metric to advise
+          if (hasExams && examAvg <= homeworkPercent && examAvg <= attendancePercent) {
+             insightText = locale == 'ar' ? 'درجات الامتحانات تحتاج إلى تحسين.' : 'Exam scores need improvement.';
+          } else if (hasHomework && homeworkPercent <= attendancePercent) {
+             insightText = locale == 'ar' ? 'تأخر في تسليم بعض الواجبات.' : 'Delay in submitting some homework.';
+          } else if (hasAttendance) {
+             insightText = locale == 'ar' ? 'نسبة الغياب مرتفعة.' : 'Absence rate is high.';
+          } else {
+             insightText = locale == 'ar' ? 'مستوى الطالب يحتاج إلى متابعة.' : 'Student level needs follow up.';
+          }
+        } else if (subjectAvg < 85) {
+          insightColor = AppColors.primaryYello;
+          insightIcon = Icons.trending_up_rounded;
+          insightText = locale == 'ar' ? 'أداء جيد، ولكن يمكن أن يكون أفضل.' : 'Good performance, but can be better.';
+        }
+
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
+          padding: const EdgeInsets.only(bottom: 16.0),
           child: GlassContainer(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        report.subject,
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        report.teacherName,
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
+                // Header (Subject & Overall Score)
                 Row(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Average Grade
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '$subjectAvg%',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold, 
-                            fontSize: 16, 
-                            color: subjectColor
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            report.subject,
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        Text(
-                          locale == 'ar' ? 'التقييم العام' : 'Overall',
-                          style: const TextStyle(fontSize: 10, color: Colors.grey),
-                        ),
-                      ],
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              const Icon(Icons.person_outline_rounded, size: 14, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  report.teacherName,
+                                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 16),
-                    // Attendance
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '$attendancePercent%',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold, 
-                            fontSize: 16, 
-                            color: Colors.blue
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: subjectColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: subjectColor.withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '$subjectAvg%',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: subjectColor),
                           ),
-                        ),
-                        Text(
-                          locale == 'ar' ? 'نسبة الحضور' : 'Attendance',
-                          style: const TextStyle(fontSize: 10, color: Colors.grey),
-                        ),
-                      ],
+                          Text(
+                            locale == 'ar' ? 'التقييم' : 'Score',
+                            style: TextStyle(fontSize: 10, color: subjectColor, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Detailed Breakdown Row
+                Row(
+                  children: [
+                    _buildMetricCol(
+                      icon: Icons.how_to_reg_rounded,
+                      color: Colors.blue,
+                      value: hasAttendance ? attendancePercent : null,
+                      label: locale == 'ar' ? 'الحضور' : 'Attend',
+                    ),
+                    _buildMetricCol(
+                      icon: Icons.assignment_turned_in_rounded,
+                      color: AppColors.primaryYello,
+                      value: hasHomework ? homeworkPercent : null,
+                      label: locale == 'ar' ? 'الواجبات' : 'HW',
+                    ),
+                    _buildMetricCol(
+                      icon: Icons.quiz_rounded,
+                      color: AppColors.errorRed,
+                      value: hasExams ? examAvg : null,
+                      label: locale == 'ar' ? 'الامتحانات' : 'Exams',
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                Divider(color: Colors.grey.withOpacity(0.2), height: 1),
+                const SizedBox(height: 12),
+                
+                // Insight footer
+                Row(
+                  children: [
+                    Icon(insightIcon, color: insightColor, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        insightText,
+                        style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87, fontWeight: FontWeight.w500),
+                      ),
                     ),
                   ],
                 ),
@@ -610,6 +700,179 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMetricCol({required IconData icon, required Color color, required int? value, required String label}) {
+    final hasData = value != null;
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: hasData ? color : Colors.grey.withOpacity(0.5), size: 20),
+          const SizedBox(height: 4),
+          Text(
+            hasData ? '$value%' : '-',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: hasData ? color : Colors.grey,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCalculationBottomSheet(BuildContext context, String locale, bool isDark, Color textColor) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  const Icon(Icons.analytics_rounded, color: AppColors.primaryYello, size: 28),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      locale == 'ar' ? 'كيف يتم حساب التقييم؟' : 'How is the score calculated?',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                locale == 'ar'
+                    ? 'يتم تقييم أداء الطالب في كل مادة بناءً على 3 معايير رئيسية:'
+                    : 'The student\'s performance in each subject is evaluated based on 3 main criteria:',
+                style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87),
+              ),
+              const SizedBox(height: 16),
+              _buildCalcRow(
+                icon: Icons.how_to_reg_rounded,
+                color: Colors.blue,
+                title: locale == 'ar' ? 'الحضور (30%)' : 'Attendance (30%)',
+                desc: locale == 'ar' ? 'نسبة حضور الطالب في الحصص.' : 'Student attendance rate in classes.',
+                isDark: isDark,
+                textColor: textColor,
+              ),
+              _buildCalcRow(
+                icon: Icons.assignment_turned_in_rounded,
+                color: AppColors.primaryYello,
+                title: locale == 'ar' ? 'الواجبات (30%)' : 'Homework (30%)',
+                desc: locale == 'ar' ? 'نسبة تسليم الواجبات المطلوبة.' : 'Required homework submission rate.',
+                isDark: isDark,
+                textColor: textColor,
+              ),
+              _buildCalcRow(
+                icon: Icons.quiz_rounded,
+                color: AppColors.errorRed,
+                title: locale == 'ar' ? 'الامتحانات (40%)' : 'Exams (40%)',
+                desc: locale == 'ar' ? 'متوسط درجات الطالب في الامتحانات.' : 'Average student scores in exams.',
+                isDark: isDark,
+                textColor: textColor,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryYello.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primaryYello.withOpacity(0.3)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.lightbulb_outline_rounded, color: AppColors.primaryYello, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        locale == 'ar'
+                            ? 'نظام التقييم الذكي: إذا لم يقم المعلم بإضافة امتحانات للمادة بعد، يتم إلغاء الـ 40% الخاصة بالامتحانات وتوزيع التقييم مناصفةً (50% حضور و 50% واجبات) كي لا يتأثر تقييم الطالب سلباً بشكل ظالم.'
+                            : 'Smart Rating: If no exams are added yet, the 40% exam weight is removed, and the score is divided equally (50% attendance, 50% homework) so the student\'s rating is not unfairly impacted.',
+                        style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87, height: 1.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryYello,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: Text(
+                    locale == 'ar' ? 'حسناً، فهمت' : 'Got it',
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCalcRow({required IconData icon, required Color color, required String title, required String desc, required bool isDark, required Color textColor}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+                const SizedBox(height: 2),
+                Text(desc, style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

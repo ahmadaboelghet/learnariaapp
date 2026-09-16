@@ -16,6 +16,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:firebase_remote_config/firebase_remote_config.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 enum CourseStatus { Upcoming, Ongoing, Finished }
 
@@ -354,6 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _monthScrollController = ScrollController();
+    _checkForUpdate();
     _fetchData().then((_) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToCurrentMonth(animate: false);
@@ -1557,6 +1561,134 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _checkForUpdate() async {
+    try {
+      final remoteConfig = FirebaseRemoteConfig.instance;
+      await remoteConfig.setConfigSettings(RemoteConfigSettings(
+        fetchTimeout: const Duration(minutes: 1),
+        minimumFetchInterval: const Duration(seconds: 0), // Fetch instantly for testing
+      ));
+      await remoteConfig.fetchAndActivate();
+
+      final latestVersion = remoteConfig.getString('latest_version'); // e.g. "1.0.3"
+      final androidUrl = remoteConfig.getString('android_update_url');
+      final iosUrl = remoteConfig.getString('ios_update_url');
+      final updateUrlStr = remoteConfig.getString('update_url'); // Fallback generic URL
+      final forceUpdate = remoteConfig.getBool('force_update');
+
+      if (latestVersion.isEmpty) return;
+
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = packageInfo.version;
+
+      if (_isUpdateAvailable(currentVersion, latestVersion)) {
+        if (mounted) {
+          _showUpdateDialog(
+            androidUrl.isNotEmpty ? androidUrl : updateUrlStr,
+            iosUrl.isNotEmpty ? iosUrl : updateUrlStr,
+            forceUpdate,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Failed to check for updates: $e");
+    }
+  }
+
+  bool _isUpdateAvailable(String current, String latest) {
+    // Basic semver check ignoring build numbers
+    final currParts = current.split('+').first.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final latParts = latest.split('+').first.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    for (int i = 0; i < 3; i++) {
+      int c = i < currParts.length ? currParts[i] : 0;
+      int l = i < latParts.length ? latParts[i] : 0;
+      if (l > c) return true;
+      if (c > l) return false;
+    }
+    return false;
+  }
+
+  void _showUpdateDialog(String androidUrl, String iosUrl, bool forceUpdate) {
+    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
+    final updateUrl = isIOS ? iosUrl : androidUrl;
+    final locale = Localizations.localeOf(context).languageCode;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      barrierDismissible: !forceUpdate,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => !forceUpdate,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          child: GlassContainer(
+            padding: const EdgeInsets.all(24),
+            borderRadius: 24,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryYello.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.system_update_rounded, size: 48, color: AppColors.primaryYello),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  locale == 'ar' ? 'تحديث جديد متاح' : 'New Update Available',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  locale == 'ar'
+                      ? 'لقد أطلقنا نسخة جديدة من التطبيق بميزات أفضل وتحسينات في الأداء. نرجو التحديث الآن!'
+                      : 'A new version of the app is available with better features and performance improvements. Please update now!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (updateUrl.isNotEmpty) {
+                        final uri = Uri.parse(updateUrl);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryYello,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      locale == 'ar' ? 'تحديث الآن' : 'Update Now',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+                ),
+                if (!forceUpdate) ...[
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      locale == 'ar' ? 'تخطي الآن' : 'Skip for now',
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  ),
+                ]
+              ],
+            ),
+          ),
         ),
       ),
     );

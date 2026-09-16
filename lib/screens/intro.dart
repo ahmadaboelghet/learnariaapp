@@ -90,53 +90,56 @@ class _IntroScreenState extends State<IntroScreen> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: List.generate(
-                    introPages.length,
-                    (index) => _buildDot(index),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 40.0, top: 10.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: List.generate(
+                      introPages.length,
+                      (index) => _buildDot(index),
+                    ),
                   ),
-                ),
-                _currentPage == introPages.length - 1
-                    ? ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (context) => const AuthCheck()),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black, // Black background instead of gold/yellow
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                          minimumSize: const Size(150, 50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15.0),
+                  _currentPage == introPages.length - 1
+                      ? ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(builder: (context) => const AuthCheck()),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black, // Black background instead of gold/yellow
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                            minimumSize: const Size(150, 50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15.0),
+                            ),
+                            elevation: 0,
                           ),
-                          elevation: 0,
+                          child: Row(
+                            children: [
+                              Text(appLocalizations.getStarted, style: AppTextStyles.buttonText),
+                              const SizedBox(width: 10),
+                              const Icon(Icons.arrow_forward, color: Colors.white),
+                            ],
+                          ),
+                        )
+                      : FloatingActionButton(
+                          onPressed: () {
+                            _pageController.nextPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeIn,
+                            );
+                          },
+                          backgroundColor: AppColors.primaryBlack,
+                          child: const Icon(Icons.arrow_forward, color: Colors.white),
                         ),
-                        child: Row(
-                          children: [
-                            Text(appLocalizations.getStarted, style: AppTextStyles.buttonText),
-                            const SizedBox(width: 10),
-                            const Icon(Icons.arrow_forward, color: Colors.white),
-                          ],
-                        ),
-                      )
-                    : FloatingActionButton(
-                        onPressed: () {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeIn,
-                          );
-                        },
-                        backgroundColor: AppColors.primaryBlack,
-                        child: const Icon(Icons.arrow_forward, color: Colors.white),
-                      ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
