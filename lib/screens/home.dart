@@ -507,126 +507,260 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPaymentSection(
-    AppLocalizations appLocalizations,
-    Color textColor,
-  ) {
+  Widget _buildHeroDashboardCard(AppLocalizations appLocalizations, Color textColor) {
+    if (_dashboardData == null || _dashboardData!.reportsByTeacher.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final locale = Localizations.localeOf(context).languageCode;
+    
+    return SizedBox(
+      height: 190,
+      child: PageView.builder(
+        controller: PageController(viewportFraction: 0.93),
+        itemCount: _dashboardData!.reportsByTeacher.length,
+        itemBuilder: (context, index) {
+          final report = _dashboardData!.reportsByTeacher[index];
+          
+          final allAttendance = report.attendance;
+          int present = 0;
+          if (allAttendance.isNotEmpty) {
+            present = allAttendance.where((a) => a.status.toLowerCase() == 'present').length;
+          }
+          final attendancePercent = allAttendance.isEmpty ? 0 : (present / allAttendance.length * 100).toInt();
+          
+          // According to original logic, total assignments = grades.length
+          final totalHw = report.grades.length;
+          final submittedHw = report.grades.where((g) => g.submitted == true).length;
+          final notSubmitted = totalHw - submittedHw;
+          
+          final paymentList = _getGroupPaymentsForMonth(_selectedPaymentMonth);
+          Map<String, dynamic>? paymentInfo;
+          for (var p in paymentList) {
+            if (p['subject'] == report.subject) {
+              paymentInfo = p;
+              break;
+            }
+          }
+          
+          bool isPaid = false;
+          bool isEmpty = true;
+          if (paymentInfo != null) {
+             isEmpty = false;
+             isPaid = paymentInfo['isPaid'] as bool;
+          }
+
+          return Container(
+            margin: const EdgeInsets.only(right: 12),
+            child: GlassContainer(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              borderRadius: 24,
+              fillOpacity: isDark ? 0.08 : 0.45,
+              borderOpacity: 0.12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${locale == 'ar' ? "نظرة سريعة" : "At a Glance"} - ${report.subject}',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Icon(Icons.insights_rounded, color: AppColors.primaryYello, size: 20),
+                    ],
+                  ),
+                  const Spacer(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildMiniCircularProgress(
+                        label: appLocalizations.attendance,
+                        percentage: attendancePercent,
+                        color: attendancePercent > 75 ? AppColors.greenSuccess : (attendancePercent > 50 ? AppColors.primaryYello : AppColors.errorRed),
+                        isDark: isDark,
+                      ),
+                      Container(width: 1, height: 60, color: Colors.grey.withOpacity(0.3)),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            notSubmitted > 0 ? notSubmitted.toString() : '0',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: notSubmitted > 0 ? AppColors.errorRed : AppColors.greenSuccess,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            locale == 'ar' ? 'واجبات لم تسلم' : 'Pending HW',
+                            style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
+                          ),
+                        ],
+                      ),
+                      Container(width: 1, height: 60, color: Colors.grey.withOpacity(0.3)),
+                      _buildMonthlyPaymentBadge(locale, isDark, isPaid: isPaid, isEmpty: isEmpty),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMiniCircularProgress({required String label, required int percentage, required Color color, required bool isDark}) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 55,
+          height: 55,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CircularProgressIndicator(
+                value: percentage / 100,
+                strokeWidth: 5,
+                backgroundColor: isDark ? Colors.white10 : Colors.black12,
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+              ),
+              Center(
+                child: Text(
+                  '$percentage%',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMonthlyPaymentBadge(String locale, bool isDark, {bool isPaid = false, bool isEmpty = false}) {
+    IconData icon = Icons.info_outline;
+    Color color = Colors.grey;
+    String text = '-';
+    
+    if (isEmpty) {
+      icon = Icons.more_horiz_rounded;
+      text = locale == 'ar' ? 'لا يوجد' : 'None';
+    } else if (isPaid) {
+      icon = Icons.check_circle_rounded;
+      color = AppColors.greenSuccess;
+      text = locale == 'ar' ? 'تم الدفع' : 'Paid';
+    } else {
+      icon = Icons.warning_amber_rounded;
+      color = AppColors.errorRed;
+      text = locale == 'ar' ? 'مطلوب الدفع' : 'Due';
+    }
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, color: color, size: 30),
+        const SizedBox(height: 12),
+        Text(
+          text,
+          style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUnpaidAlertBanner(AppLocalizations appLocalizations, Color textColor) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final locale = Localizations.localeOf(context).languageCode;
     final paymentList = _getGroupPaymentsForMonth(_selectedPaymentMonth);
-
-    final sectionTitle = locale == 'ar'
-        ? 'حالة الدفع الشهري'
-        : 'Monthly Payment Status';
+    
+    if (paymentList.isEmpty) return const SizedBox.shrink(); // No items for this month
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 20),
-        Text(
-          sectionTitle,
-          style: AppTextStyles.heading2.copyWith(color: textColor),
-        ),
-        const SizedBox(height: 10),
-        _buildMonthPicker(textColor),
-        const SizedBox(height: 8),
-        if (paymentList.isEmpty)
-          GlassContainer(
-            width: double.infinity,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20.0),
-                child: Text(
-                  locale == 'ar'
-                      ? 'لا توجد تفاصيل دفع'
-                      : 'No payment details available',
-                  style: AppTextStyles.secondaryText,
-                ),
-              ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              locale == 'ar' ? 'حالة الدفع' : 'Payment Status',
+              style: AppTextStyles.heading2.copyWith(color: textColor),
             ),
-          )
-        else
-          ...paymentList.map((paymentInfo) {
-            final isPaid = paymentInfo['isPaid'] as bool;
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10.0),
-              child: GlassContainer(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      isPaid
-                          ? Icons.check_circle_rounded
-                          : Icons.warning_amber_rounded,
-                      color: paymentInfo['color'],
-                      size: 24,
+            const SizedBox(width: 12),
+            Expanded(child: _buildMonthPicker(textColor)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...paymentList.map((paymentInfo) {
+          final isPaid = paymentInfo['isPaid'] as bool;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10.0),
+            child: GlassContainer(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: (isPaid ? AppColors.greenSuccess : AppColors.errorRed).withOpacity(0.15),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            paymentInfo['subject'],
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            paymentInfo['teacher'],
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isDark ? Colors.white54 : Colors.black54,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          // Payment date removed per request
-                        ],
-                      ),
+                    child: Icon(
+                      isPaid ? Icons.check_circle_rounded : Icons.payment_rounded, 
+                      color: isPaid ? AppColors.greenSuccess : AppColors.errorRed, 
+                      size: 22
                     ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isPaid
-                              ? paymentInfo['amount']
-                              : (locale == 'ar' ? 'غير مدفوع' : 'Unpaid'),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: isPaid
-                                ? AppColors.greenSuccess
-                                : AppColors.errorRed,
-                          ),
+                          paymentInfo['subject'],
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textColor),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        if (isPaid)
-                          Text(
-                            locale == 'ar' ? 'تم الدفع' : 'Paid',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: AppColors.greenSuccess,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                        Text(
+                          isPaid 
+                            ? (locale == 'ar' ? 'تم الدفع بنجاح' : 'Paid Successfully')
+                            : (locale == 'ar' ? 'يرجى تسديد الاشتراك الشهري' : 'Please settle the monthly fee'),
+                          style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54),
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isPaid
+                      ? (locale == 'ar' ? 'تم الدفع' : 'Paid')
+                      : (locale == 'ar' ? 'غير مدفوع' : 'Unpaid'),
+                    style: TextStyle(
+                      fontSize: 13, 
+                      fontWeight: FontWeight.bold, 
+                      color: isPaid ? AppColors.greenSuccess : AppColors.errorRed
+                    ),
+                  ),
+                ],
               ),
-            );
-          }).toList(),
+            ),
+          );
+        }).toList(),
       ],
     );
   }
@@ -691,7 +825,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      height: 48,
+      height: 50,
       margin: const EdgeInsets.only(top: 15, bottom: 5),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -707,45 +841,47 @@ class _HomeScreenState extends State<HomeScreen> {
               });
             },
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              margin: const EdgeInsets.only(right: 10),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primaryYello
-                    : (isDark
-                          ? Colors.white.withOpacity(0.06)
-                          : Colors.black.withOpacity(0.04)),
-                borderRadius: BorderRadius.circular(24),
+                    : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03)),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: isSelected
-                      ? AppColors.primaryYello
-                      : (isDark
-                            ? AppColors.glassBorderDark
-                            : AppColors.glassBorderLight),
-                  width: 1.2,
+                      ? Colors.transparent
+                      : (isDark ? Colors.white12 : Colors.black12),
+                  width: 1,
                 ),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: AppColors.primaryYello.withOpacity(0.25),
-                          blurRadius: 8,
+                          color: AppColors.primaryYello.withOpacity(0.4),
+                          blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
                       ]
-                    : null,
+                    : [],
               ),
-              child: Center(
-                child: Text(
-                  student.studentName,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    color: isSelected
-                        ? Colors.white
-                        : (isDark ? Colors.white70 : Colors.black87),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isSelected) ...[
+                    const Icon(Icons.person_pin_circle_rounded, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    student.studentName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           );
@@ -779,38 +915,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _buildUserInfoSection(appLocalizations, textColor),
         _buildChildrenTabs(textColor ?? Colors.black87),
         const SizedBox(height: 20),
-        Text(
-          appLocalizations.reports,
-          style: AppTextStyles.heading2.copyWith(color: textColor),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSummaryCard(
-                title: appLocalizations.assignments,
-                value:
-                    '${appLocalizations.submitted}: $submittedAssignmentsCount',
-                description:
-                    '${appLocalizations.notSubmitted}: $notSubmittedAssignmentsCount',
-                color: AppColors.primaryYello,
-              ),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: _buildSummaryCard(
-                title: appLocalizations.attendance,
-                value:
-                    '$overallAttendancePercentage% ${appLocalizations.present}',
-                description: '$totalAttendanceDays ${appLocalizations.days}',
-                color: AppColors.greenSuccess,
-              ),
-            ),
-          ],
-        ),
-
-        // --- Monthly Payment Status Section ---
-        _buildPaymentSection(appLocalizations, textColor ?? Colors.black87),
+        _buildHeroDashboardCard(appLocalizations, textColor ?? Colors.black87),
+        const SizedBox(height: 25),
+        _buildUnpaidAlertBanner(appLocalizations, textColor ?? Colors.black87),
 
         const SizedBox(height: 25),
         Text(
@@ -833,7 +940,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           )
         else
-          ...sortedSchedule.map((entry) {
+          ...sortedSchedule.asMap().entries.map((mapEntry) {
+            final index = mapEntry.key;
+            final entry = mapEntry.value;
             final statusDetails = _getCourseStatusDetails(
               entry,
               appLocalizations,
@@ -844,14 +953,14 @@ class _HomeScreenState extends State<HomeScreen> {
             if (entry.location.isNotEmpty) {
               timeAndLocation += ' - ${entry.location}';
             }
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10.0),
-              child: _buildCourseCard(
-                subject: entry.subject,
-                time: timeAndLocation,
-                status: statusDetails['status'],
-                statusColor: statusDetails['color'],
-              ),
+            final isLast = index == sortedSchedule.length - 1;
+            return _buildTimelineCourseCard(
+              subject: entry.subject,
+              time: timeAndLocation,
+              status: statusDetails['status'],
+              statusColor: statusDetails['color'],
+              isLast: isLast,
+              textColor: textColor ?? Colors.black87,
             );
           }).toList(),
         SizedBox(height: 20),
@@ -1064,53 +1173,100 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCourseCard({
+  Widget _buildTimelineCourseCard({
     required String subject,
     required String time,
     required String status,
     required Color statusColor,
+    required bool isLast,
+    required Color textColor,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GlassContainer(
-      width: double.infinity,
-      fillOpacity: isDark ? 0.08 : 0.45,
-      borderOpacity: 0.12,
+    return IntrinsicHeight(
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
+          // Timeline indicator
+          SizedBox(
+            width: 40,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  subject,
-                  style: AppTextStyles.bodyText.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                const SizedBox(height: 20),
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: isDark ? Colors.black : Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(color: statusColor.withOpacity(0.4), blurRadius: 4, spreadRadius: 1)
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  time,
-                  style: AppTextStyles.secondaryText.copyWith(
-                    color: isDark ? Colors.white54 : Colors.black54,
-                  ),
-                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      color: isDark ? Colors.white12 : Colors.black12,
+                    ),
+                  )
+                else
+                  const SizedBox(height: 20), // Bottom padding for last item
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                color: statusColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 24.0),
+              child: GlassContainer(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                borderRadius: 20,
+                fillOpacity: isDark ? 0.08 : 0.45,
+                borderOpacity: 0.12,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            subject,
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(Icons.access_time_rounded, size: 14, color: isDark ? Colors.white54 : Colors.black54),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  time, 
+                                  style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1295,132 +1451,78 @@ class _HomeScreenState extends State<HomeScreen> {
     required AppLocalizations appLocalizations,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Performance percentage for color and progress ring
-    final int percentage = totalMark > 0
-        ? ((latestScore / totalMark) * 100).toInt()
-        : 0;
-
-    // Dynamic color based on performance
+    final int percentage = totalMark > 0 ? ((latestScore / totalMark) * 100).toInt() : 0;
+    
     final Color primaryColor = percentage >= 85
         ? AppColors.greenSuccess
-        : (percentage >= 65
-              ? (isDark ? Colors.white60 : Colors.black54)
-              : AppColors.errorRed);
+        : (percentage >= 65 ? AppColors.primaryYello : AppColors.errorRed);
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) =>
-              AssignmentDetailsScreen(subject: subject, grades: allGrades),
-        ),
+        MaterialPageRoute(builder: (context) => AssignmentDetailsScreen(subject: subject, grades: allGrades)),
       ),
       child: GlassContainer(
-        width: 170,
+        width: 200,
         margin: const EdgeInsets.only(right: 14, bottom: 4),
-        padding: const EdgeInsets.all(14.0),
+        padding: const EdgeInsets.all(16.0),
+        borderRadius: 20,
+        fillOpacity: isDark ? 0.08 : 0.45,
+        borderOpacity: 0.12,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  width: 32,
-                  height: 32,
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    color: primaryColor.withOpacity(0.15),
+                    shape: BoxShape.circle,
                   ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    subject.isNotEmpty
-                        ? subject.substring(0, 1).toUpperCase()
-                        : 'S',
-                    style: TextStyle(
-                      color: primaryColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
+                  child: Icon(Icons.analytics_rounded, color: primaryColor, size: 20),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: isDark ? Colors.white30 : Colors.black38,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        subject,
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        teacher,
+                        style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              subject,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              teacher,
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark ? Colors.white54 : Colors.black54,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      appLocalizations.latest,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.white38 : Colors.black45,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '$latestScore/$totalMark',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
-                      ),
-                    ),
-                  ],
-                ),
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: CircularProgressIndicator(
-                        value: percentage / 100,
-                        strokeWidth: 3.5,
-                        backgroundColor: isDark
-                            ? Colors.white.withOpacity(0.08)
-                            : Colors.black.withOpacity(0.04),
-                        valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-                      ),
-                    ),
-                    Icon(
-                      Icons.star_rounded,
-                      size: 14,
-                      color: primaryColor.withOpacity(0.8),
-                    ),
-                  ],
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    appLocalizations.latest,
+                    style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54),
+                  ),
+                  Text(
+                    '$latestScore/$totalMark',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1436,129 +1538,77 @@ class _HomeScreenState extends State<HomeScreen> {
     required AppLocalizations appLocalizations,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Dynamic color based on performance
+    
     final Color primaryColor = percentage >= 85
         ? AppColors.greenSuccess
-        : (percentage >= 65
-              ? (isDark ? Colors.white60 : Colors.black54)
-              : AppColors.errorRed);
+        : (percentage >= 65 ? AppColors.primaryYello : AppColors.errorRed);
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => AttendanceDetailsScreen(
-            subject: subject,
-            attendanceRecords: allAttendance,
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => AttendanceDetailsScreen(subject: subject, attendanceRecords: allAttendance)),
       ),
       child: GlassContainer(
-        width: 170,
+        width: 200,
         margin: const EdgeInsets.only(right: 14, bottom: 4),
-        padding: const EdgeInsets.all(14.0),
+        padding: const EdgeInsets.all(16.0),
+        borderRadius: 20,
+        fillOpacity: isDark ? 0.08 : 0.45,
+        borderOpacity: 0.12,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  width: 32,
-                  height: 32,
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    color: primaryColor.withOpacity(0.15),
+                    shape: BoxShape.circle,
                   ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    subject.isNotEmpty
-                        ? subject.substring(0, 1).toUpperCase()
-                        : 'S',
-                    style: TextStyle(
-                      color: primaryColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
+                  child: Icon(Icons.date_range_rounded, color: primaryColor, size: 20),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: isDark ? Colors.white30 : Colors.black38,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        subject,
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        teacher,
+                        style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              subject,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              teacher,
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark ? Colors.white54 : Colors.black54,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      appLocalizations.present,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.white38 : Colors.black45,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '$percentage%',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
-                      ),
-                    ),
-                  ],
-                ),
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: CircularProgressIndicator(
-                        value: percentage / 100,
-                        strokeWidth: 3.5,
-                        backgroundColor: isDark
-                            ? Colors.white.withOpacity(0.08)
-                            : Colors.black.withOpacity(0.04),
-                        valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-                      ),
-                    ),
-                    Icon(
-                      Icons.calendar_today_rounded,
-                      size: 14,
-                      color: primaryColor.withOpacity(0.8),
-                    ),
-                  ],
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    appLocalizations.present,
+                    style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54),
+                  ),
+                  Text(
+                    '$percentage%',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
