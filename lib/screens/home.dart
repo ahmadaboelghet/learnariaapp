@@ -825,7 +825,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      height: 50,
+      height: 48,
       margin: const EdgeInsets.only(top: 15, bottom: 5),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -841,47 +841,39 @@ class _HomeScreenState extends State<HomeScreen> {
               });
             },
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              margin: const EdgeInsets.only(right: 12),
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              margin: const EdgeInsets.only(right: 10),
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primaryYello
-                    : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03)),
-                borderRadius: BorderRadius.circular(16),
+                    : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04)),
+                borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: isSelected
-                      ? Colors.transparent
-                      : (isDark ? Colors.white12 : Colors.black12),
-                  width: 1,
+                      ? AppColors.primaryYello
+                      : (isDark ? AppColors.glassBorderDark : AppColors.glassBorderLight),
+                  width: 1.2,
                 ),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: AppColors.primaryYello.withOpacity(0.4),
-                          blurRadius: 10,
+                          color: AppColors.primaryYello.withOpacity(0.25),
+                          blurRadius: 8,
                           offset: const Offset(0, 4),
-                        ),
+                        )
                       ]
-                    : [],
+                    : null,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isSelected) ...[
-                    const Icon(Icons.person_pin_circle_rounded, color: Colors.white, size: 18),
-                    const SizedBox(width: 8),
-                  ],
-                  Text(
-                    student.studentName,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                      color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
-                    ),
+              child: Center(
+                child: Text(
+                  student.studentName,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
                   ),
-                ],
+                ),
               ),
             ),
           );
