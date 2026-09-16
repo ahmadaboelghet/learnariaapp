@@ -9,8 +9,6 @@ import 'package:provider/provider.dart';
 import 'package:learnaria/utils/theme_provider.dart';
 import 'package:learnaria/utils/locale_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-// --- حزم الترجمة ---
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:learnaria/l10n/app_localizations.dart';
 
