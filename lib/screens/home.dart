@@ -739,7 +739,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           isPaid 
                             ? (locale == 'ar' ? 'تم الدفع بنجاح' : 'Paid Successfully')
-                            : (locale == 'ar' ? 'يرجى تسديد الاشتراك الشهري' : 'Please settle the monthly fee'),
+                            : (locale == 'ar' ? 'يرجي دفع المصاريف الشهرية' : 'Please settle the monthly fee'),
                           style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54),
                         ),
                       ],
