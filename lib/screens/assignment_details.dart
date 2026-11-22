@@ -127,7 +127,7 @@ class AssignmentDetailsScreen extends StatelessWidget {
                                             ),
                                             const SizedBox(width: 12),
                                             // Submission badge (only for homework)
-                                            if (assignment.assignmentName.contains("واجب"))
+                                            if (assignment.isHomework)
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                 decoration: BoxDecoration(
@@ -154,8 +154,8 @@ class AssignmentDetailsScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 10),
                                   
-                                  // Grade display
-                                  if (isGraded || !assignment.assignmentName.contains("واجب"))
+                                  // Grade display (for exams or graded items)
+                                  if (assignment.isExam || isGraded)
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(

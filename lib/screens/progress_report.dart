@@ -68,13 +68,14 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     final attendanceRate = hasAttendance ? (presentAttendance / totalAttendance * 100) : 0.0;
 
     // 2. Homework (Base 30%)
-    final totalHW = report.grades.length;
-    final submittedHW = report.grades.where((g) => g.submitted).length;
+    final homeworks = report.homeworks;
+    final totalHW = homeworks.length;
+    final submittedHW = homeworks.where((g) => g.submitted).length;
     final hasHomework = totalHW > 0;
     final homeworkRate = hasHomework ? (submittedHW / totalHW * 100) : 0.0;
 
     // 3. Exams (Base 40%)
-    final graded = report.grades.where((g) => g.score != null).toList();
+    final graded = report.exams.where((g) => g.score != null).toList();
     final hasExams = graded.isNotEmpty;
     final examAverage = hasExams
         ? (graded.map((g) => g.totalMark > 0 ? (g.score! / g.totalMark) * 100 : 0.0).reduce((a, b) => a + b) / graded.length)
@@ -122,13 +123,18 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
     if (_dashboardData == null || _dashboardData!.reportsByTeacher.isEmpty) return 0;
     
     double totalRates = 0.0;
+    int subjectsWithHW = 0;
     for (var report in _dashboardData!.reportsByTeacher) {
-      final totalHW = report.grades.length;
-      final submittedHW = report.grades.where((g) => g.submitted).length;
-      final homeworkRate = totalHW > 0 ? (submittedHW / totalHW * 100) : 0.0;
-      totalRates += homeworkRate;
+      final homeworks = report.homeworks;
+      final totalHW = homeworks.length;
+      final submittedHW = homeworks.where((g) => g.submitted).length;
+      if (totalHW > 0) {
+        final homeworkRate = (submittedHW / totalHW * 100);
+        totalRates += homeworkRate;
+        subjectsWithHW++;
+      }
     }
-    return (totalRates / _dashboardData!.reportsByTeacher.length).toInt();
+    return subjectsWithHW > 0 ? (totalRates / subjectsWithHW).toInt() : 0;
   }
 
   Widget _buildChildrenTabs(Color textColor) {
@@ -440,13 +446,14 @@ class _ProgressReportScreenState extends State<ProgressReportScreen> {
         final hasAttendance = totalAttendance > 0;
 
         // Homework
-        final totalHW = report.grades.length;
-        final submittedHW = report.grades.where((g) => g.submitted).length;
+        final homeworks = report.homeworks;
+        final totalHW = homeworks.length;
+        final submittedHW = homeworks.where((g) => g.submitted).length;
         final homeworkPercent = totalHW > 0 ? (submittedHW / totalHW * 100).toInt() : 0;
         final hasHomework = totalHW > 0;
 
         // Exams
-        final graded = report.grades.where((g) => g.score != null).toList();
+        final graded = report.exams.where((g) => g.score != null).toList();
         final examAvg = graded.isNotEmpty
             ? (graded.map((g) => g.totalMark > 0 ? (g.score! / g.totalMark) * 100 : 0.0).reduce((a, b) => a + b) / graded.length).toInt()
             : 0;

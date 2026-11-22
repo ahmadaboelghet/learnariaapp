@@ -191,17 +191,18 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_dashboardData == null) return 0;
     return _dashboardData!.reportsByTeacher
         .expand((report) => report.grades)
-        .where((grade) => grade.submitted == true)
+        .where((grade) => grade.isHomework && grade.submitted == true)
         .length;
   }
 
   // --- دالة لحساب الواجبات التي لم يتم تسليمها ---
   int get notSubmittedAssignmentsCount {
     if (_dashboardData == null) return 0;
-    final totalAssignments = _dashboardData!.reportsByTeacher
+    final totalHw = _dashboardData!.reportsByTeacher
         .expand((report) => report.grades)
+        .where((grade) => grade.isHomework)
         .length;
-    return totalAssignments - submittedAssignmentsCount;
+    return totalHw - submittedAssignmentsCount;
   }
 
   int get overallAttendancePercentage {
@@ -530,9 +531,9 @@ class _HomeScreenState extends State<HomeScreen> {
           }
           final attendancePercent = allAttendance.isEmpty ? 0 : (present / allAttendance.length * 100).toInt();
           
-          // According to original logic, total assignments = grades.length
-          final totalHw = report.grades.length;
-          final submittedHw = report.grades.where((g) => g.submitted == true).length;
+          final homeworkList = report.grades.where((g) => g.isHomework).toList();
+          final totalHw = homeworkList.length;
+          final submittedHw = homeworkList.where((g) => g.submitted == true).length;
           final notSubmitted = totalHw - submittedHw;
           
           final paymentList = _getGroupPaymentsForMonth(_selectedPaymentMonth);

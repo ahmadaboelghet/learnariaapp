@@ -14,6 +14,9 @@ class TeacherReport {
   final List<ScheduleEntry> schedule;
   final List<PaymentRecord> payments;
 
+  List<GradeRecord> get homeworks => grades.where((g) => g.isHomework).toList();
+  List<GradeRecord> get exams => grades.where((g) => g.isExam).toList();
+
   TeacherReport({
     required this.teacherId,
     required this.teacherName,
@@ -60,6 +63,7 @@ class GradeRecord {
   final String date;
   final bool submitted; // To track if the assignment was handed in
   final int totalMark;
+  final String? type; // 'exam' or 'homework'
 
   GradeRecord({
     required this.studentName,
@@ -68,7 +72,31 @@ class GradeRecord {
     required this.date,
     required this.submitted,
     this.totalMark = 30, // Default to 30 as configured in the system
+    this.type,
   });
+
+  bool get isHomework {
+    if (type == 'homework') return true;
+    if (type == 'exam') return false;
+    final name = assignmentName.toLowerCase();
+    if (name.contains('واجب') || name.contains('hw') || name.contains('homework')) return true;
+    return false;
+  }
+
+  bool get isExam {
+    if (type == 'exam') return true;
+    if (type == 'homework') return false;
+    final name = assignmentName.toLowerCase();
+    if (name.contains('امتحان') ||
+        name.contains('اختبار') ||
+        name.contains('شامل') ||
+        name.contains('quiz') ||
+        name.contains('exam') ||
+        name.contains('test')) {
+      return true;
+    }
+    return !isHomework;
+  }
 }
 
 class ScheduleEntry {

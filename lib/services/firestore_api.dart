@@ -168,6 +168,7 @@ class FirestoreApi {
                 date: assignmentData['date'] ?? 'N/A',
                 submitted: studentScoreData['submitted'] as bool? ?? false,
                 totalMark: finalTotalMark,
+                type: assignmentData['type'] as String?,
               ));
             }
           }
@@ -396,6 +397,7 @@ class FirestoreApi {
                     date: assignmentData['date'] ?? 'N/A',
                     submitted: studentScoreData['submitted'] as bool? ?? false,
                     totalMark: finalTotalMark,
+                    type: assignmentData['type'] as String?,
                   ));
                 }
               }
