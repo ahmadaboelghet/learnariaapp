@@ -3,36 +3,36 @@
     "platforms": {
       "android": {
         "default": {
-          "projectId": "learnaria-483e7",
-          "appId": "1:573038013067:android:db33a27f5739146a7a828e",
+          "projectId": "spot-dev-17336",
+          "appId": "1:581004817275:android:c4162871a79aec83fd43de",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "ios": {
         "default": {
-          "projectId": "learnaria-483e7",
-          "appId": "1:573038013067:ios:38d4df946cf79a287a828e",
+          "projectId": "spot-dev-17336",
+          "appId": "1:581004817275:ios:239b4390171357b6fd43de",
           "uploadDebugSymbols": false,
           "fileOutput": "ios/Runner/GoogleService-Info.plist"
         }
       },
       "macos": {
         "default": {
-          "projectId": "learnaria-483e7",
-          "appId": "1:573038013067:ios:38d4df946cf79a287a828e",
+          "projectId": "spot-dev-17336",
+          "appId": "1:581004817275:ios:239b4390171357b6fd43de",
           "uploadDebugSymbols": false,
           "fileOutput": "macos/Runner/GoogleService-Info.plist"
         }
       },
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "learnaria-483e7",
+          "projectId": "spot-dev-17336",
           "configurations": {
-            "android": "1:573038013067:android:db33a27f5739146a7a828e",
-            "ios": "1:573038013067:ios:38d4df946cf79a287a828e",
-            "macos": "1:573038013067:ios:38d4df946cf79a287a828e",
-            "web": "1:573038013067:web:44b96286178e69217a828e",
-            "windows": "1:573038013067:web:7ac238c0d64dfc557a828e"
+            "android": "1:581004817275:android:c4162871a79aec83fd43de",
+            "ios": "1:581004817275:ios:239b4390171357b6fd43de",
+            "macos": "1:581004817275:ios:239b4390171357b6fd43de",
+            "web": "1:581004817275:web:59c8d43a4c4aeae7fd43de",
+            "windows": "1:581004817275:web:59c8d43a4c4aeae7fd43de"
           }
         }
       }
