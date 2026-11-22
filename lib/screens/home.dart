@@ -1438,8 +1438,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSubjectAssignmentCell({
     required String subject,
     required String teacher,
-    required int latestScore,
-    required int totalMark,
+    required num latestScore,
+    required num totalMark,
     required List<GradeRecord> allGrades,
     required AppLocalizations appLocalizations,
   }) {
@@ -1511,7 +1511,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54),
                   ),
                   Text(
-                    '$latestScore/$totalMark',
+                    '${latestScore % 1 == 0 ? latestScore.toInt() : latestScore}/${totalMark % 1 == 0 ? totalMark.toInt() : totalMark}',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor),
                   ),
                 ],

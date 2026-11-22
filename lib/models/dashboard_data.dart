@@ -59,10 +59,10 @@ class AttendanceRecord {
 class GradeRecord {
   final String studentName;
   final String assignmentName;
-  final int? score; // Can be null if not graded yet
+  final num? score; // Can be decimal like 19.5 or integer
   final String date;
   final bool submitted; // To track if the assignment was handed in
-  final int totalMark;
+  final num totalMark;
   final String? type; // 'exam' or 'homework'
 
   GradeRecord({
@@ -74,6 +74,15 @@ class GradeRecord {
     this.totalMark = 30, // Default to 30 as configured in the system
     this.type,
   });
+
+  String get scoreFormatted {
+    if (score == null) return '';
+    return score! % 1 == 0 ? score!.toInt().toString() : score!.toString();
+  }
+
+  String get totalMarkFormatted {
+    return totalMark % 1 == 0 ? totalMark.toInt().toString() : totalMark.toString();
+  }
 
   bool get isHomework {
     if (type == 'homework') return true;

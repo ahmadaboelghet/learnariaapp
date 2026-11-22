@@ -148,18 +148,18 @@ class FirestoreApi {
             final studentScoreData = scoresMap[studentId] as Map<String, dynamic>?;
             if (studentScoreData != null) {
               final scoreValue = studentScoreData['score'];
-              int? finalScore;
+              num? finalScore;
               if (scoreValue is num) {
-                finalScore = scoreValue.toInt();
+                finalScore = scoreValue;
               } else if (scoreValue is String && scoreValue.isNotEmpty) {
-                finalScore = int.tryParse(scoreValue);
+                finalScore = num.tryParse(scoreValue);
               }
               final totalMarkValue = assignmentData['totalMark'];
-              int finalTotalMark = 30;
+              num finalTotalMark = 30;
               if (totalMarkValue is num) {
-                finalTotalMark = totalMarkValue.toInt();
+                finalTotalMark = totalMarkValue;
               } else if (totalMarkValue is String && totalMarkValue.isNotEmpty) {
-                finalTotalMark = int.tryParse(totalMarkValue) ?? 30;
+                finalTotalMark = num.tryParse(totalMarkValue) ?? 30;
               }
               reportsMap[teacherId]!.grades.add(GradeRecord(
                 studentName: studentName,
@@ -377,18 +377,18 @@ class FirestoreApi {
                 final studentScoreData = scoresMap[studentId] as Map<String, dynamic>?;
                 if (studentScoreData != null) {
                   final scoreValue = studentScoreData['score'];
-                  int? finalScore;
+                  num? finalScore;
                   if (scoreValue is num) {
-                    finalScore = scoreValue.toInt();
+                    finalScore = scoreValue;
                   } else if (scoreValue is String && scoreValue.isNotEmpty) {
-                    finalScore = int.tryParse(scoreValue);
+                    finalScore = num.tryParse(scoreValue);
                   }
                   final totalMarkValue = assignmentData['totalMark'];
-                  int finalTotalMark = 30;
+                  num finalTotalMark = 30;
                   if (totalMarkValue is num) {
-                    finalTotalMark = totalMarkValue.toInt();
+                    finalTotalMark = totalMarkValue;
                   } else if (totalMarkValue is String && totalMarkValue.isNotEmpty) {
-                    finalTotalMark = int.tryParse(totalMarkValue) ?? 30;
+                    finalTotalMark = num.tryParse(totalMarkValue) ?? 30;
                   }
                   reportsMap[teacherId]!.grades.add(GradeRecord(
                     studentName: studentName,

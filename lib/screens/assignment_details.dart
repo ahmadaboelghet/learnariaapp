@@ -69,11 +69,12 @@ class AssignmentDetailsScreen extends StatelessWidget {
                           final assignment = grades[index];
                           final isGraded = assignment.score != null;
                           final score = assignment.score ?? 0;
+                          final percentage = assignment.totalMark > 0 ? ((score / assignment.totalMark) * 100) : 0;
     
                           // Dynamic badge color for grade
-                          final Color gradeColor = score >= 85
+                          final Color gradeColor = percentage >= 85
                               ? AppColors.greenSuccess
-                              : (score >= 65 ? AppColors.darkGrey : AppColors.errorRed);
+                              : (percentage >= 65 ? AppColors.darkGrey : AppColors.errorRed);
     
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12.0),
@@ -163,7 +164,7 @@ class AssignmentDetailsScreen extends StatelessWidget {
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
-                                        isGraded ? '$score/${assignment.totalMark}' : (locale == 'ar' ? 'لم ترصد' : 'Not graded'),
+                                        isGraded ? '${assignment.scoreFormatted}/${assignment.totalMarkFormatted}' : (locale == 'ar' ? 'لم ترصد' : 'Not graded'),
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
